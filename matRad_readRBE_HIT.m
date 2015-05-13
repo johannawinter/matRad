@@ -1,3 +1,59 @@
+
+%%
+clc
+clear
+close all
+
+pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+[~,~,raw] = xlsread(pathSpec);
+raw = raw(2:end,2:end);
+Cnt = 1;
+for iDepth=1:79
+    s(iDepth).depthStep = iDepth;
+    s(iDepth).projectile = '12C';
+    s(iDepth).target = 'H2O';
+    s(iDepth).projectile = raw{2,13};
+    s(iDepth).peakPos = raw{2,14};
+    sParticles = {'H','He','Li','Be','B','C'};
+    sParticlesNo = {'1002','2004','3006','4008','5010','6012'};
+    for iPart = 1:length(sParticles)
+       InnerCnt = 1;
+       Elow = zeros(100000,1);
+       Emid = zeros(100000,1);
+       Ehigh = zeros(100000,1);
+       dE = zeros(100000,1);
+       dNdE = zeros(100000,1);
+       N = zeros(100000,1);
+       
+        while true
+           if strcmp(sParticlesNo(iPart),raw{Cnt,3})
+            Elow(InnerCnt) = str2num(raw{Cnt,4});
+            Emid(InnerCnt) = str2num(raw{Cnt,5});
+            Ehigh(InnerCnt) = str2num(raw{Cnt,6});
+            dE(InnerCnt) = str2num(raw{Cnt,7});
+            dNdE(InnerCnt) = str2num(raw{Cnt,8});
+            N(InnerCnt) = str2num(raw{Cnt,9});
+            InnerCnt = InnerCnt+1;
+           else
+               % save 
+               break
+           end
+        end
+        
+    end
+      
+    
+end  
+
+
+
+
+
+
+
+
+
+%%
 clc
 clear
 close all
@@ -91,16 +147,5 @@ for j = 1:23
 end
 
 
-%%
-% clc
-% clear
-% close all
-% 
-% pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV08000.spc';
-% 
-% fileID = fopen(pathSpec);
-% data = fread(fileID);
-% 
-% tgspcread
 
 
