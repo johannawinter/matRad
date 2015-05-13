@@ -74,30 +74,33 @@ end
 
 
 %% plot RBE spectra of specific cell type;
+for j = 1:23
+    CellType = j;
+    figure,
 
-CellType = 10;
-figure,
+    for i = 1:length(Spectra)
+        vX = [meta(CellType).(Spectra{i}){1,2}(:).Energy];
+        vY = [meta(CellType).(Spectra{i}){1,2}(:).RBE];
+        plot(vX,vY,'Linewidth',3),hold on
+    end
 
-
-for i = 1:length(Spectra)
-    vX = [meta(CellType).(Spectra{i}){1,2}(:).Energy];
-    vY = [meta(CellType).(Spectra{i}){1,2}(:).RBE];
-    plot(vX,vY,'Linewidth',3),hold on
+    str = sprintf('celltype: alpha_x: %f and beta_x: %f',meta(CellType).alpha,meta(CellType).beta);
+    legend(Spectra),xlabel('energy [MeV/u]'),ylabel('RBE'),grid on
+    title(str);
+    set(gca,'FontSize',16)
 end
 
-str = sprintf('celltype: alpha_x: %f and beta_x: %f',meta(CellType).alpha,meta(CellType).beta);
-legend(Spectra),xlabel('energy [MeV/u]'),ylabel('RBE'),grid on
-title(str);
-set(gca,'FontSize',16)
 
-
-
-
-
-
-
-
-
-
+%%
+% clc
+% clear
+% close all
+% 
+% pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV08000.spc';
+% 
+% fileID = fopen(pathSpec);
+% data = fread(fileID);
+% 
+% tgspcread
 
 
