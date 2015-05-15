@@ -4,50 +4,80 @@ clc
 clear
 close all
 
-pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+%pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
 [~,~,raw] = xlsread(pathSpec);
 raw = raw(2:end,2:end);
+rawNum = str2double(raw(:,1:10));
 Cnt = 1;
 for iDepth=1:79
-    s(iDepth).depthStep = iDepth;
-    s(iDepth).projectile = '12C';
-    s(iDepth).target = 'H2O';
-    s(iDepth).projectile = raw{2,13};
-    s(iDepth).peakPos = raw{2,14};
+    s(iDepth,1).depthStep = iDepth;
+    s(iDepth,1).projectile = '12C';
+    s(iDepth,1).target = 'H2O';
+    s(iDepth,1).energy = raw{2,13};
+    s(iDepth,1).peakPos = raw{2,14};
     sParticles = {'H','He','Li','Be','B','C'};
     sParticlesNo = {'1002','2004','3006','4008','5010','6012'};
     for iPart = 1:length(sParticles)
        InnerCnt = 1;
-       Elow = zeros(100000,1);
-       Emid = zeros(100000,1);
-       Ehigh = zeros(100000,1);
-       dE = zeros(100000,1);
-       dNdE = zeros(100000,1);
-       N = zeros(100000,1);
-       
+      
         while true
+            
+            if Cnt > length(raw)
+                break;
+            end
+            
            if strcmp(sParticlesNo(iPart),raw{Cnt,3})
-            Elow(InnerCnt) = str2num(raw{Cnt,4});
-            Emid(InnerCnt) = str2num(raw{Cnt,5});
-            Ehigh(InnerCnt) = str2num(raw{Cnt,6});
-            dE(InnerCnt) = str2num(raw{Cnt,7});
-            dNdE(InnerCnt) = str2num(raw{Cnt,8});
-            N(InnerCnt) = str2num(raw{Cnt,9});
+            Elow{InnerCnt} = rawNum(Cnt,4);
+            Emid{InnerCnt} = rawNum(Cnt,5);
+            Ehigh{InnerCnt} = rawNum(Cnt,6);
+            dE{InnerCnt} = rawNum(Cnt,7);
+            dNdE{InnerCnt} = rawNum(Cnt,8);
+            N{InnerCnt} = rawNum(Cnt,9);
             InnerCnt = InnerCnt+1;
+            Cnt = Cnt +1;
            else
-               % save 
+               s(iDepth,1).(sParticles{iPart}).Elow = cell2mat(Elow);
+               Elow = [];
+               s(iDepth,1).(sParticles{iPart}).Emid = cell2mat(Emid);
+               Emid = [];
+               s(iDepth,1).(sParticles{iPart}).Ehigh = cell2mat(Ehigh);
+               Ehigh=[];
+               s(iDepth,1).(sParticles{iPart}).dE = cell2mat(dE);
+               dE=[];
+               s(iDepth,1).(sParticles{iPart}).dNdE = cell2mat(dNdE);
+               dNdE=[];
+               s(iDepth,1).(sParticles{iPart}).N = cell2mat(N);
+               N=[];
+               % stop while loop
                break
            end
         end
         
     end
-      
-    
-end  
+         
+end
 
+%% x axis is not linear spaced - cumsum or something similar
+vY = zeros(78,1);
+for i = 1:78
+   vY(i) = sum(s(i).C.N);
+end
+figure,plot(1:1:78,vY);
 
-
-
+%% position 50 is right before brag peak
+depth = 50;
+data = s(depth,1);
+sColor={'cyan','magenta','green','black','blue','red'};
+h=figure,
+for i = 1:length(sParticles)
+ plot(data.(sParticles{i}).Emid,data.(sParticles{i}).dNdE,sColor{i},'Linewidth',3),hold on
+end
+legend(sParticles),grid on, xlabel('Energy'),title('number of particles');
+set(gca,'FontSize',14');
+set(gca,'YScale','log');
+set(gca,'YLim',[.5E-5,0.1]);
+%% 
 
 
 
