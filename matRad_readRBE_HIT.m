@@ -4,14 +4,15 @@ clc
 clear
 close all
 load('vDepthRel.mat');
-%pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
-pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+%pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
 [~,~,raw] = xlsread(pathSpec);
 raw = raw(2:end,2:end);
 rawNum = str2double(raw(:,1:10));
 Cnt = 1;
 for iDepth=1:79
     s(iDepth,1).depthStep = iDepth;
+    s(iDepth,1).depth = rawNum(Cnt,2);
     s(iDepth,1).projectile = '12C';
     s(iDepth,1).target = 'H2O';
     s(iDepth,1).energy = raw{2,13};
@@ -60,16 +61,17 @@ end
 
 %% I need to access the real depts - not only the relative ones
 sColor={'cyan','magenta','green','black','blue','red'};
+vDepth = [s.depth];
 figure,
 for j = 1:length(sParticles)
     vY = zeros(78,1);
     for i = 1:78
         vY(i) = sum(s(i).(sParticles{j}).N);
     end
-    plot(vDepthRel,vY,sColor{j},'Linewidth',3),hold on
+    plot(vDepth(1:78),vY,sColor{j},'Linewidth',3),hold on
 end
 
-legend(sParticles),grid on, xlabel('Energy','FontSize',14),ylabel('rel. particle fraction','FontSize',14),
+legend(sParticles),grid on, xlabel('depth in cm','FontSize',14),ylabel('rel. particle fraction','FontSize',14),
 title('Energy = 350 MeV/u','FontSize',14);
 set(gca,'FontSize',14');
 set(gca,'YScale','log');
@@ -88,9 +90,31 @@ title('depth = 20,9cm','FontSize',14),
 set(gca,'FontSize',14');
 set(gca,'YScale','log');
 set(gca,'YLim',[.5E-5,0.1]);
+
+%% load depth dose distributions
+load('carbonBaseDataHIT.mat');
+
+[~,idx]=min(abs([carbonBaseDataHIT.energy]-s(1).energy));
+baseData = carbonBaseDataHIT(idx);
+figure,subplot(121),plot(baseData.depth,baseData.Z),title('depth dose curve')
+
+Z = interp1(baseData.depth,baseData.Z,vDepth(1:78)*10)'.*vY;
+subplot(122),plot(vDepth(1:78),Z),title('depth dose curve')
+
+%% calculate stopping power in water according to bethe bloch
+c = 300000000;
+Zt = 1;
+At = 1;
+beta = sqrt(1-(1+(E/(m*c^2)))^-2);
 %% 
-
-
+vX = -10:0.1:10;
+sigma1 = 1;
+sigma2 = 10;
+w = 0.15;
+vY_narr = 1/(sqrt(2*pi*(sigma1^2)))*exp(-(vX).^2/(2*(sigma1^2)));
+vY_bro = 1/(sqrt(2*pi*(sigma2^2)))*exp(-(vX).^2/(2*(sigma2^2)));
+vY = (1-w)*vY_narr+w*vY_bro;
+figure,plot(vX,vY)
 
 
 
