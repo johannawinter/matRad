@@ -3,7 +3,7 @@
 clc
 clear
 close all
-
+load('vDepthRel.mat');
 %pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
 pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
 [~,~,raw] = xlsread(pathSpec);
@@ -58,22 +58,33 @@ for iDepth=1:79
          
 end
 
-%% x axis is not linear spaced - cumsum or something similar
-vY = zeros(78,1);
-for i = 1:78
-   vY(i) = sum(s(i).C.N);
+%% I need to access the real depts - not only the relative ones
+sColor={'cyan','magenta','green','black','blue','red'};
+figure,
+for j = 1:length(sParticles)
+    vY = zeros(78,1);
+    for i = 1:78
+        vY(i) = sum(s(i).(sParticles{j}).N);
+    end
+    plot(vDepthRel,vY,sColor{j},'Linewidth',3),hold on
 end
-figure,plot(1:1:78,vY);
+
+legend(sParticles),grid on, xlabel('Energy','FontSize',14),ylabel('rel. particle fraction','FontSize',14),
+title('Energy = 350 MeV/u','FontSize',14);
+set(gca,'FontSize',14');
+set(gca,'YScale','log');
+set(gca,'YLim',[1E-3,10]);
+
 
 %% position 50 is right before brag peak
 depth = 50;
 data = s(depth,1);
-sColor={'cyan','magenta','green','black','blue','red'};
 h=figure,
 for i = 1:length(sParticles)
  plot(data.(sParticles{i}).Emid,data.(sParticles{i}).dNdE,sColor{i},'Linewidth',3),hold on
 end
-legend(sParticles),grid on, xlabel('Energy'),title('number of particles');
+legend(sParticles),grid on, xlabel('Energy','FontSize',14),ylabel('number of particles','FontSize',14);
+title('depth = 20,9cm','FontSize',14),
 set(gca,'FontSize',14');
 set(gca,'YScale','log');
 set(gca,'YLim',[.5E-5,0.1]);
