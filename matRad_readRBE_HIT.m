@@ -71,7 +71,7 @@ for j = 1:length(sParticles)
     plot(vDepth(1:78),vY,sColor{j},'Linewidth',3),hold on
 end
 
-legend(sParticles),grid on, xlabel('depth in cm','FontSize',14),ylabel('rel. particle fraction','FontSize',14),
+legend(sParticles),grid on, xlabel('depth in cm','FontSize',14),ylabel('rel. particle fraction - fluence in cm^2','FontSize',14),
 title('Energy = 350 MeV/u','FontSize',14);
 set(gca,'FontSize',14');
 set(gca,'YScale','log');
@@ -85,28 +85,91 @@ h=figure,
 for i = 1:length(sParticles)
  plot(data.(sParticles{i}).Emid,data.(sParticles{i}).dNdE,sColor{i},'Linewidth',3),hold on
 end
-legend(sParticles),grid on, xlabel('Energy','FontSize',14),ylabel('number of particles','FontSize',14);
+legend(sParticles),grid on, xlabel('Energy','FontSize',14),ylabel('rel. number of particles per energy','FontSize',14);
 title('depth = 20,9cm','FontSize',14),
 set(gca,'FontSize',14');
 set(gca,'YScale','log');
 set(gca,'YLim',[.5E-5,0.1]);
+
+%% load stopping powers
+path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
+fileID = fopen(path);
+data = textscan(fileID,'%s');
+data = data{1,1};
+%skip meta info
+data = data(28:end,:);
+Cnt = 1;
+InnerCnt=1;
+CntParticle = 1;
+for i = 1:length(data)
+   if Cnt>length(data)
+        break; 
+   end
+   
+   if strcmp(data(Cnt,1),'!dedx')
+        Cnt=Cnt+1;
+        
+        while ~strcmp(data(Cnt,1),'!projectile')
+            SP.(sParticles{CntParticle}).energy{InnerCnt} = str2double(data(Cnt,1));
+            SP.(sParticles{CntParticle}).dEdx{InnerCnt} = str2double(data(Cnt+1,1));
+            SP.(sParticles{CntParticle}).range{InnerCnt} = str2double(data(Cnt+2,1));
+            InnerCnt = InnerCnt+1;
+            Cnt = Cnt+3;
+            if Cnt>length(data)
+               break; 
+            end
+        end
+        SP.(sParticles{CntParticle}).energy =(cell2mat(SP.(sParticles{CntParticle}).energy))';
+        SP.(sParticles{CntParticle}).dEdx =(cell2mat(SP.(sParticles{CntParticle}).dEdx))';
+        SP.(sParticles{CntParticle}).range =(cell2mat(SP.(sParticles{CntParticle}).range))';
+        CntParticle = CntParticle+1;
+        InnerCnt = 1;
+   else
+       Cnt = Cnt+1;
+   end
+end
+
+figure,
+for i = 1:length(sParticles)
+    plot(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,sColor{i},'Linewidth',3),hold on
+end
+legend(sParticles),grid on
+set(gca,'YScale','log','XScale','log'),xlabel('Energy in MeV/u'),ylabel('stopping power in MeVcm^2/g'),
+title('stopping powers of different particles');
 
 %% load depth dose distributions
 load('carbonBaseDataHIT.mat');
 
 [~,idx]=min(abs([carbonBaseDataHIT.energy]-s(1).energy));
 baseData = carbonBaseDataHIT(idx);
-figure,subplot(121),plot(baseData.depth,baseData.Z),title('depth dose curve')
+D_accum = zeros(78,1);
+figure,subplot(121),plt(baseData.depth,baseData.Z,'Linewidth',3),title('depth dose curve of all fragments'),grid on
 
-Z = interp1(baseData.depth,baseData.Z,vDepth(1:78)*10)'.*vY;
-subplot(122),plot(vDepth(1:78),Z),title('depth dose curve')
+for i = 1:length(sParticles)
+    for depth = 1:78;  
+        D{depth} = s(depth,1).(sParticles{i}).N* ...
+            interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,s(depth,1).(sParticles{i}).Emid)'; 
+    end
+    subplot(122),plot(vDepth(1:78),cell2mat(D),sColor{i},'Linewidth',3),hold on
+    D_accum = D_accum+cell2mat(D)';
+end
+subplot(122),plot(vDepth(1:78),D_accum,'Linewidth',3)
+set(gca,'YScale','log')
+set(gca,'YLim',[0.1 1000])
+xlabel('depth in cm')
+ylabel('dose in Gy')
+title('particle dose distributions')
+sParticles{1,7}='total dose';
+legend(sParticles);
+set(gca,'FontSize',14);
+grid on
+%% compare depth dose curves
+vD = baseData.depth/100;
+figure,plot(vD,baseData.Z,'LineWidth',3),hold on
+       plot(vDepth(1:78),D_accum,'LineWidth',3)
 
-%% calculate stopping power in water according to bethe bloch
-c = 300000000;
-Zt = 1;
-At = 1;
-beta = sqrt(1-(1+(E/(m*c^2)))^-2);
-%% 
+
+%% double lateral gaussian
 vX = -10:0.1:10;
 sigma1 = 1;
 sigma2 = 10;
@@ -118,10 +181,8 @@ figure,plot(vX,vY)
 
 
 
-%%
-clc
-clear
-close all
+%% load spc files
+
 
 Spectra = {'hydrogen','helium','lithium','beryllium','bor','carbon','nitrogen','oxygen','fluor','neon'};
 
