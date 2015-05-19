@@ -4,8 +4,8 @@ clc
 clear
 close all
 load('vDepthRel.mat');
-pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
-%pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+%pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
 [~,~,raw] = xlsread(pathSpec);
 raw = raw(2:end,2:end);
 rawNum = str2double(raw(:,1:10));
@@ -92,7 +92,8 @@ set(gca,'YScale','log');
 set(gca,'YLim',[.5E-5,0.1]);
 
 %% load stopping powers
-path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
+%path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
+path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
 fileID = fopen(path);
 data = textscan(fileID,'%s');
 data = data{1,1};
@@ -143,17 +144,17 @@ load('carbonBaseDataHIT.mat');
 [~,idx]=min(abs([carbonBaseDataHIT.energy]-s(1).energy));
 baseData = carbonBaseDataHIT(idx);
 D_accum = zeros(78,1);
-figure,subplot(121),plt(baseData.depth,baseData.Z,'Linewidth',3),title('depth dose curve of all fragments'),grid on
+figure,%subplot(121),plt(baseData.depth,baseData.Z,'Linewidth',3),title('depth dose curve of all fragments'),grid on
 
 for i = 1:length(sParticles)
     for depth = 1:78;  
         D{depth} = s(depth,1).(sParticles{i}).N* ...
             interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,s(depth,1).(sParticles{i}).Emid)'; 
     end
-    subplot(122),plot(vDepth(1:78),cell2mat(D),sColor{i},'Linewidth',3),hold on
+    plot(vDepth(1:78),cell2mat(D),sColor{i},'Linewidth',3),hold on
     D_accum = D_accum+cell2mat(D)';
 end
-subplot(122),plot(vDepth(1:78),D_accum,'Linewidth',3)
+plot(vDepth(1:78),D_accum,'Linewidth',3)
 set(gca,'YScale','log')
 set(gca,'YLim',[0.1 1000])
 xlabel('depth in cm')
@@ -165,9 +166,9 @@ set(gca,'FontSize',14);
 grid on
 %% compare depth dose curves
 vD = baseData.depth/100;
-figure,plot(vD,baseData.Z,'LineWidth',3),hold on
+figure,plot(vD,baseData.Z,'r','LineWidth',3),hold on,grid on
        plot(vDepth(1:78),D_accum,'LineWidth',3)
-
+legend({'ddd orginal','ddd calculated'})
 
 %% double lateral gaussian
 vX = -10:0.1:10;
@@ -181,12 +182,13 @@ figure,plot(vX,vY)
 
 
 
-%% load spc files
+%% load RBE spc files
 
 
 Spectra = {'hydrogen','helium','lithium','beryllium','bor','carbon','nitrogen','oxygen','fluor','neon'};
 
-path = 'E:\TRiP98DATA_HIT-20131120\RBE';
+%path = 'E:\TRiP98DATA_HIT-20131120\RBE';
+path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
 folderInfo = dir(path);
 CntFiles = 1;
 
