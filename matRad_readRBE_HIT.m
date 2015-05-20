@@ -4,8 +4,8 @@ clc
 clear
 close all
 load('vDepthRel.mat');
-%pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
-pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+%pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
 [~,~,raw] = xlsread(pathSpec);
 raw = raw(2:end,2:end);
 rawNum = str2double(raw(:,1:10));
@@ -55,11 +55,13 @@ for iDepth=1:79
            end
         end
         
-    end
-         
+    end 
 end
 
-%% I need to access the real depts - not only the relative ones
+
+
+
+%% 
 sColor={'cyan','magenta','green','black','blue','red'};
 vDepth = [s.depth];
 figure,
@@ -92,8 +94,8 @@ set(gca,'YScale','log');
 set(gca,'YLim',[.5E-5,0.1]);
 
 %% load stopping powers
-%path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
-path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
+path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
+%path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
 fileID = fopen(path);
 data = textscan(fileID,'%s');
 data = data{1,1};
@@ -139,13 +141,13 @@ set(gca,'YScale','log','XScale','log'),xlabel('Energy in MeV/u'),ylabel('stoppin
 title('stopping powers of different particles');
 
 %% load depth dose distributions
-load('carbonBaseDataHIT.mat');
+load(['baseDataHIT' filesep 'carbonBaseDataHIT.mat']);
 
 [~,idx]=min(abs([carbonBaseDataHIT.energy]-s(1).energy));
 baseData = carbonBaseDataHIT(idx);
 D_accum = zeros(78,1);
-figure,%subplot(121),plt(baseData.depth,baseData.Z,'Linewidth',3),title('depth dose curve of all fragments'),grid on
-
+sParticles=sParticles(1:6);
+figure,
 for i = 1:length(sParticles)
     for depth = 1:78;  
         D{depth} = s(depth,1).(sParticles{i}).N* ...
@@ -164,6 +166,36 @@ sParticles{1,7}='total dose';
 legend(sParticles);
 set(gca,'FontSize',14);
 grid on
+
+%% plot LET
+LET = zeros(78,1);
+sParticles=sParticles(1:6);
+figure,
+for i = 1:length(sParticles)
+    for depth = 1:78; 
+        
+        SP_p = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,s(depth,1).(sParticles{i}).Emid)'; 
+        dose{depth} = (s(depth,1).(sParticles{i}).N* SP_p);
+            
+        
+        let_p{depth}=(s(depth,1).(sParticles{i}).N*(SP_p.^2))./dose{depth};
+           
+        
+    end
+    plot(vDepth(1:78),cell2mat(let_p),sColor{i},'Linewidth',3),hold on
+    LET = LET + (cell2mat(let_p))';
+end
+plot(vDepth(1:78),LET,'Linewidth',3)
+set(gca,'YScale','log')
+set(gca,'YLim',[1 10000])
+xlabel('depth in cm')
+ylabel('LET')
+title('particle LET distributions')
+sParticles{1,7}='total let';
+legend(sParticles);
+set(gca,'FontSize',14);
+grid on
+
 %% compare depth dose curves
 vD = baseData.depth/100;
 figure,plot(vD,baseData.Z,'r','LineWidth',3),hold on,grid on
@@ -187,8 +219,8 @@ figure,plot(vX,vY)
 
 Spectra = {'hydrogen','helium','lithium','beryllium','bor','carbon','nitrogen','oxygen','fluor','neon'};
 
-%path = 'E:\TRiP98DATA_HIT-20131120\RBE';
-path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
+path = 'E:\TRiP98DATA_HIT-20131120\RBE';
+%path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
 folderInfo = dir(path);
 CntFiles = 1;
 
@@ -241,14 +273,14 @@ for i = 1:length(folderInfo)
                      isNumber = false;
                      break;
                  else
-                     s(CntStruct).Energy = str2num(data{CntDat,1});
-                     s(CntStruct).RBE = str2num(data{CntDat+1,1});
+                     rbeDat(CntStruct).Energy = str2num(data{CntDat,1});
+                     rbeDat(CntStruct).RBE = str2num(data{CntDat+1,1});
                      CntStruct = CntStruct+1;
                      CntDat = CntDat+2;
                  end
             end
 
-            meta(CntFiles).(Spectra{SpecCnt}){1,2} = s;
+            meta(CntFiles).(Spectra{SpecCnt}){1,2} = rbeDat;
             Cnt = CntDat;
         end
         
