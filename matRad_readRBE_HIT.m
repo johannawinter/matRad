@@ -4,8 +4,8 @@ clc
 clear
 close all
 load('vDepthRel.mat');
-%pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
-pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV28000.xlsx';
+%pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
 [~,~,raw] = xlsread(pathSpec);
 raw = raw(2:end,2:end);
 rawNum = str2double(raw(:,1:10));
@@ -73,11 +73,11 @@ for j = 1:length(sParticles)
     plot(vDepth(1:78),vY,sColor{j},'Linewidth',3),hold on
 end
 
-legend(sParticles),grid on, xlabel('depth in cm','FontSize',14),ylabel('rel. particle fraction - fluence in cm^2','FontSize',14),
+legend(sParticles),grid on, xlabel('depth in cm','FontSize',14),ylabel('rel. particle number','FontSize',14),
 title('Energy = 350 MeV/u','FontSize',14);
 set(gca,'FontSize',14');
 set(gca,'YScale','log');
-set(gca,'YLim',[1E-3,10]);
+set(gca,'YLim',[1E-5,2]);
 
 
 %% position 50 is right before brag peak
@@ -87,15 +87,15 @@ h=figure,
 for i = 1:length(sParticles)
  plot(data.(sParticles{i}).Emid,data.(sParticles{i}).dNdE,sColor{i},'Linewidth',3),hold on
 end
-legend(sParticles),grid on, xlabel('Energy','FontSize',14),ylabel('rel. number of particles per energy','FontSize',14);
-title('depth = 20,9cm','FontSize',14),
+legend(sParticles),grid on, xlabel('Energy in [MeV/u]','FontSize',14),ylabel('rel. number of particles per energy','FontSize',14);
+title('right before bragg peak','FontSize',14),
 set(gca,'FontSize',14');
 set(gca,'YScale','log');
 set(gca,'YLim',[.5E-5,0.1]);
 
 %% load stopping powers
-%path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
-path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
+path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
+%path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
 fileID = fopen(path);
 data = textscan(fileID,'%s');
 data = data{1,1};
@@ -143,15 +143,15 @@ title('stopping powers of different particles');
 %% load depth dose distributions
 load(['baseDataHIT' filesep 'carbonBaseDataHIT.mat']);
 
-[~,idx]=min(abs([carbonBaseDataHIT.energy]-s(1).energy));
+[~,idx]=min(abs([carbonBaseDataHIT.energy]-str2num(s(1).energy)));
 baseData = carbonBaseDataHIT(idx);
 D_accum = zeros(78,1);
 sParticles=sParticles(1:6);
 figure,
 for i = 1:length(sParticles)
     for depth = 1:78;  
-        D{depth} = s(depth,1).(sParticles{i}).N* ...
-            interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,s(depth,1).(sParticles{i}).Emid)'; 
+        SP_interp = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,s(depth,1).(sParticles{i}).Emid,'linear','extrap')';
+        D{depth} = s(depth,1).(sParticles{i}).N*SP_interp; 
     end
     plot(vDepth(1:78),cell2mat(D),sColor{i},'Linewidth',3),hold on
     D_accum = D_accum+cell2mat(D)';
@@ -159,8 +159,8 @@ end
 plot(vDepth(1:78),D_accum,'Linewidth',3)
 set(gca,'YScale','log')
 set(gca,'YLim',[0.1 1000])
-xlabel('depth in cm')
-ylabel('dose in Gy')
+xlabel('depth in [cm]')
+ylabel('dose in [Gy]')
 title('particle dose distributions')
 sParticles{1,7}='total dose';
 legend(sParticles);
@@ -171,25 +171,30 @@ grid on
 LET = zeros(78,1);
 sParticles=sParticles(1:6);
 figure,
+
 for i = 1:length(sParticles)
+    LET_p=[];
+    LETmax = 0;
     for depth = 1:78; 
         
-        SP_p = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,s(depth,1).(sParticles{i}).Emid)'; 
-        dose{depth} = (s(depth,1).(sParticles{i}).N* SP_p);
-            
-        
-        let_p{depth}=(s(depth,1).(sParticles{i}).N*(SP_p.^2))./dose{depth};
-           
-        
+        SP_interp = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,s(depth,1).(sParticles{i}).Emid,'linear','extrap')'; 
+        dose{depth} = (s(depth,1).(sParticles{i}).N * SP_interp);   
+        LET_p{depth}=(s(depth,1).(sParticles{i}).N*(SP_interp.^2))./dose{depth};
+        % this can be excluded
+        if strcmp(sParticles{i},'C') &&  LET_p{depth}>LETmax
+           LETmax =  LET_p{depth};
+        elseif strcmp(sParticles{i},'C') && depth>10 && LET_p{depth}<LETmax
+           LET_p{depth}=0;
+        end
     end
-    plot(vDepth(1:78),cell2mat(let_p),sColor{i},'Linewidth',3),hold on
-    LET = LET + (cell2mat(let_p))';
+    plot(vDepth(1:78),cell2mat(LET_p)/10,sColor{i},'Linewidth',3),hold on
+    LET = LET + (cell2mat(LET_p))';
 end
-plot(vDepth(1:78),LET,'Linewidth',3)
+plot(vDepth(1:78),LET/10,'Linewidth',3)
 set(gca,'YScale','log')
-set(gca,'YLim',[1 10000])
+set(gca,'YLim',[1 1000])
 xlabel('depth in cm')
-ylabel('LET')
+ylabel('LET in [keV/µm]')
 title('particle LET distributions')
 sParticles{1,7}='total let';
 legend(sParticles);
@@ -219,8 +224,8 @@ figure,plot(vX,vY)
 
 Spectra = {'hydrogen','helium','lithium','beryllium','bor','carbon','nitrogen','oxygen','fluor','neon'};
 
-%path = 'E:\TRiP98DATA_HIT-20131120\RBE';
-path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
+path = 'E:\TRiP98DATA_HIT-20131120\RBE';
+%path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
 folderInfo = dir(path);
 CntFiles = 1;
 
@@ -297,31 +302,58 @@ for j = 1:23
     for i = 1:length(Spectra)
         vX = [meta(CellType).(Spectra{i}){1,2}(:).Energy];
         vY = [meta(CellType).(Spectra{i}){1,2}(:).RBE];
-        plot(vX,vY,'Linewidth',3),hold on
+        plot(vX,vY,'Linewidth',3),hold on;
     end
 
     str = sprintf('celltype: alpha_x: %f and beta_x: %f',meta(CellType).alpha,meta(CellType).beta);
-    legend(Spectra),xlabel('energy [MeV/u]'),ylabel('RBE'),grid on
+    legend(Spectra),xlabel('energy [MeV/u]'),ylabel('RBE'),grid on;
     title(str);
     set(gca,'FontSize',16)
 end
 
 
 %% asses alpha_p and beta_p
-celltype = 5;
+celltype = 1;
 particle = 'carbon';
-
-RBE_ini = meta(celltype).(particle)(2);
-RBE_ini = RBE_ini{1,1};
+sParticles=sParticles(1:6);
+RBE_ini = meta(celltype);
 alpha_x = meta(celltype).alpha;
-alpha_p_ini = [RBE_ini.RBE]./alpha_x;
-figure,plot([RBE_ini.Energy],alpha_p_ini)
-% make it again from scretch
-% convert RBE_initals to alpha_initals and apply fluence and SP according
-% to formel in script to get depth dose alphas
+beta_x = meta(celltype).beta;
+Dcut = meta(celltype).cut;
+Smax = alpha_x+(2*beta_x)*Dcut;
+sParticleLong = {'hydrogen','helium','lithium','beryllium','bor','carbon'};
+alpha_accum = zeros(78,1);
+beta_accum = zeros(78,1);
+figure,
 
+for i = 1:length(sParticles)
+    
+    RBE_ini_z = RBE_ini.(sParticleLong{i})(2);
+    alpha_c_ini = ([RBE_ini_z{1,1}.RBE].*alpha_x)';
+    
+    for depth = 1:78; 
+        
+        SP_interp = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,s(depth,1).(sParticles{i}).Emid,'linear','extrap')';
+        denumerator = s(depth,1).(sParticles{i}).N*SP_interp;            
+        
+        numerator = s(depth,1).(sParticles{i}).N *...
+            (interp1([RBE_ini_z{1,1}.Energy],alpha_c_ini,s(depth,1).(sParticles{i}).Emid,'linear','extrap').*SP_interp')';   
+        
+        alpha_c_avg{depth} = numerator/denumerator;
+        
+        
+        
+    end
+    plot(vDepth(1:78),cell2mat(alpha_c_avg)/10,sColor{i},'Linewidth',3),hold on
+    alpha_accum =  alpha_accum+cell2mat(alpha_c_avg)';
+    beta_accum = beta_accum + (Smax-cell2mat(alpha_c_avg)'*2*Dcut);
+end
 
-
-
-
+plot(vDepth(1:78),alpha_accum/10,'Linewidth',3),grid on;
+title('alphas contributions');
+sParticles{1,7}='averaged alpha';
+legend(sParticles)
+xlabel('depth in [cm]');
+ylabel('alpha in Gy^-1');
+%figure,plot(vDepth(1:78),beta_accum/10000,'Linewidth',3),title('beta')
 
