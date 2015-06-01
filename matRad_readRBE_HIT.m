@@ -4,8 +4,8 @@ clc
 clear
 close all
 load('vDepthRel.mat');
-pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
-%pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+%pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
 [~,~,raw] = xlsread(pathSpec);
 raw = raw(2:end,2:end);
 rawNum = str2double(raw(:,1:10));
@@ -94,8 +94,8 @@ set(gca,'YScale','log');
 set(gca,'YLim',[.5E-5,0.1]);
 
 %% load stopping powers
-path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
-%path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
+%path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
+path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
 fileID = fopen(path);
 data = textscan(fileID,'%s');
 data = data{1,1};
@@ -219,8 +219,8 @@ figure,plot(vX,vY)
 
 Spectra = {'hydrogen','helium','lithium','beryllium','bor','carbon','nitrogen','oxygen','fluor','neon'};
 
-path = 'E:\TRiP98DATA_HIT-20131120\RBE';
-%path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
+%path = 'E:\TRiP98DATA_HIT-20131120\RBE';
+path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
 folderInfo = dir(path);
 CntFiles = 1;
 
@@ -305,6 +305,22 @@ for j = 1:23
     title(str);
     set(gca,'FontSize',16)
 end
+
+
+%% asses alpha_p and beta_p
+celltype = 5;
+particle = 'carbon';
+
+RBE_ini = meta(celltype).(particle)(2);
+RBE_ini = RBE_ini{1,1};
+alpha_x = meta(celltype).alpha;
+alpha_p_ini = [RBE_ini.RBE]./alpha_x;
+figure,plot([RBE_ini.Energy],alpha_p_ini)
+% make it again from scretch
+% convert RBE_initals to alpha_initals and apply fluence and SP according
+% to formel in script to get depth dose alphas
+
+
 
 
 
