@@ -1,22 +1,24 @@
 
-%%
+%% read spc file
 clc
 clear
 close all
 load('vDepthRel.mat');
-pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV28000.xlsx';
+pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
 %pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
 [~,~,raw] = xlsread(pathSpec);
+% skip the first column and first row
 raw = raw(2:end,2:end);
+% convert the data to numbers
 rawNum = str2double(raw(:,1:10));
 Cnt = 1;
 for iDepth=1:79
-    s(iDepth,1).depthStep = iDepth;
-    s(iDepth,1).depth = rawNum(Cnt,2);
-    s(iDepth,1).projectile = '12C';
-    s(iDepth,1).target = 'H2O';
-    s(iDepth,1).energy = raw{2,13};
-    s(iDepth,1).peakPos = raw{2,14};
+    SPC(iDepth,1).depthStep = iDepth;
+    SPC(iDepth,1).depth = rawNum(Cnt,2);
+    SPC(iDepth,1).projectile = '12C';
+    SPC(iDepth,1).target = 'H2O';
+    SPC(iDepth,1).energy = raw{2,13};
+    SPC(iDepth,1).peakPos = raw{2,14};
     sParticles = {'H','He','Li','Be','B','C'};
     sParticlesNo = {'1002','2004','3006','4008','5010','6012'};
     for iPart = 1:length(sParticles)
@@ -29,26 +31,26 @@ for iDepth=1:79
             end
             
            if strcmp(sParticlesNo(iPart),raw{Cnt,3})
-            Elow{InnerCnt} = rawNum(Cnt,4);
-            Emid{InnerCnt} = rawNum(Cnt,5);
-            Ehigh{InnerCnt} = rawNum(Cnt,6);
-            dE{InnerCnt} = rawNum(Cnt,7);
-            dNdE{InnerCnt} = rawNum(Cnt,8);
-            N{InnerCnt} = rawNum(Cnt,9);
-            InnerCnt = InnerCnt+1;
-            Cnt = Cnt +1;
+                Elow{InnerCnt} = rawNum(Cnt,4);
+                Emid{InnerCnt} = rawNum(Cnt,5);
+                Ehigh{InnerCnt} = rawNum(Cnt,6);
+                dE{InnerCnt} = rawNum(Cnt,7);
+                dNdE{InnerCnt} = rawNum(Cnt,8);
+                N{InnerCnt} = rawNum(Cnt,9);
+                InnerCnt = InnerCnt+1;
+                Cnt = Cnt +1;
            else
-               s(iDepth,1).(sParticles{iPart}).Elow = cell2mat(Elow);
+               SPC(iDepth,1).(sParticles{iPart}).Elow = cell2mat(Elow);
                Elow = [];
-               s(iDepth,1).(sParticles{iPart}).Emid = cell2mat(Emid);
+               SPC(iDepth,1).(sParticles{iPart}).Emid = cell2mat(Emid);
                Emid = [];
-               s(iDepth,1).(sParticles{iPart}).Ehigh = cell2mat(Ehigh);
+               SPC(iDepth,1).(sParticles{iPart}).Ehigh = cell2mat(Ehigh);
                Ehigh=[];
-               s(iDepth,1).(sParticles{iPart}).dE = cell2mat(dE);
+               SPC(iDepth,1).(sParticles{iPart}).dE = cell2mat(dE);
                dE=[];
-               s(iDepth,1).(sParticles{iPart}).dNdE = cell2mat(dNdE);
+               SPC(iDepth,1).(sParticles{iPart}).dNdE = cell2mat(dNdE);
                dNdE=[];
-               s(iDepth,1).(sParticles{iPart}).N = cell2mat(N);
+               SPC(iDepth,1).(sParticles{iPart}).N = cell2mat(N);
                N=[];
                % stop while loop
                break
@@ -57,43 +59,51 @@ for iDepth=1:79
         
     end 
 end
+% set last values to zero
+SPC(79).C.Elow = 0;
+SPC(79).C.Emid =0;
+SPC(79).C.Ehigh =0;
+SPC(79).C.dE =0;
+SPC(79).C.dNdE =0;
+SPC(79).C.N =0;
+
+clearvars dE dNdE Ehigh Elow Emid iDepth Cnt InnerCnt iPart raw rawNum
 
 
-
-
-%% 
-sColor={'cyan','magenta','green','black','blue','red'};
-vDepth = [s.depth];
+%% plot fluence 
+sColor={'red','green','blue','red','green','blue','black'};
+sLineSpec={'--','--','--','-','-' ,'-' ,'-'};
+vDepth = [SPC.depth];
 figure,
 for j = 1:length(sParticles)
-    vY = zeros(78,1);
-    for i = 1:78
-        vY(i) = sum(s(i).(sParticles{j}).N);
+    vY = zeros(length(vDepth),1);
+    for i = 1:length(vDepth)
+        vY(i) = sum(SPC(i).(sParticles{j}).N);
     end
-    plot(vDepth(1:78),vY,sColor{j},'Linewidth',3),hold on
+    plot(vDepth,vY,[sLineSpec{j} sColor{j}],'Linewidth',3),hold on
 end
 
-legend(sParticles),grid on, xlabel('depth in cm','FontSize',14),ylabel('rel. particle number','FontSize',14),
+legend(sParticles),grid on, xlabel('depth in [cm]','FontSize',14),ylabel('rel. particle number; rel. fluence','FontSize',14),
 title('Energy = 350 MeV/u','FontSize',14);
 set(gca,'FontSize',14');
 set(gca,'YScale','log');
 set(gca,'YLim',[1E-5,2]);
 
 
-%% position 50 is right before brag peak
+%% plot energy spectra at position 50--> direct before brag peak
 depth = 50;
-data = s(depth,1);
+data = SPC(depth,1);
 h=figure,
 for i = 1:length(sParticles)
- plot(data.(sParticles{i}).Emid,data.(sParticles{i}).dNdE,sColor{i},'Linewidth',3),hold on
+ plot(data.(sParticles{i}).Emid,data.(sParticles{i}).dNdE,[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
 end
 legend(sParticles),grid on, xlabel('Energy in [MeV/u]','FontSize',14),ylabel('rel. number of particles per energy','FontSize',14);
-title('right before bragg peak','FontSize',14),
+title('energy spectra right before bragg peak','FontSize',14),
 set(gca,'FontSize',14');
 set(gca,'YScale','log');
 set(gca,'YLim',[.5E-5,0.1]);
 
-%% load stopping powers
+%% load and display stopping powers
 path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
 %path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
 fileID = fopen(path);
@@ -134,78 +144,93 @@ end
 
 figure,
 for i = 1:length(sParticles)
-    plot(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,sColor{i},'Linewidth',3),hold on
+    plot(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
 end
 legend(sParticles),grid on
-set(gca,'YScale','log','XScale','log'),xlabel('Energy in MeV/u'),ylabel('stopping power in MeVcm^2/g'),
+set(gca,'YScale','log','XScale','log'),xlabel('Energy in [MeV/u]'),ylabel('stopping power in [MeVcm^2/g]'),
 title('stopping powers of different particles');
 
 %% load depth dose distributions
 load(['baseDataHIT' filesep 'carbonBaseDataHIT.mat']);
-
-[~,idx]=min(abs([carbonBaseDataHIT.energy]-str2num(s(1).energy)));
+if isnumeric(SPC(1).energy)
+    targetEnergy = SPC(1).energy;
+else
+    targetEnergy =str2num(SPC(1).energy);
+end
+[~,idx]=min(abs([carbonBaseDataHIT.energy]-targetEnergy));
 baseData = carbonBaseDataHIT(idx);
-D_accum = zeros(78,1);
+dose_accum = zeros(length(vDepth),1);
 sParticles=sParticles(1:6);
 figure,
 for i = 1:length(sParticles)
-    for depth = 1:78;  
-        SP_interp = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,s(depth,1).(sParticles{i}).Emid,'linear','extrap')';
-        D{depth} = s(depth,1).(sParticles{i}).N*SP_interp; 
+    for depth = 1:length(vDepth);  
+        SP_interp = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,SPC(depth,1).(sParticles{i}).Emid,'linear','extrap')';
+        dose{depth} = SPC(depth,1).(sParticles{i}).N*SP_interp; 
     end
-    plot(vDepth(1:78),cell2mat(D),sColor{i},'Linewidth',3),hold on
-    D_accum = D_accum+cell2mat(D)';
+    plot(vDepth,cell2mat(dose),[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
+    dose_accum = dose_accum+cell2mat(dose)';
 end
-plot(vDepth(1:78),D_accum,'Linewidth',3)
+plot(vDepth,dose_accum,[sLineSpec{i+1} sColor{i+1}],'Linewidth',3)
 set(gca,'YScale','log')
 set(gca,'YLim',[0.1 1000])
+set(gca,'XLim',[0 30])
 xlabel('depth in [cm]')
-ylabel('dose in [Gy]')
+ylabel('dose in [cGy]')
 title('particle dose distributions')
 sParticles{1,7}='total dose';
 legend(sParticles);
 set(gca,'FontSize',14);
 grid on
-
+%% compare depth dose curves
+vD = baseData.depth/100;
+figure,plot(vD,baseData.Z,'r','LineWidth',4),hold on,grid on
+       plot(vDepth,dose_accum,'LineWidth',4)
+xlabel('depth in [cm]')
+ylabel('dose in [cGy]')       
+legend({'ddd orginal','ddd calculated'})
+title('comparison of calculated ddd based on simulated data and "full" simulated ddd')
+set(gca,'FontSize',14);
 %% plot LET
-LET = zeros(78,1);
+LET_numerator = zeros(length(vDepth),1);
+dose_accum = zeros(length(vDepth),1);
 sParticles=sParticles(1:6);
 figure,
 
 for i = 1:length(sParticles)
-    LET_p=[];
-    LETmax = 0;
-    for depth = 1:78; 
-        
-        SP_interp = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,s(depth,1).(sParticles{i}).Emid,'linear','extrap')'; 
-        dose{depth} = (s(depth,1).(sParticles{i}).N * SP_interp);   
-        LET_p{depth}=(s(depth,1).(sParticles{i}).N*(SP_interp.^2))./dose{depth};
-        % this can be excluded
-        if strcmp(sParticles{i},'C') &&  LET_p{depth}>LETmax
-           LETmax =  LET_p{depth};
-        elseif strcmp(sParticles{i},'C') && depth>10 && LET_p{depth}<LETmax
-           LET_p{depth}=0;
+    
+     LETmax = 0;
+    for depth = 1:length(vDepth); 
+        SP_interp = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,SPC(depth,1).(sParticles{i}).Emid,'linear','extrap')'; 
+        dose{depth} = (SPC(depth,1).(sParticles{i}).N * SP_interp);   
+        doseAvgNumerator{depth}=(SPC(depth,1).(sParticles{i}).N*(SP_interp.^2));
+        trackAvgNumerator{depth} = dose{depth}./sum(SPC(depth,1).(sParticles{i}).N);
+         % this can be excluded
+        if strcmp(sParticles{i},'C') &&  doseAvgNumerator{depth}>LETmax
+           LETmax =  doseAvgNumerator{depth};
+        elseif strcmp(sParticles{i},'C') && depth>10 && doseAvgNumerator{depth}<LETmax
+           doseAvgNumerator{depth}=0;
         end
+
     end
-    plot(vDepth(1:78),cell2mat(LET_p)/10,sColor{i},'Linewidth',3),hold on
-    LET = LET + (cell2mat(LET_p))';
+    Numerator = (cell2mat(doseAvgNumerator))';
+    Denumerator = 10*(cell2mat(dose))';
+    LET=Numerator./Denumerator;
+    plot(vDepth,LET,[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
+    LET_numerator = LET_numerator + Numerator;
+    dose_accum= dose_accum + Denumerator;
 end
-plot(vDepth(1:78),LET/10,'Linewidth',3)
+plot(vDepth,LET_numerator/dose_accum,[sLineSpec{i+1} sColor{i+1}],'Linewidth',3)
 set(gca,'YScale','log')
-set(gca,'YLim',[1 1000])
+set(gca,'YLim',[1 500]),set(gca,'XLim',[0 30])
 xlabel('depth in cm')
 ylabel('LET in [keV/µm]')
 title('particle LET distributions')
-sParticles{1,7}='total let';
+sParticles{1,7}='total LET';
 legend(sParticles);
 set(gca,'FontSize',14);
 grid on
 
-%% compare depth dose curves
-vD = baseData.depth/100;
-figure,plot(vD,baseData.Z,'r','LineWidth',3),hold on,grid on
-       plot(vDepth(1:78),D_accum,'LineWidth',3)
-legend({'ddd orginal','ddd calculated'})
+
 
 %% double lateral gaussian
 vX = -10:0.1:10;
@@ -295,8 +320,8 @@ end
 
 
 %% plot RBE spectra of specific cell type;
-for j = 1:23
-    CellType = j;
+
+    CellType = 1;
     figure,
 
     for i = 1:length(Spectra)
@@ -309,12 +334,13 @@ for j = 1:23
     legend(Spectra),xlabel('energy [MeV/u]'),ylabel('RBE'),grid on;
     title(str);
     set(gca,'FontSize',16)
-end
+
 
 
 %% asses alpha_p and beta_p
 celltype = 1;
 particle = 'carbon';
+
 sParticles=sParticles(1:6);
 RBE_ini = meta(celltype);
 alpha_x = meta(celltype).alpha;
@@ -322,38 +348,55 @@ beta_x = meta(celltype).beta;
 Dcut = meta(celltype).cut;
 Smax = alpha_x+(2*beta_x)*Dcut;
 sParticleLong = {'hydrogen','helium','lithium','beryllium','bor','carbon'};
-alpha_accum = zeros(78,1);
-beta_accum = zeros(78,1);
+alpha_numerator = zeros(length(vDepth),1);
+beta_numerator = zeros(length(vDepth),1);
+dose_denominator = zeros(length(vDepth),1);
+
 figure,
 
 for i = 1:length(sParticles)
     
     RBE_ini_z = RBE_ini.(sParticleLong{i})(2);
-    alpha_c_ini = ([RBE_ini_z{1,1}.RBE].*alpha_x)';
-    
-    for depth = 1:78; 
+    alpha_ion = ([RBE_ini_z{1,1}.RBE].*alpha_x)';
+    beta_ion = (Smax-alpha_ion)./(2*Dcut);
+   
+    for depth = 1:length(vDepth); 
         
-        SP_interp = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,s(depth,1).(sParticles{i}).Emid,'linear','extrap')';
-        denumerator = s(depth,1).(sParticles{i}).N*SP_interp;            
+        Fluence = (SPC(depth,1).(sParticles{i}).N);
+        SP_interp = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,SPC(depth,1).(sParticles{i}).Emid,'linear','extrap')';
+        dose{depth}= (Fluence*SP_interp);            
+        alpha_ion_interp = interp1([RBE_ini_z{1,1}.Energy],alpha_ion,SPC(depth,1).(sParticles{i}).Emid,'linear','extrap');
+        numeratorA{depth} = (Fluence.*alpha_ion_interp*SP_interp); 
+        beta_ion_interp = interp1([RBE_ini_z{1,1}.Energy],beta_ion,SPC(depth,1).(sParticles{i}).Emid,'linear','extrap');
+        numeratorB{depth} = (Fluence.*sqrt(beta_ion_interp)*SP_interp);
         
-        numerator = s(depth,1).(sParticles{i}).N *...
-            (interp1([RBE_ini_z{1,1}.Energy],alpha_c_ini,s(depth,1).(sParticles{i}).Emid,'linear','extrap').*SP_interp')';   
-        
-        alpha_c_avg{depth} = numerator/denumerator;
-        
+        alpha_ion_avg{depth} = numeratorA{depth}/dose{depth};
         
         
     end
-    plot(vDepth(1:78),cell2mat(alpha_c_avg)/10,sColor{i},'Linewidth',3),hold on
-    alpha_accum =  alpha_accum+cell2mat(alpha_c_avg)';
-    beta_accum = beta_accum + (Smax-cell2mat(alpha_c_avg)'*2*Dcut);
+    plot(vDepth,cell2mat(alpha_ion_avg),[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
+    alpha_numerator =  alpha_numerator+cell2mat(numeratorA)';
+    beta_numerator =  beta_numerator+cell2mat(numeratorB)';
+    dose_denominator = dose_denominator+cell2mat(dose)';  
+
 end
 
-plot(vDepth(1:78),alpha_accum/10,'Linewidth',3),grid on;
-title('alphas contributions');
-sParticles{1,7}='averaged alpha';
+plot(vDepth,alpha_numerator./dose_denominator,[sLineSpec{i+1} sColor{i+1}],'Linewidth',5),grid minor,grid on;
+title('alphas contributions from a mono-energetic carbon ion beam with 350MeV/u');
+sParticles{1,7}='mixed field alpha';
 legend(sParticles)
 xlabel('depth in [cm]');
 ylabel('alpha in Gy^-1');
-%figure,plot(vDepth(1:78),beta_accum/10000,'Linewidth',3),title('beta')
+set(gca,'FontSize',14);
+set(gca,'YLim',[0 3]),set(gca,'XLim',[0 30])
+
+load('carbonBaseData.mat');
+figure,plot(vDepth,(alpha_numerator./dose_denominator),'Linewidth',3),grid on,hold on,title('comparison of alphas obtained from A.Maraini and spc-files')
+       plot(baseData(96).depths/10,baseData(61).alpha(:,1),'Linewidth',3), legend({'from spc file','from Mairani'}),xlabel('depth in [cm]'),ylabel('alpha in Gy^-1')
+set(gca,'FontSize',14);
+       
+figure,plot(vDepth,(sqrt(beta_numerator./dose_denominator)),'Linewidth',3),title('comparison of betas obtained from A.Maraini and spc-files'),grid on, hold on,
+       plot(baseData(96).depths/10,baseData(61).beta(:,1),'Linewidth',3), legend({'from spc file','from Mairani'}),xlabel('depth in [cm]'),ylabel('beta in Gy^-2')
+set(gca,'FontSize',14);
+
 
