@@ -93,7 +93,7 @@ set(gca,'YLim',[1E-5,2]);
 %% plot energy spectra at position 50--> direct before brag peak
 depth = 50;
 data = SPC(depth,1);
-h=figure,
+h=figure;
 for i = 1:length(sParticles)
  plot(data.(sParticles{i}).Emid,data.(sParticles{i}).dNdE,[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
 end
@@ -366,7 +366,8 @@ for i = 1:length(sParticles)
         SP_interp = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,SPC(depth,1).(sParticles{i}).Emid,'linear','extrap')';
         dose{depth}= (Fluence*SP_interp);            
         alpha_ion_interp = interp1([RBE_ini_z{1,1}.Energy],alpha_ion,SPC(depth,1).(sParticles{i}).Emid,'linear','extrap');
-        numeratorA{depth} = (Fluence.*alpha_ion_interp*SP_interp); 
+        numeratorA{depth} = (alpha_ion_interp.*SP_interp')*Fluence'; 
+        
         beta_ion_interp = interp1([RBE_ini_z{1,1}.Energy],beta_ion,SPC(depth,1).(sParticles{i}).Emid,'linear','extrap');
         numeratorB{depth} = (Fluence.*sqrt(beta_ion_interp)*SP_interp);
         
@@ -391,12 +392,10 @@ set(gca,'FontSize',14);
 set(gca,'YLim',[0 3]),set(gca,'XLim',[0 30])
 
 load('carbonBaseData.mat');
-figure,plot(vDepth,(alpha_numerator./dose_denominator),'Linewidth',3),grid on,hold on,title('comparison of alphas obtained from A.Maraini and spc-files')
+figure,plot(vDepth,(alpha_numerator./dose_denominator),'k','Linewidth',3),grid on,hold on,title('comparison of alphas obtained from A.Maraini and spc-files')
        plot(baseData(96).depths/10,baseData(61).alpha(:,1),'Linewidth',3), legend({'from spc file','from Mairani'}),xlabel('depth in [cm]'),ylabel('alpha in Gy^-1')
 set(gca,'FontSize',14);
        
-figure,plot(vDepth,(sqrt(beta_numerator./dose_denominator)),'Linewidth',3),title('comparison of betas obtained from A.Maraini and spc-files'),grid on, hold on,
+figure,plot(vDepth,(sqrt(beta_numerator./dose_denominator)),'k','Linewidth',3),title('comparison of betas obtained from A.Maraini and spc-files'),grid on, hold on,
        plot(baseData(96).depths/10,baseData(61).beta(:,1),'Linewidth',3), legend({'from spc file','from Mairani'}),xlabel('depth in [cm]'),ylabel('beta in Gy^-2')
 set(gca,'FontSize',14);
-
-
