@@ -224,7 +224,7 @@ for i = 1:length(sParticles)
 end
 plot(vDepth,LET_accum./(dose_accum*10),[sLineSpec{i+1} sColor{i+1}],'Linewidth',3)
 set(gca,'YScale','log')
-set(gca,'YLim',[1 2000]),set(gca,'XLim',[0 45])
+set(gca,'YLim',[1 500]),set(gca,'XLim',[0 45])
 xlabel('depth in cm')
 ylabel('LET in [keV/µm]')
 title('particle LET distributions')
