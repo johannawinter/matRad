@@ -103,6 +103,7 @@ set(gca,'FontSize',14');
 set(gca,'YScale','log');
 set(gca,'YLim',[.5E-5,0.1]);
 
+
 %% load and display stopping powers
 path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
 %path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
@@ -181,6 +182,7 @@ sParticles{1,7}='total dose';
 legend(sParticles);
 set(gca,'FontSize',14);
 grid on
+
 %% compare depth dose curves
 vD = baseData.depth/100;
 figure,plot(vD,baseData.Z,'r','LineWidth',4),hold on,grid on
@@ -190,38 +192,39 @@ ylabel('dose in [cGy]')
 legend({'ddd orginal','ddd calculated'})
 title('comparison of calculated ddd based on simulated data and "full" simulated ddd')
 set(gca,'FontSize',14);
-%% plot LET
-LET_numerator = zeros(length(vDepth),1);
-dose_accum = zeros(length(vDepth),1);
+
+%% plot dose averaged LET
+
+LET_accum = zeros(length(vDepth),1);
 sParticles=sParticles(1:6);
 figure,
 
 for i = 1:length(sParticles)
     
-     LETmax = 0;
+    LETmax = 0;
+    LET_numerator = zeros(length(vDepth),1); 
+    dose = zeros(length(vDepth),1); 
     for depth = 1:length(vDepth); 
-        SP_interp = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,SPC(depth,1).(sParticles{i}).Emid,'linear','extrap')'; 
-        dose{depth} = (SPC(depth,1).(sParticles{i}).N * SP_interp);   
-        doseAvgNumerator{depth}=(SPC(depth,1).(sParticles{i}).N*(SP_interp.^2));
-        trackAvgNumerator{depth} = dose{depth}./sum(SPC(depth,1).(sParticles{i}).N);
+        
+        SP_interp = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,SPC(depth,1).(sParticles{i}).Emid,'linear','extrap')';  
+        LET_numerator(depth)=(SPC(depth,1).(sParticles{i}).N*(SP_interp.^2));
+        dose(depth)=(SPC(depth,1).(sParticles{i}).N*(SP_interp));
          % this can be excluded
-        if strcmp(sParticles{i},'C') &&  doseAvgNumerator{depth}>LETmax
-           LETmax =  doseAvgNumerator{depth};
-        elseif strcmp(sParticles{i},'C') && depth>10 && doseAvgNumerator{depth}<LETmax
-           doseAvgNumerator{depth}=0;
-        end
+%         if strcmp(sParticles{i},'C') &&  LET_numerator(depth)>LETmax
+%            LETmax =  LET_numerator(depth);
+%         elseif strcmp(sParticles{i},'C') && depth>10 && LET_numerator(depth)<LETmax
+%            LET_numerator(depth)=0;
+%         end
 
     end
-    Numerator = (cell2mat(doseAvgNumerator))';
-    Denumerator = 10*(cell2mat(dose))';
-    LET=Numerator./Denumerator;
-    plot(vDepth,LET,[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
-    LET_numerator = LET_numerator + Numerator;
-    dose_accum= dose_accum + Denumerator;
+    
+    LET_accum = LET_accum + LET_numerator;
+    plot(vDepth,LET_numerator./(dose*10),[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
+   
 end
-plot(vDepth,LET_numerator/dose_accum,[sLineSpec{i+1} sColor{i+1}],'Linewidth',3)
+plot(vDepth,LET_accum./(dose_accum*10),[sLineSpec{i+1} sColor{i+1}],'Linewidth',3)
 set(gca,'YScale','log')
-set(gca,'YLim',[1 500]),set(gca,'XLim',[0 30])
+set(gca,'YLim',[1 2000]),set(gca,'XLim',[0 45])
 xlabel('depth in cm')
 ylabel('LET in [keV/µm]')
 title('particle LET distributions')
@@ -245,8 +248,6 @@ figure,plot(vX,vY)
 
 
 %% load RBE spc files
-
-
 Spectra = {'hydrogen','helium','lithium','beryllium','bor','carbon','nitrogen','oxygen','fluor','neon'};
 
 path = 'E:\TRiP98DATA_HIT-20131120\RBE';
@@ -351,6 +352,7 @@ sParticleLong = {'hydrogen','helium','lithium','beryllium','bor','carbon'};
 alpha_numerator = zeros(length(vDepth),1);
 beta_numerator = zeros(length(vDepth),1);
 dose_denominator = zeros(length(vDepth),1);
+alpha_rapid = zeros(length(vDepth),1);
 
 figure,
 
@@ -373,13 +375,16 @@ for i = 1:length(sParticles)
         
         alpha_ion_avg{depth} = numeratorA{depth}/dose{depth};
         
+        Fluence2 = (SPC(depth,1).(sParticles{i}).dNdE).*(SPC(depth,1).(sParticles{i}).dE);
+        dose{depth}= (Fluence2*SP_interp);  
+        alpha_rapidA{depth} = (alpha_ion_interp.*SP_interp')*Fluence2';         
         
     end
     plot(vDepth,cell2mat(alpha_ion_avg),[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
     alpha_numerator =  alpha_numerator+cell2mat(numeratorA)';
     beta_numerator =  beta_numerator+cell2mat(numeratorB)';
     dose_denominator = dose_denominator+cell2mat(dose)';  
-
+    alpha_rapid = alpha_rapid+cell2mat(alpha_rapidA)';
 end
 
 plot(vDepth,alpha_numerator./dose_denominator,[sLineSpec{i+1} sColor{i+1}],'Linewidth',5),grid minor,grid on;
@@ -399,3 +404,8 @@ set(gca,'FontSize',14);
 figure,plot(vDepth,(sqrt(beta_numerator./dose_denominator)),'k','Linewidth',3),title('comparison of betas obtained from A.Maraini and spc-files'),grid on, hold on,
        plot(baseData(96).depths/10,baseData(61).beta(:,1),'Linewidth',3), legend({'from spc file','from Mairani'}),xlabel('depth in [cm]'),ylabel('beta in Gy^-2')
 set(gca,'FontSize',14);
+
+
+
+
+
