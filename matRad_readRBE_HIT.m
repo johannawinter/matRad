@@ -101,6 +101,7 @@ for i = 1:length(sParticles)
 end
 legend(sParticles),grid on, xlabel('Energy in [MeV/u]','FontSize',14),ylabel('rel. number of particles per energy','FontSize',14);
 title('energy spectra right before bragg peak','FontSize',14),
+grid minor
 set(gca,'FontSize',14');
 set(gca,'YScale','log');
 set(gca,'YLim',[.5E-5,0.1]);
@@ -417,9 +418,10 @@ figure(10),legend(sParticles(1:6))
 
 load('carbonBaseData.mat');
 [~,EnergyIdx] =(min(abs([baseData(:).energy]-vEnergy)));
-figure,plot(vDepth,(alpha_numerator./dose_accum),'k','Linewidth',3),grid on,grid minor ,hold on,title('comparison of alpha vs depth')
-       plot(baseData(EnergyIdx).depths/10,baseData(EnergyIdx).alpha(:,1),'Linewidth',3),xlabel('depth in [cm]'),ylabel('alpha in Gy^-1')
-       plot(vDepth,(alpha_numeratorInfn./dose_accum),'Linewidth',3),legend({'from spc file Zaider-Rossi','from Mairani','from INFN'})
+figure,plot(vDepth,(alpha_numerator./dose_accum),'k','Linewidth',3)
+       grid on,grid minor ,hold on,title('comparison of alpha vs depth'),xlabel('depth in [cm]'),ylabel('alpha in Gy^-1')
+       plot(baseData(EnergyIdx).depths/10,baseData(EnergyIdx).alpha(:,1),'Linewidth',3)
+       plot(vDepth,(alpha_numeratorInfn./dose_accum),'Linewidth',3),legend({'from spc file Zaider-Rossi','from Andrea Mairani','from INFN'})
        set(gca,'FontSize',14);
 set(gca,'XLim',[0 30])
        
