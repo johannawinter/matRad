@@ -468,8 +468,9 @@ for i = 1:length(vDepth)
     
 end
 
-figure,plot(vDepth,alpha_bar,'k','Linewidth',3),grid on,grid minor ,hold on,title('comparison of alpha vs depth')
-       plot(baseData(EnergyIdx).depths/10,baseData(EnergyIdx).alpha(:,1),'Linewidth',3),xlabel('depth in [cm]'),ylabel('alpha in Gy^-1')
+figure,plot(vDepth,(alpha_numerator./dose_accum),'k','Linewidth',3),hold on
+       plot(vDepth,alpha_bar,'Linewidth',3),grid on,grid minor ,hold on,title('comparison of alpha_p vs depth for a 280 MeV carbon ion beam')
+       plot(baseData(EnergyIdx).depths/10,baseData(EnergyIdx).alpha(:,1),'Linewidth',3),xlabel('depth in [cm]'),ylabel('alpha_p in Gy^-1')
        plot(vDepth,(alpha_numeratorInfn./dose_accum),'Linewidth',3),
-       legend({'from spc file - rapidCalc','from Mairani','from INFN'})
+       legend({'from RBE_{inital}-Zaider Rossi','from RBE_{inital}-low dose approx 2006','from A.Mairani','from INFN'})
        set(gca,'FontSize',14),set(gca,'XLim',[0 30]);
