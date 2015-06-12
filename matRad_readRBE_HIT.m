@@ -69,12 +69,16 @@ SPC(79).C.dNdE =0;
 SPC(79).C.N =0;
 
 clearvars dE dNdE Ehigh Elow Emid iDepth Cnt InnerCnt iPart raw rawNum
+%% delete carbon ionas after peak
+vDepth = [SPC.depth];
 
-
+for i = 67:length(vDepth)
+    SPC(i).C.N(:) = 0;
+     SPC(i).C.dNdE(:) = 0;
+end
 %% plot fluence 
 sColor={'red','green','blue','red','green','blue','black'};
 sLineSpec={'--','--','--','-','-' ,'-' ,'-'};
-vDepth = [SPC.depth];
 figure,
 for j = 1:length(sParticles)
     vY = zeros(length(vDepth),1);
@@ -374,17 +378,19 @@ for i = 1:length(sParticles)
     
     RBE_ini_z = RBE_ini.(sParticleLong{i}){1,2};
     alpha_ion = ([RBE_ini_z.RBE].*alpha_x)';
-    figure(10),plot([RBE_ini_z.Energy],alpha_ion,[sLineSpec{i} sColor{i}],'LineWidth',4),hold on,grid on, grid minor, title('alpha_{ion} vs energy'),set(gca,'XScale','log');
-    figure(10),plot(alphaInfn.(sParticles{i}).Energy,alphaInfn.(sParticles{i}).alpha,[sLineSpec{i} sColor{i}],'LineWidth',2),hold on,grid on, grid minor, title('alpha_{ion} vs energy from RBE_{inital} and INFN'),set(gca,'XScale','log');
+    %figure(10),plot([RBE_ini_z.Energy],alpha_ion,[sLineSpec{i} sColor{i}],'LineWidth',4),hold on,grid on, grid minor, title('alpha_{ion} vs energy'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);
+    %figure(10),plot(alphaInfn.(sParticles{i}).Energy,alphaInfn.(sParticles{i}).alpha,[sLineSpec{i} sColor{i}],'LineWidth',2),hold on,grid on, grid minor, title('alpha_{ion} vs energy from RBE_{inital} and INFN'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);;
     
     beta_ion = (Smax-alpha_ion)./(2*Dcut);
     
         
     % rapid calculation according to Krämer
     SP_interp_RBE = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,[RBE(celltype).(sParticleLong{i}){1,2}.Energy]);
-    d1 = ((1.602e-08 .* SP_interp_RBE )/ Anuc)/100;
+    d1 = ((1.602e-10 .* SP_interp_RBE )/ Anuc);
     S1 = exp(-alpha_ion'.*d1);
     alpha_ion_rapid = (1-S1)./d1;
+    figure(10),plot(SP_interp_RBE,alpha_ion_rapid,[sLineSpec{i} sColor{i}],'LineWidth',2),hold on,grid on, grid minor, title('alpha_{ion} vs energy from RBE_{inital} and INFN'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);;
+   
     % initialize some vectors
     alpha_Z = zeros(length(vDepth),1);
     alpha_Z_Infn = zeros(length(vDepth),1);
@@ -435,4 +441,15 @@ figure,grid on,grid minor ,hold on,title('comparison of alpha vs depth'),xlabel(
        legend({'from spc file Zaider-Rossi','from Andrea Mairani','from INFN','from spc file rapidScholz'})
        set(gca,'FontSize',14),set(gca,'XLim',[0 30])
        
+%% plot GSI data
+
+load('C:\Users\wieserh\Documents\matRad\GSI_Chardoma_Carbon_BioData.mat')
+figure,plot(stBioData{1,1}(3).Depths,stBioData{1,1}(3).Alpha,'Linewidth',3),grid on, grid minor, hold on
+      plot(str2num(SPC(1).peakPos)-vDepth,(alpha_numeratorRapid./dose_accum),'Linewidth',3),
+      legend({'from MTPS','alpha from SPC rapidScholz'})
+      
+
+
+
+
 
