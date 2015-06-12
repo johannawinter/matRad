@@ -70,12 +70,12 @@ SPC(79).C.N =0;
 
 clearvars dE dNdE Ehigh Elow Emid iDepth Cnt InnerCnt iPart raw rawNum
 %% delete carbon ionas after peak
-vDepth = [SPC.depth];
-
-for i = 67:length(vDepth)
-    SPC(i).C.N(:) = 0;
-     SPC(i).C.dNdE(:) = 0;
-end
+% vDepth = [SPC.depth];
+% 
+% for i = 67:length(vDepth)
+%     SPC(i).C.N(:) = 0;
+%      SPC(i).C.dNdE(:) = 0;
+% end
 %% plot fluence 
 sColor={'red','green','blue','red','green','blue','black'};
 sLineSpec={'--','--','--','-','-' ,'-' ,'-'};
@@ -354,8 +354,7 @@ celltype = 1;
 particle = 'carbon';
 load('baseDataHIT/alphaEnergyInfnab2.mat')
 %load('baseDataHIT/alphaEnergyInfnabNB1RGB.mat')
-
-
+sLineSpec2 = {':',':',':','-.','-.','-.'};
 % extract meta data for current cell line
 sParticles=sParticles(1:6);
 RBE_ini = RBE(celltype);
@@ -379,17 +378,18 @@ for i = 1:length(sParticles)
     RBE_ini_z = RBE_ini.(sParticleLong{i}){1,2};
     alpha_ion = ([RBE_ini_z.RBE].*alpha_x)';
     %figure(10),plot([RBE_ini_z.Energy],alpha_ion,[sLineSpec{i} sColor{i}],'LineWidth',4),hold on,grid on, grid minor, title('alpha_{ion} vs energy'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);
-    %figure(10),plot(alphaInfn.(sParticles{i}).Energy,alphaInfn.(sParticles{i}).alpha,[sLineSpec{i} sColor{i}],'LineWidth',2),hold on,grid on, grid minor, title('alpha_{ion} vs energy from RBE_{inital} and INFN'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);;
+    figure(10),plot(alphaInfn.(sParticles{i}).Energy,alphaInfn.(sParticles{i}).alpha,[sLineSpec{i} sColor{i}],'LineWidth',2),hold on,grid on, grid minor, title('alpha_{ion} vs energy from RBE_{inital} and INFN'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);;
     
     beta_ion = (Smax-alpha_ion)./(2*Dcut);
     
         
     % rapid calculation according to Krämer
-    SP_interp_RBE = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,[RBE(celltype).(sParticleLong{i}){1,2}.Energy]);
+    SP_interp_RBE = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,[RBE(celltype).(sParticleLong{i}){1,2}.Energy],'pchip','extrap');
     d1 = ((1.602e-10 .* SP_interp_RBE )/ Anuc);
+    % S1 is the surviving fraction for a single particle traversal
     S1 = exp(-alpha_ion'.*d1);
     alpha_ion_rapid = (1-S1)./d1;
-    figure(10),plot(SP_interp_RBE,alpha_ion_rapid,[sLineSpec{i} sColor{i}],'LineWidth',2),hold on,grid on, grid minor, title('alpha_{ion} vs energy from RBE_{inital} and INFN'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);;
+    figure(10),plot([RBE(celltype).(sParticleLong{i}){1,2}.Energy],alpha_ion_rapid,[sLineSpec2{i} sColor{i}],'LineWidth',2),hold on,grid on, grid minor, title('alpha_{ion} vs energy from RBE_{inital} and INFN'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);;
    
     % initialize some vectors
     alpha_Z = zeros(length(vDepth),1);
@@ -414,14 +414,14 @@ for i = 1:length(sParticles)
         
     end
     
-    figure(9),plot(vDepth,alpha_Z./dose_Z,[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
+    figure(9),plot(vDepth,alpha_Z_rapid./dose_Z,[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
     
     alpha_numerator      =  alpha_numerator+alpha_Z;
     alpha_numeratorInfn  = alpha_numeratorInfn + alpha_Z_Infn;
     alpha_numeratorRapid = alpha_numeratorRapid +alpha_Z_rapid;
 end
 
-figure(9),plot(vDepth,(alpha_numerator./dose_accum),[sLineSpec{i+1} sColor{i+1}],'Linewidth',5),grid minor,grid on;
+figure(9),plot(vDepth,(alpha_numeratorRapid./dose_accum),[sLineSpec{i+1} sColor{i+1}],'Linewidth',5),grid minor,grid on;
 title('alphas contributions from a mono-energetic carbon ion beam with 350MeV/u');
 sParticles{1,7}='mixed field alpha';
 legend(sParticles)
@@ -429,25 +429,25 @@ xlabel('depth in [cm]');
 ylabel('alpha in Gy^-1');
 set(gca,'FontSize',14);
 set(gca,'YLim',[0 3]),set(gca,'XLim',[0 30])
-figure(10),legend(sParticles(1:6))
+figure(10),legend({'H_{Infn}','H_{rapidScholz}','He_{Infn}','He_{rapidScholz}','Li_{Infn}','Li_{rapidScholz}','Be_{Infn}','Be_{rapidScholz}'...
+    ,'B_{Infn}','B_{rapidScholz}','C_{Infn}','C_{rapidScholz}'})
 
 load('carbonBaseData.mat');
 [~,EnergyIdx] =(min(abs([baseData(:).energy]-vEnergy)));
 figure,grid on,grid minor ,hold on,title('comparison of alpha vs depth'),xlabel('depth in [cm]'),ylabel('alpha in Gy^-1')
-       plot(vDepth,(alpha_numerator./dose_accum),'k','Linewidth',3)
        plot(baseData(EnergyIdx).depths/10,baseData(EnergyIdx).alpha(:,1),'Linewidth',3)
        plot(vDepth,(alpha_numeratorInfn./dose_accum),'Linewidth',3),
        plot(vDepth,(alpha_numeratorRapid./dose_accum),'Linewidth',3),
-       legend({'from spc file Zaider-Rossi','from Andrea Mairani','from INFN','from spc file rapidScholz'})
+       legend({'from Andrea Mairani','from INFN','from spc file rapidScholz'})
        set(gca,'FontSize',14),set(gca,'XLim',[0 30])
        
 %% plot GSI data
 
 load('C:\Users\wieserh\Documents\matRad\GSI_Chardoma_Carbon_BioData.mat')
-figure,plot(stBioData{1,1}(3).Depths,stBioData{1,1}(3).Alpha,'Linewidth',3),grid on, grid minor, hold on
-      plot(str2num(SPC(1).peakPos)-vDepth,(alpha_numeratorRapid./dose_accum),'Linewidth',3),
-      legend({'from MTPS','alpha from SPC rapidScholz'})
-      
+figure,plot(str2num(SPC(1).peakPos)-stBioData{1,1}(3).Depths,stBioData{1,1}(3).Alpha,'Linewidth',3),grid on, grid minor, hold on
+      plot(vDepth,(alpha_numeratorRapid./dose_accum),'Linewidth',3),
+      legend({'from MTPS','alpha from SPC rapidScholz'}),xlabel('depth in [cm]'), ylabel('alpha in Gy^-1'), set(gca,'FontSize',14)
+      set(gca,'Xlim',[-20,50])
 
 
 
