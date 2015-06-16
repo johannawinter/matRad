@@ -5,61 +5,97 @@ clear
 close all
 load('vDepthRel.mat');
 vEnergy = 350;
-pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
-%pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
-[~,~,raw] = xlsread(pathSpec);
-% skip the first column and first row
-raw = raw(2:end,2:end);
-% convert the data to numbers
-rawNum = str2double(raw(:,1:10));
-Cnt = 1;
-for iDepth=1:79
-    SPC(iDepth,1).depthStep = iDepth;
-    SPC(iDepth,1).depth = rawNum(Cnt,2);
-    SPC(iDepth,1).projectile = '12C';
-    SPC(iDepth,1).target = 'H2O';
-    SPC(iDepth,1).energy = raw{2,13};
-    SPC(iDepth,1).peakPos = raw{2,14};
-    sParticles = {'H','He','Li','Be','B','C'};
-    sParticlesNo = {'1002','2004','3006','4008','5010','6012'};
-    for iPart = 1:length(sParticles)
-       InnerCnt = 1;
-      
-        while true
-            
-            if Cnt > length(raw)
-                break;
+%pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+
+READXLS = false;
+
+%% read spc files from xls files or from .mat
+
+if READXLS
+    [~,~,raw] = xlsread(pathSpec);
+    % skip the first column and first row
+    raw = raw(2:end,2:end);
+    % convert the data to numbers
+    rawNum = str2double(raw(:,1:10));
+    Cnt = 1;
+    for iDepth=1:79
+        SPC(iDepth,1).depthStep = iDepth;
+        SPC(iDepth,1).depth = rawNum(Cnt,2);
+        SPC(iDepth,1).projectile = '12C';
+        SPC(iDepth,1).target = 'H2O';
+        SPC(iDepth,1).energy = raw{2,13};
+        SPC(iDepth,1).peakPos = raw{2,14};
+        sParticles = {'H','He','Li','Be','B','C'};
+        sParticlesNo = {'1002','2004','3006','4008','5010','6012'};
+        for iPart = 1:length(sParticles)
+           InnerCnt = 1;
+
+            while true
+
+                if Cnt > length(raw)
+                    break;
+                end
+
+               if strcmp(sParticlesNo(iPart),raw{Cnt,3})
+                    Elow{InnerCnt} = rawNum(Cnt,4);
+                    Emid{InnerCnt} = rawNum(Cnt,5);
+                    Ehigh{InnerCnt} = rawNum(Cnt,6);
+                    dE{InnerCnt} = rawNum(Cnt,7);
+                    dNdE{InnerCnt} = rawNum(Cnt,8);
+                    N{InnerCnt} = rawNum(Cnt,9);
+                    InnerCnt = InnerCnt+1;
+                    Cnt = Cnt +1;
+               else
+                   SPC(iDepth,1).(sParticles{iPart}).Elow = cell2mat(Elow);
+                   Elow = [];
+                   SPC(iDepth,1).(sParticles{iPart}).Emid = cell2mat(Emid);
+                   Emid = [];
+                   SPC(iDepth,1).(sParticles{iPart}).Ehigh = cell2mat(Ehigh);
+                   Ehigh=[];
+                   SPC(iDepth,1).(sParticles{iPart}).dE = cell2mat(dE);
+                   dE=[];
+                   SPC(iDepth,1).(sParticles{iPart}).dNdE = cell2mat(dNdE);
+                   dNdE=[];
+                   SPC(iDepth,1).(sParticles{iPart}).N = cell2mat(N);
+                   N=[];
+                   % stop while loop
+                   break
+               end
             end
-            
-           if strcmp(sParticlesNo(iPart),raw{Cnt,3})
-                Elow{InnerCnt} = rawNum(Cnt,4);
-                Emid{InnerCnt} = rawNum(Cnt,5);
-                Ehigh{InnerCnt} = rawNum(Cnt,6);
-                dE{InnerCnt} = rawNum(Cnt,7);
-                dNdE{InnerCnt} = rawNum(Cnt,8);
-                N{InnerCnt} = rawNum(Cnt,9);
-                InnerCnt = InnerCnt+1;
-                Cnt = Cnt +1;
-           else
-               SPC(iDepth,1).(sParticles{iPart}).Elow = cell2mat(Elow);
-               Elow = [];
-               SPC(iDepth,1).(sParticles{iPart}).Emid = cell2mat(Emid);
-               Emid = [];
-               SPC(iDepth,1).(sParticles{iPart}).Ehigh = cell2mat(Ehigh);
-               Ehigh=[];
-               SPC(iDepth,1).(sParticles{iPart}).dE = cell2mat(dE);
-               dE=[];
-               SPC(iDepth,1).(sParticles{iPart}).dNdE = cell2mat(dNdE);
-               dNdE=[];
-               SPC(iDepth,1).(sParticles{iPart}).N = cell2mat(N);
-               N=[];
-               % stop while loop
-               break
-           end
+
+        end 
+    end
+
+    else
+
+        path = ['baseDataHIT' filesep];
+
+        for i = 80:10:440
+            if i/10<=9
+                name = ['C12spc' '0' num2str(i)];
+            else
+                name = ['C12spc' num2str(i)];
+            end
+            SPC = load([path name]);
+            fName=fieldnames(SPC);
+            SPC.(fName{1})(79).C.Elow = 0;
+            SPC.(fName{1})(79).C.Emid =0;
+            SPC.(fName{1})(79).Ehigh =0;
+            SPC.(fName{1})(79).dE =0;
+            SPC.(fName{1})(79).dNdE =0;
+            SPC.(fName{1})(79).C.N =0;
+
+            if i/10<=9
+                save([name '.mat'],'SPC')
+            else
+                save([name '.mat'],'SPC')
+            end
+
         end
-        
-    end 
+
 end
+
 % set last values to zero
 SPC(79).C.Elow = 0;
 SPC(79).C.Emid =0;
@@ -67,12 +103,11 @@ SPC(79).C.Ehigh =0;
 SPC(79).C.dE =0;
 SPC(79).C.dNdE =0;
 SPC(79).C.N =0;
-
 clearvars dE dNdE Ehigh Elow Emid iDepth Cnt InnerCnt iPart raw rawNum
+
+
 vDepth = [SPC.depth];
-%% delete carbon ionas after peak
-% 
-% 
+%% delete carbon ionas behind peak
 % for i = 67:length(vDepth)
 %     SPC(i).C.N(:) = 0;
 %      SPC(i).C.dNdE(:) = 0;
@@ -113,8 +148,8 @@ set(gca,'YLim',[.5E-5,0.1]);
 
 
 %% load and display stopping powers
-path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
-%path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
+%path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
+path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
 fileID = fopen(path);
 data = textscan(fileID,'%s');
 data = data{1,1};
@@ -263,8 +298,8 @@ figure,plot(vX,vY)
 %% load RBE spc files
 Spectra = {'hydrogen','helium','lithium','beryllium','bor','carbon','nitrogen','oxygen','fluor','neon'};
 
-path = 'E:\TRiP98DATA_HIT-20131120\RBE';
-%path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
+%path = 'E:\TRiP98DATA_HIT-20131120\RBE';
+path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
 folderInfo = dir(path);
 CntFiles = 1;
 
@@ -440,12 +475,14 @@ figure(10),legend({'H_{Infn}','H_{rapidScholz}','He_{Infn}','He_{rapidScholz}','
     ,'B_{Infn}','B_{rapidScholz}','C_{Infn}','C_{rapidScholz}'})
 
 load('carbonBaseData.mat');
+load (['baseDataHIT' filesep 'C12_280MeVAlpha01.mat']);
 [~,EnergyIdx] =(min(abs([baseData(:).energy]-vEnergy)));
 figure,grid on,grid minor ,hold on,title('comparison of alpha vs depth'),xlabel('depth in [cm]'),ylabel('alpha in Gy^-1')
-       plot(baseData(EnergyIdx).depths/10,baseData(EnergyIdx).alpha(:,1),'Linewidth',3)
-       plot(vDepth,(alpha_numeratorInfn./dose_accum),'Linewidth',3),
-       plot(vDepth,(alpha_numeratorRapid./dose_accum),'Linewidth',3),
-       legend({'from Andrea Mairani','from INFN','from spc file rapidScholz'})
+       plot(baseData(EnergyIdx).depths/10,baseData(EnergyIdx).alpha(:,1),[sLineSpec{1} sColor{1}],'Linewidth',3)
+       plot(vDepth,(alpha_numeratorInfn./dose_accum),[sLineSpec{1} sColor{2}],'Linewidth',3),
+       plot(vDepth,(alpha_numeratorRapid./dose_accum),[sLineSpec{3} sColor{3}],'Linewidth',3),
+       plot(C12_280MeVAlpha01(:,1),C12_280MeVAlpha01(:,2),[sLineSpec{4} sColor{4}],'Linewidth',3),
+       legend({'from Andrea Mairani-LEM4','from INFN','from spc file rapidScholz','from INFN Sarah Brueningk'})
        set(gca,'FontSize',14),set(gca,'XLim',[0 30])
 
 figure,plot(vDepth,(beta_numeratorRapid./dose_accum).^2,'Linewidth',3),hold on,title('comparison of dose averaged beta depth curves')
@@ -453,17 +490,17 @@ figure,plot(vDepth,(beta_numeratorRapid./dose_accum).^2,'Linewidth',3),hold on,t
       grid on, grid minor,xlabel('depth in cm'),ylabel('beta in Gy^-2'),set(gca,'Fontsize',14), legend({'beta from rapidScholz','beta from A.Mairani'})
     
 %% plot GSI data
-
-load('C:\Users\wieserh\Documents\matRad\GSI_Chardoma_Carbon_BioData.mat')
-figure,plot(str2num(SPC(1).peakPos)-stBioData{1,1}(3).Depths,stBioData{1,1}(3).Alpha,'Linewidth',3),grid on, grid minor, hold on
-      plot(vDepth,(alpha_numeratorRapid./dose_accum),'Linewidth',3),
-      legend({'from MTPS','alpha from SPC rapidScholz'}),xlabel('depth in [cm]'), ylabel('alpha in Gy^-1'), set(gca,'FontSize',14)
-      set(gca,'Xlim',[-20,50])
+% 
+% load('C:\Users\wieserh\Documents\matRad\GSI_Chardoma_Carbon_BioData.mat')
+% figure,plot(str2num(SPC(1).peakPos)-stBioData{1,1}(3).Depths,stBioData{1,1}(3).Alpha,'Linewidth',3),grid on, grid minor, hold on
+%       plot(vDepth,(alpha_numeratorRapid./dose_accum),'Linewidth',3),
+%       legend({'from MTPS','alpha from SPC rapidScholz'}),xlabel('depth in [cm]'), ylabel('alpha in Gy^-1'), set(gca,'FontSize',14)
+%       set(gca,'Xlim',[-20,50])
 
 
 
 %%
 
-figure,plot(LET_Carbon.Infn(:,1),LET_Carbon.Infn(:,2)),hold on
-plot(LET_Carbon.HIT.energy,LET_Carbon.HIT.dEdx./10)
-legend({'LET from INFN','LET from dEdx file'})
+% figure,plot(LET_Carbon.Infn(:,1),LET_Carbon.Infn(:,2)),hold on
+% plot(LET_Carbon.HIT.energy,LET_Carbon.HIT.dEdx./10)
+% legend({'LET from INFN','LET from dEdx file'})
