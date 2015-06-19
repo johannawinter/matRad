@@ -3,11 +3,11 @@
 clc
 clear
 close all
-vEnergy = 280;
-if ~isunix
-pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV28000.xlsx';
+vEnergy = 350;
+if ~strcmp(computer,'PCWIN64')
+    pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
 else
-    pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV1000.xlsx';
+    pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
 end
 READXLS = true;
 
@@ -149,7 +149,7 @@ set(gca,'YLim',[.5E-5,0.1]);
 
 
 %% load and display stopping powers
-if ~isunix
+if ~strcmp(computer,'PCWIN64')
     path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
 else
     path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
@@ -301,7 +301,7 @@ grid on
 
 %% load RBE spc files
 Spectra = {'hydrogen','helium','lithium','beryllium','bor','carbon','nitrogen','oxygen','fluor','neon'};
-if ~isunix
+if ~strcmp(computer,'PCWIN64')
     path = 'E:\TRiP98DATA_HIT-20131120\RBE';
 else
     path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
@@ -423,7 +423,6 @@ for i = 1:length(sParticles)
     
     RBE_ini_z = RBE_ini.(sParticleLong{i}){1,2};
     alpha_ion = ([RBE_ini_z.RBE].*alpha_x)';
-    %figure(10),plot([RBE_ini_z.Energy],alpha_ion,[sLineSpec{i} sColor{i}],'LineWidth',4),hold on,grid on, grid minor, title('alpha_{ion} vs energy'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);
     figure(10),plot(alphaInfn.(sParticles{i}).Energy,alphaInfn.(sParticles{i}).alpha,[sLineSpec{i} sColor{i}],'LineWidth',2),hold on,grid on, grid minor, title('alpha_{ion} vs energy from RBE_{inital} and INFN'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);;
     
     beta_ion = (Smax-alpha_ion)./(2*Dcut);
@@ -525,13 +524,16 @@ figure,plot(vDepth,(beta_numeratorRapid./dose_accum).^2,'Linewidth',3),hold on,t
 vContribSPC=sum(ContribDepthSPC,1);
 vContribINFN=sum(ContribDepthINFN,1);
 
-figure,subplot(211),bar([ContribDepthSPC(:,1),ContribDepthINFN(:,1)]','stacked'),legend(sParticles(1:6)),xlabel({'(left) RBE_{ini}-rapidScholz-mySPC','(right) INFN-mySPC'}),ylabel('alpha contributions Gy^-1'),title('considering the whole energy range'),set(gca,'FontSize',13)
-       subplot(212),bar([ContribDepthSPC(:,3),ContribDepthINFN(:,3)]','stacked'),legend(sParticles(1:6)),xlabel({'(left) RBE_{ini}-rapidScholz-mySPC','(right) INFN-mySPC'}),ylabel('alpha contributions Gy^-1'),title('considering only contributions from energies < 11MeV'),set(gca,'FontSize',13)
+figure,subplot(211),bar([ContribDepthSPC(:,1),ContribDepthINFN(:,1)]','stacked'),legend(sParticles(1:6)),xlabel({'(left) RBE_{ini}-rapidScholz-mySPC','(right) INFN-mySPC'}),ylabel('alpha contributions Gy^-1'),title('depth= 8.26cm, considering the whole energy range'),set(gca,'FontSize',13),grid on, grid minor
+       subplot(212),bar([ContribDepthSPC(:,3),ContribDepthINFN(:,3)]','stacked'),legend(sParticles(1:6)),xlabel({'(left) RBE_{ini}-rapidScholz-mySPC','(right) INFN-mySPC'}),ylabel('alpha contributions Gy^-1'),title('depth= 8.26cm, considering only contributions from energies < 11MeV'),set(gca,'FontSize',13),grid on, grid minor     
 
-figure,bar([vContribSPC(1)/vContribSPC(2) vContribINFN(1)/vContribINFN(2)])       
+figure, bar([ContribDepthSPC(:,2) ContribDepthINFN(:,2)]','stacked') ,legend(sParticles(1:6)),xlabel({'(left) RBE_{ini}-rapidScholz-mySPC','(right) INFN-mySPC'}),ylabel('dose in cGy'),title('dose contribution at depth= 8.26cm'),set(gca,'FontSize',13),grid on, grid minor      
+       
+figure,subplot(211),bar([ContribDepthSPC(:,1)/vContribSPC(2) ContribDepthINFN(:,1)/vContribINFN(2)]','stacked'),legend(sParticles(1:6)),xlabel({'(left) RBE_{ini}-rapidScholz-mySPC','(right) INFN-mySPC'}),ylabel('dose averaged alpha contributions Gy^-1'),title('depth= 8.26cm, considering the whole energy range'),set(gca,'FontSize',13),grid on, grid minor
+       subplot(212),bar([ContribDepthSPC(:,3)/vContribSPC(4) ContribDepthINFN(:,3)/vContribINFN(4)]','stacked'),legend(sParticles(1:6)),xlabel({'(left) RBE_{ini}-rapidScholz-mySPC','(right) INFN-mySPC'}),ylabel('dose averaged alpha contributions Gy^-1'),title('depth= 8.26cm,  considering only contributions from energies < 11MeV'),set(gca,'FontSize',13),grid on, grid minor
 
-figure,subplot(211),bar([ContribDepthSPC(:,1)/vContribSPC(2) ContribDepthINFN(:,1)/vContribINFN(2)]','stacked')
-       subplot(212),bar([ContribDepthSPC(:,3)/vContribSPC(4) ContribDepthINFN(:,3)/vContribINFN(4)]','stacked')
+
+       
 %% plot GSI data
 
 load('C:\Users\wieserh\Documents\matRad\GSI_Chardoma_Carbon_BioData.mat')
