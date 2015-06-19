@@ -3,11 +3,11 @@
 clc
 clear
 close all
-vEnergy = 350;
-if ~strcmp(computer,'PCWIN64')
-    pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+vEnergy = 280;
+if ~ismac
+    pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV28000.xlsx';
 else
-    pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.xlsx';
+    pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV28000.xlsx';
 end
 READXLS = true;
 
@@ -149,7 +149,7 @@ set(gca,'YLim',[.5E-5,0.1]);
 
 
 %% load and display stopping powers
-if ~strcmp(computer,'PCWIN64')
+if ~ismac
     path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
 else
     path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
@@ -301,7 +301,7 @@ grid on
 
 %% load RBE spc files
 Spectra = {'hydrogen','helium','lithium','beryllium','bor','carbon','nitrogen','oxygen','fluor','neon'};
-if ~strcmp(computer,'PCWIN64')
+if ~ismac
     path = 'E:\TRiP98DATA_HIT-20131120\RBE';
 else
     path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
@@ -423,22 +423,21 @@ for i = 1:length(sParticles)
     
     RBE_ini_z = RBE_ini.(sParticleLong{i}){1,2};
     alpha_ion = ([RBE_ini_z.RBE].*alpha_x)';
-    figure(10),plot(alphaInfn.(sParticles{i}).Energy,alphaInfn.(sParticles{i}).alpha,[sLineSpec{i} sColor{i}],'LineWidth',2),hold on,grid on, grid minor, title('alpha_{ion} vs energy from RBE_{inital} and INFN'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);;
+    figure(10),plot(alphaInfn.(sParticles{i}).Energy,alphaInfn.(sParticles{i}).alpha,[sLineSpec{i} sColor{i}],'LineWidth',2),hold on,grid on, grid minor, title('alpha_{D} vs energy from RBE_{inital} using rapidScholz and INFN'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);;
     
     beta_ion = (Smax-alpha_ion)./(2*Dcut);
     
         
     % rapid calculation according to Krämer
-    SP_interp_RBE = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,[RBE(celltype).(sParticleLong{i}){1,2}.Energy],'pchip','extrap');
-    d1 = ((1.602189e-10 .* SP_interp_RBE )/ Anuc);
+    LTE_RBE = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,[RBE(celltype).(sParticleLong{i}){1,2}.Energy],'pchip','extrap');
+    d1 = ((1.602189e-10 .* LTE_RBE )/ Anuc);
     % S1 is the surviving fraction for a single particle traversal
     S1 = exp(-alpha_ion'.*d1);
     alpha_ion_rapid = (1-S1)./d1;
     % calculate scaling factor
     f = alpha_ion_rapid./alpha_ion';
     beta_ion_rapid=(f.^2).*beta_ion';
-    figure(10),plot([RBE(celltype).(sParticleLong{i}){1,2}.Energy],alpha_ion_rapid,[sLineSpec2{i} sColor{i}],'LineWidth',2),hold on,grid on, grid minor, title('alpha_{ion} vs energy from RBE_{inital} and INFN'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);;
-   
+    figure(10),plot([RBE(celltype).(sParticleLong{i}){1,2}.Energy],alpha_ion_rapid,[sLineSpec2{i} sColor{i}],'LineWidth',2),hold on,grid on, grid minor, title('alpha_{D} vs energy from RBE_{inital} using rapidScholz and INFN'),set(gca,'XScale','log'),xlabel('Energy in MeV'),ylabel('raw alpha in Gy-1'),set(gca,'FontSize',14);;
     % initialize some vectors
     alpha_Z = zeros(length(vDepth),1);
     alpha_Z_Infn = zeros(length(vDepth),1);
@@ -510,8 +509,8 @@ figure,grid on,grid minor ,hold on,title('comparison of alpha-depth curves - 280
        plot(baseData(EnergyIdx).depths/10,baseData(EnergyIdx).alpha(:,1),'k','Linewidth',3)
        plot(vDepth,(alpha_numeratorInfn./dose_accum),[sLineSpec{4} sColor{2}],'Linewidth',3),
        plot(vDepth,(alpha_numeratorRapid./dose_accum),[sLineSpec{4} sColor{3}],'Linewidth',3),
-       plot(C12_280MeVAlpha01(:,1),C12_280MeVAlpha01(:,2),[sLineSpec{4} sColor{4}],'Linewidth',3),
-       legend({'A.Mairani-LEM4-','from INFN & my SPC data','rapidScholz & my SPC data','from INFN & Sarah Bruenings SPC data'})
+       %plot(C12_280MeVAlpha01(:,1),C12_280MeVAlpha01(:,2),[sLineSpec{4} sColor{4}],'Linewidth',3),
+       legend({'A.Mairani-LEM4 & CNAO data','from INFN & my SPC data','rapidScholz & my SPC data','from INFN & Sarah Bruenings SPC data'})
        set(gca,'FontSize',14),set(gca,'XLim',[0 30])
 
 figure,plot(vDepth,(beta_numeratorRapid./dose_accum).^2,'Linewidth',3),hold on,title('comparison of dose averaged beta depth curves')
