@@ -4,7 +4,7 @@ clc
 clear
 close all
 vEnergy = 280;
-if ~ismac
+if ismac
     pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV28000.xlsx';
 else
     pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV28000.xlsx';
@@ -149,7 +149,7 @@ set(gca,'YLim',[.5E-5,0.1]);
 
 
 %% load and display stopping powers
-if ~ismac
+if ismac
     path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
 else
     path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
@@ -301,7 +301,7 @@ grid on
 
 %% load RBE spc files
 Spectra = {'hydrogen','helium','lithium','beryllium','bor','carbon','nitrogen','oxygen','fluor','neon'};
-if ~ismac
+if ismac
     path = 'E:\TRiP98DATA_HIT-20131120\RBE';
 else
     path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
@@ -504,20 +504,42 @@ figure(10),legend({'H_{Infn}','H_{rapidScholz}','He_{Infn}','He_{rapidScholz}','
 
 load('carbonBaseData.mat');
 load (['baseDataHIT' filesep 'C12_280MeVAlpha01.mat']);
+load (['baseDataHIT' filesep 'refCNAOAlpha05E280.mat']);
+load (['baseDataHIT' filesep 'refCNAObeta001E280.mat']);
+
 [~,EnergyIdx] =(min(abs([baseData(:).energy]-vEnergy)));
+
+%% alpha depth curves
 figure,grid on,grid minor ,hold on,title('comparison of alpha-depth curves - 280MeV alpha_x = 0.1Gy^-1'),xlabel('depth in [cm]'),ylabel('alpha in Gy^-1')
        plot(baseData(EnergyIdx).depths/10,baseData(EnergyIdx).alpha(:,1),'k','Linewidth',3)
        plot(vDepth,(alpha_numeratorInfn./dose_accum),[sLineSpec{4} sColor{2}],'Linewidth',3),
        plot(vDepth,(alpha_numeratorRapid./dose_accum),[sLineSpec{4} sColor{3}],'Linewidth',3),
-       %plot(C12_280MeVAlpha01(:,1),C12_280MeVAlpha01(:,2),[sLineSpec{4} sColor{4}],'Linewidth',3),
-       legend({'A.Mairani-LEM4 & CNAO data','from INFN & my SPC data','rapidScholz & my SPC data','from INFN & Sarah Bruenings SPC data'})
+       
+       vT = (0:0.005:30)*10;
+       Z_interp=interp1(baseData(EnergyIdx).depths, baseData(EnergyIdx).Z,vT','pchip');
+       AlphadEdx_interp=interp1(refCNAOALPHA.depth,refCNAOALPHA.alphadEdx,vT,'pchip');
+       plot(vT/10,AlphadEdx_interp'./Z_interp,[sLineSpec{4} sColor{4}],'Linewidth',3),
+       
+       legend({'A.Mairani-LEM4 & CNAO data','from INFN & my SPC data','rapidScholz & my SPC data','A.Mairani-LEM1 & CNAO data'})
        set(gca,'FontSize',14),set(gca,'XLim',[0 30])
+       
+%% alph*dEdx depth curves       
+figure,grid on,grid minor,hold on,title('comparison of alpha-dose-depth curves - 280MeV alpha_x = 0.1Gy^-1'),xlabel('depth in [cm]'),ylabel('dEdx * alpha')
+     plot(refCNAOALPHA.depth./10,refCNAOALPHA.alphadEdx,'r','Linewidth',3),set(gca,'FontSize',16)
+     plot(vDepth,alpha_numeratorRapid,'b','Linewidth',3)
+     legend({'RBE_{initial} & rapidScholz & my SPC','reference curve from A.Mairani(LEM1)'})
+      set(gca,'FontSize',14),set(gca,'XLim',[0 30])
+         
 
+ %% beta depth curve     
 figure,plot(vDepth,(beta_numeratorRapid./dose_accum).^2,'Linewidth',3),hold on,title('comparison of dose averaged beta depth curves')
       plot(baseData(EnergyIdx).depths/10,baseData(EnergyIdx).beta(:,1),'LineWidth',3)
       grid on, grid minor,xlabel('depth in cm'),ylabel('beta in Gy^-2'),set(gca,'Fontsize',14), legend({'beta from rapidScholz','beta from A.Mairani'})
-
-
+%% beta * dEdx
+figure,plot(refCNAOBETA.depth,refCNAOBETA.sqBetadEdx,'r','LineWidth',3),hold on
+       plot(vDepth,beta_numeratorRapid,'b','Linewidth',3),hold on,title('comparison of dose averaged beta depth curves')
+       grid on, grid minor,xlabel('depth in cm'),ylabel('sqrt(Beta)*dEdx in Gy^-2'),set(gca,'Fontsize',14),  legend({'RBE_{initial} & rapidScholz & my SPC','reference curve from A.Mairani(LEM1)'})
+       set(gca,'XLim',[0 30])
 
 
 vContribSPC=sum(ContribDepthSPC,1);
