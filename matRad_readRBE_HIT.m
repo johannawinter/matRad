@@ -4,7 +4,7 @@ clc
 clear
 close all
 vEnergy = 280;
-if ismac
+if ~ismac
     pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV28000.xlsx';
 else
     pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV28000.xlsx';
@@ -149,7 +149,7 @@ set(gca,'YLim',[.5E-5,0.1]);
 
 
 %% load and display stopping powers
-if ismac
+if ~ismac
     path = 'E:\TRiP98DATA_HIT-20131120\DEDX\dEdxFLUKAxTRiP.dedx';
 else
     path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
@@ -301,7 +301,7 @@ grid on
 
 %% load RBE spc files
 Spectra = {'hydrogen','helium','lithium','beryllium','bor','carbon','nitrogen','oxygen','fluor','neon'};
-if ismac
+if ~ismac
     path = 'E:\TRiP98DATA_HIT-20131120\RBE';
 else
     path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
