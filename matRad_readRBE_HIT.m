@@ -517,7 +517,7 @@ figure,grid on,grid minor ,hold on,title('comparison of alpha-depth curves - 280
        
        vT = (0:0.005:30)*10;
        Z_interp=interp1(baseData(EnergyIdx).depths, baseData(EnergyIdx).Z,vT','pchip');
-       AlphadEdx_interp=interp1(refCNAOALPHA.depth,refCNAOALPHA.alphadEdx,vT,'pchip');
+       AlphadEdx_interp=interp1(refCNAOALPHA.depth*10,refCNAOALPHA.alphadEdx,vT,'pchip');
        plot(vT/10,AlphadEdx_interp'./Z_interp,[sLineSpec{4} sColor{4}],'Linewidth',3),
        
        legend({'A.Mairani-LEM4 & CNAO data','from INFN & my SPC data','rapidScholz & my SPC data','A.Mairani-LEM1 & CNAO data'})
@@ -525,7 +525,7 @@ figure,grid on,grid minor ,hold on,title('comparison of alpha-depth curves - 280
        
 %% alph*dEdx depth curves       
 figure,grid on,grid minor,hold on,title('comparison of alpha-dose-depth curves - 280MeV alpha_x = 0.1Gy^-1'),xlabel('depth in [cm]'),ylabel('dEdx * alpha')
-     plot(refCNAOALPHA.depth./10,refCNAOALPHA.alphadEdx,'r','Linewidth',3),set(gca,'FontSize',16)
+     plot(refCNAOALPHA.depth,refCNAOALPHA.alphadEdx,'r','Linewidth',3),set(gca,'FontSize',16)
      plot(vDepth,alpha_numeratorRapid,'b','Linewidth',3)
      legend({'RBE_{initial} & rapidScholz & my SPC','reference curve from A.Mairani(LEM1)'})
       set(gca,'FontSize',14),set(gca,'XLim',[0 30])
