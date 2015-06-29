@@ -50,6 +50,8 @@ if nargin < 5
     visBool = 0;
 end
 
+% initialize waitbar
+figureWait=waitbar(0,'photon dij-calculation..');
 % meta information for dij
 dij.numOfBeams         = pln.numOfBeams;
 dij.numOfVoxels        = pln.numOfVoxels;
@@ -87,7 +89,7 @@ lateralCutoff = 20; % [mm]
 
 %% kernel convolution
 % load polynomial fits for kernels ppKernel1, ppKernel2, ppKernel3
-load photonPencilBeamKernels.mat;
+load photonPencilBeamKernels_6MV.mat;
 
 % Display console message.
 fprintf('matRad: Kernel convolution... \n');
@@ -124,8 +126,8 @@ else
 end
 
 % generate meshgrid with CT position [mm]
-[X_geo,Y_geo,Z_geo] = meshgrid(ct.resolution(1)*(0.5:1:size(ct.cube,1)),...
-    ct.resolution(2)*(0.5:1:size(ct.cube,2)),ct.resolution(3)*(0.5:1:size(ct.cube,3)));
+[X_geo,Y_geo,Z_geo] = meshgrid(ct.resolution(1)*(1:size(ct.cube,2)),...
+    ct.resolution(2)*(1:size(ct.cube,1)),ct.resolution(3)*(1:size(ct.cube,3)));
 
 % take only voxels inside patient
 X_geo = X_geo(V);
@@ -166,7 +168,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
 
         % Display progress
         matRad_progress(counter,dij.totalNumOfBixels);
-        %waitbar(counter/dij.totalNumOfBixels);
+        waitbar(counter/dij.totalNumOfBixels);
         % remember beam and bixel number
         dij.beamNum(counter)  = i;
         dij.rayNum(counter)   = j;
@@ -179,7 +181,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
             stf(i).ray(j).targetPoint_bev,X_geo,Y_geo,Z_geo,lateralCutoff,visBool);
         
         % calculate photon dose for beam i and bixel j
-        bixelDose = matRad_calcPhotonDoseBixel(pln.SAD, ...
+        bixelDose = matRad_calcPhotonDoseBixel(pln.SAD,m,betas, ...
                                                Interp_kernel1,...
                                                Interp_kernel2,...
                                                Interp_kernel3,...
@@ -187,7 +189,6 @@ for i = 1:dij.numOfBeams; % loop over all beams
                                                geoDists,...
                                                latDistsX,...
                                                latDistsZ);
-       
        
         % Save dose for every bixel in cell array
         doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix),1,bixelDose,numel(ct.cube),1);
@@ -200,3 +201,5 @@ for i = 1:dij.numOfBeams; % loop over all beams
         
     end
 end
+
+close(figureWait);

@@ -1,4 +1,4 @@
-function optResult = matRad_fluenceOptimization(dij,cst,pln,varargin)
+function optResult = matRad_fluenceOptimization(dij,cst,pln,visBool,varargin)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad inverse planning wrapper function
 % 
@@ -9,6 +9,8 @@ function optResult = matRad_fluenceOptimization(dij,cst,pln,varargin)
 %   dij:        matRad dij struct
 %   cst:        matRad cst struct
 %   pln:        matRad pln struct
+%   visBool:    plots the objective function value in dependence of the
+%               number of iterations
 %   varargin:   optinal: convergence criteria for optimization and biological
 %               optimization mode
 %
@@ -51,12 +53,22 @@ wInit = ones(dij.totalNumOfBixels,1);
 % consider VOI priorities
 cst  = matRad_setOverlapPriorities(cst);
 
+%% adjust internally for fractionation 
+for i = 1:size(cst,1)
+    for j = 1:size(cst{i,6},2)
+        if ~strcmp(cst{i,6}(j).type,'mean') && ~strcmp(cst{i,6}(j).type,'EUD')
+          cst{i,6}(j).parameter(2) = cst{i,6}(j).parameter(2)/pln.numOfFractions;
+        end
+    end
+end
+
 % define objective function
 if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ... 
         && strcmp(pln.radiationMode,'carbon')
     % check if you are running a supported rad
-    dij.ax = zeros(dij.numOfVoxels,1);
-    dij.bx = zeros(dij.numOfVoxels,1);
+    dij.ax  = zeros(dij.numOfVoxels,1);
+    dij.bx  = zeros(dij.numOfVoxels,1);
+    dij.Smax=zeros(dij.numOfVoxels,1);
     
     for i = 1:size(cst,1)
         for j = 1:size(cst{i,6},2)
@@ -66,13 +78,10 @@ if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') .
                                             'square deviation',...
                                             'mean',...
                                             'EUD'})) < 1
+                                        
                 error([cst{i,6}(j).type ' objective not supported ' ...
                     'during biological optimization for carbon ions']);
-            else % adjust internally for fractionation effects if prescribed dose exists for 
-                 % corresponding objective function
-                if ~strcmp(cst{i,6}(j).type,'mean') && ~strcmp(cst{i,6}(j).type,'EUD')
-                    cst{i,6}(j).parameter(2) = cst{i,6}(j).parameter(2)/pln.numOfFractions;
-                end
+           
             end
         end
         
@@ -89,10 +98,16 @@ if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') .
         IdentifierBioOpt = pln.bioOptimization;
     end
     
+    %calculate maximum slope
+    dij.Dcut = 30; %[Gy]
+    dij.Smax = dij.ax + (2*dij.bx*dij.Dcut);
+    
     switch IdentifierBioOpt
         case 'effect'
             objFunc = @(x) matRad_bioObjFunc(x,dij,cst);
         case 'RBExD'
+            dij.Scut = dij.ax.*dij.Dcut + dij.bx.*dij.Dcut^2;
+            
             dij.gamma = zeros(dij.numOfVoxels,1);
             idx = dij.bx~=0;  % find indices
             dij.gamma(idx)=dij.ax(idx)./(2*dij.bx(idx)); 
@@ -104,11 +119,13 @@ else
     objFunc =  @(x) matRad_objFunc(x,dij,cst);
     
 end
+
+
 %% verify gradients
 %matRad_verifyGradient(objFunc,dij.totalNumOfBixels);
 
 % minimize objetive function
-optResult = matRad_projectedLBFGS(objFunc,wInit,varargin);
+optResult = matRad_projectedLBFGS(objFunc,wInit,visBool,varargin);
 
 % calc dose and reshape from 1D vector to 2D array
 optResult.physicalDose = reshape(dij.physicalDose*optResult.w,dij.dimensions);

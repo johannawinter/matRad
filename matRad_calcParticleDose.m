@@ -48,7 +48,8 @@ function dij = matRad_calcParticleDose(ct,stf,pln,cst,visBool)
 if nargin < 5
     visBool = 0;
 end
-
+% initialize waitbar
+figureWait=waitbar(0,'calculate particle-ij matrice(s)...');
 % meta information for dij
 dij.numOfBeams         = pln.numOfBeams;
 dij.numOfVoxels        = pln.numOfVoxels;
@@ -120,8 +121,8 @@ end
 
 % It make a meshgrid with CT position in millimeter for calculate
 % geometrical distances
-[X_geo,Y_geo,Z_geo] = meshgrid(ct.resolution(1)*(0.5:1:size(ct.cube,1)),...
-    ct.resolution(2)*(0.5:1:size(ct.cube,2)),ct.resolution(3)*(0.5:1:size(ct.cube,3)));
+[X_geo,Y_geo,Z_geo] = meshgrid(ct.resolution(1)*(1:size(ct.cube,2)),...
+    ct.resolution(2)*(1:size(ct.cube,1)),ct.resolution(3)*(0.5:1:size(ct.cube,3)));
 
 % take only voxels inside patient
 X_geo = X_geo(V);
@@ -188,7 +189,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 counter = counter + 1;
                 % Display progress
                 matRad_progress(counter,dij.totalNumOfBixels);
-                %waitbar(counter/dij.totalNumOfBixels);
+                waitbar(counter/dij.totalNumOfBixels);
                 % remember beam and  bixel number
                 dij.beamNum(counter)  = i;
                 dij.rayNum(counter)   = j;
@@ -241,3 +242,4 @@ for i = 1:dij.numOfBeams; % loop over all beams
         
     end
 end
+close(figureWait);

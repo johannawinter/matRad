@@ -46,18 +46,8 @@ function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,baseData)
 % interpolate sigma
 sigma = interp1(baseData.depths,baseData.sigma,radDepths);
 
-% interpolate Z
+% interpolate depth dose
 Z = interp1(baseData.depths,baseData.Z,radDepths);
 
 % calculate dose
-dose_narrow = exp( -radialDist_sq ./ (2*sigma.^2)) .* Z ./(2*pi*sigma.^2);
-
-sigma2 = 10;
-% setting w to zero leads to the "old" beam model
-w      = 0.15;
-dose_broad = exp( -radialDist_sq ./ (2*sigma2.^2)) .* Z ./(2*pi*sigma2.^2);
-
-dose = (1-w).*dose_narrow+w.*dose_broad;
-
-
-
+dose = exp( -radialDist_sq ./ (2*sigma.^2)) .* Z ./(2*pi*sigma.^2);

@@ -42,14 +42,14 @@ load LIVER.mat
 pln.SAD             = 1000; %[mm]
 pln.isoCenter       = matRad_getIsoCenter(cst,ct,0);
 pln.bixelWidth      = 5; % [mm] / also corresponds to lateral spot spacing for particles
-pln.gantryAngles    = [0:72:359]; % [°]
-pln.couchAngles     = [0 0 0 0 0]; % [°]
+pln.gantryAngles    = [0:72:359]; % [Â°]
+pln.couchAngles     = [0 0 0 0 0]; % [Â°]
 pln.numOfBeams      = numel(pln.gantryAngles);
 pln.numOfVoxels     = numel(ct.cube);
 pln.voxelDimensions = size(ct.cube);
 pln.radiationMode   = 'photons'; % either photons / protons / carbon
 pln.bioOptimization = 'none'; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
-pln.numOfFractions  = 30;
+pln.numOfFractions  = 1;
 
 %% initial visualization and change objective function settings if desired
 matRadGUI
@@ -65,7 +65,7 @@ elseif strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
 end
 
 %% inverse planning for imrt
-resultGUI = matRad_fluenceOptimization(dij,cst,pln);
+resultGUI = matRad_fluenceOptimization(dij,cst,pln,0);
 
 %% sequencing
 if strcmp(pln.radiationMode,'photons')
@@ -77,5 +77,5 @@ end
 %% start gui for visualization of result
 matRadGUI
 
-%% dvh and conformity index
+%% dvh
 matRad_calcDVH(resultGUI,cst)
