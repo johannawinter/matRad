@@ -523,7 +523,7 @@ figure,grid on,grid minor ,hold on,title('comparison of alpha-depth curves - 280
        legend({'A.Mairani-LEM4 & CNAO data','from INFN & my SPC data','rapidScholz & my SPC data','A.Mairani-LEM1 & CNAO data'})
        set(gca,'FontSize',14),set(gca,'XLim',[0 30])
        
-%% alph*dEdx depth curves       
+%% alpha*dEdx depth curves       
 figure,grid on,grid minor,hold on,title('comparison of alpha-dose-depth curves - 280MeV alpha_x = 0.1Gy^-1'),xlabel('depth in [cm]'),ylabel('dEdx * alpha')
      plot(refCNAOALPHA.depth,refCNAOALPHA.alphadEdx,'r','Linewidth',3),set(gca,'FontSize',16)
      plot(vDepth,alpha_numeratorRapid,'b','Linewidth',3)
@@ -533,7 +533,8 @@ figure,grid on,grid minor,hold on,title('comparison of alpha-dose-depth curves -
 
  %% beta depth curve     
 figure,plot(vDepth,(beta_numeratorRapid./dose_accum).^2,'Linewidth',3),hold on,title('comparison of dose averaged beta depth curves')
-      plot(baseData(EnergyIdx).depths/10,baseData(EnergyIdx).beta(:,1),'LineWidth',3)
+     BetadEdx_interp=interp1(refCNAOALPHA.depth*10,refCNAOBETA.sqBetadEdx,vT,'pchip')';      
+     plot(vT/10,(BetadEdx_interp./Z_interp).^2,'LineWidth',3)
       grid on, grid minor,xlabel('depth in cm'),ylabel('beta in Gy^-2'),set(gca,'Fontsize',14), legend({'beta from rapidScholz','beta from A.Mairani'})
 %% beta * dEdx
 figure,plot(refCNAOBETA.depth,refCNAOBETA.sqBetadEdx,'r','LineWidth',3),hold on
