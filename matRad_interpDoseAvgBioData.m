@@ -3,7 +3,7 @@ function [ ddd ] = matRad_interpDoseAvgBioData( ddd, sData, visBool )
 %   Detailed explanation goes here
 
 
-for CntCellLine = 1:length(sData);
+for CntCellLine = 1:3;
     
     
     if visBool
@@ -11,9 +11,11 @@ for CntCellLine = 1:length(sData);
     end
 
     for i = 1:length(ddd)
+       [~,IdxPeakPos] = max(ddd(i).Z);
+       ddd(i).peakPos = ddd(i).depths(IdxPeakPos);
        E0 = ddd(i).energy;
        [~,idx]= sort(abs([sData{1,CntCellLine}.energy]-E0));
-
+       
         for j = 1:length(sData{1,CntCellLine}(1).depths)
 
             %% process alpha curves
@@ -36,6 +38,9 @@ for CntCellLine = 1:length(sData);
                    sData{1,CntCellLine}(idx(3)).energy];
                try
                  vAlpha(j) = interp1(vYPair,vXPair,E0,'pchip');
+                 if isnan(vAlpha(j))
+                    vAlpha(j) = vAlpha(j-1);
+                 end
                catch
                  vAlpha(j)=0;
                end
@@ -48,21 +53,27 @@ for CntCellLine = 1:length(sData);
                    sData{1,CntCellLine}(idx(3)).energy];
                try
                  vBeta(j) = interp1(vYPair,vXPair,E0,'pchip');
+                  if isnan(vBeta(j))
+                    vBeta(j) = vBeta(j-1);
+                  end
                catch
                  vBeta(j)=0;
                end
 
         end
 
-               if visBool
-                plot(vX,vAlpha);
-               end
-                ddd(1,i).alpha(:,CntCellLine)=interp1(vX*100,vAlpha,ddd(1,i).depth);
-                ddd(1,i).beta(:,CntCellLine)=interp1(vX*100,vBeta,ddd(1,i).depth);
+                if visBool
+                 plot(vX,vAlpha);
+                end
+                ddd(1,i).alpha(:,CntCellLine)=interp1(vX,vAlpha,ddd(1,i).depths,'linear','extrap');
+                ddd(1,i).beta(:,CntCellLine)=interp1(vX,vBeta,ddd(1,i).depths,'linear','extrap');
                 ddd(1,i).alphaBetaRatio(:,CntCellLine) = unique([sData{1,CntCellLine}.alphaBetaRatio]);
-    end
-
-end
+                
+                %extend to deeper depths 
+                
+                
+                
+   end
 
 end
 

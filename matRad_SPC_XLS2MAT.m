@@ -306,8 +306,8 @@ grid on
 % sigma1 = 1;
 % sigma2 = 10;
 % w = 0.15;
-% vY_narr = 1/(sqrt(2*pi*(sigma1^2)))*exp(-(vX).^2/(2*(sigma1^2)));
-% vY_bro = 1/(sqrt(2*pi*(sigma2^2)))*exp(-(vX).^2/(2*(sigma2^2)));
+% vY_narr = 1/((2*pi*(sigma1^2)))*exp(-(vX).^2/(2*(sigma1^2)));
+% vY_bro = 1/((2*pi*(sigma2^2)))*exp(-(vX).^2/(2*(sigma2^2)));
 % vY = (1-w)*vY_narr+w*vY_bro;
 % figure,plot(vX,vY)
 

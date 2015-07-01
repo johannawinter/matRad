@@ -26,36 +26,36 @@
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
- clear
- close all
- clc
+clear
+close all
+clc
 
 % load patient data, i.e. ct, voi, cst
 
 %load HEAD_AND_NECK
 %load TG119.mat
 %load PROSTATE.mat
-load LIVER.mat
-%load BOXPHANTOM.mat
+%load LIVER.mat
+load BOXPHANTOM.mat
 
 % meta information for treatment plan
-pln.SAD             = 1000; %[mm]
+pln.SAD             = 10000; %[mm]
 pln.isoCenter       = matRad_getIsoCenter(cst,ct,0);
 pln.bixelWidth      = 5; % [mm] / also corresponds to lateral spot spacing for particles
-pln.gantryAngles    = [0:72:359]; % [°]
-pln.couchAngles     = [0 0 0 0 0]; % [°]
+pln.gantryAngles    = [0]; % [°]
+pln.couchAngles     = [0]; % [°]
 pln.numOfBeams      = numel(pln.gantryAngles);
 pln.numOfVoxels     = numel(ct.cube);
 pln.voxelDimensions = size(ct.cube);
-pln.radiationMode   = 'photons'; % either photons / protons / carbon
-pln.bioOptimization = 'none'; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
-pln.numOfFractions  = 1;
-
+pln.radiationMode   = 'carbon'; % either photons / protons / carbon
+pln.bioOptimization = 'effect'; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
+pln.numOfFractions  = 20;
+pln.UseHIT          = true;
 %% initial visualization and change objective function settings if desired
-matRadGUI
+%matRadGUI
 
 %% generate steering file
-stf = matRad_generateStf(ct,cst,pln);
+stf = matRad_generateStf(ct,cst,pln,0);
 
 %% dose calculation
 if strcmp(pln.radiationMode,'photons')
@@ -64,6 +64,8 @@ elseif strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     dij = matRad_calcParticleDose(ct,stf,pln,cst,0);
 end
 
+resultGUI.physicalDose = reshape(dij.physicalDose*ones(dij.totalNumOfBixels,1),dij.dimensions);
+matRadGUI
 %% inverse planning for imrt
 resultGUI = matRad_fluenceOptimization(dij,cst,pln,0);
 

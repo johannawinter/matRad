@@ -49,9 +49,10 @@ vAlpha = NaN*ones(numel(vRadDepths),1);
 vBeta  = NaN*ones(numel(vRadDepths),1);
 
 numOfTissueClass = size(baseData(1).alpha,2);
-
+    
 for i = 1:numOfTissueClass
-    vAlpha(mTissueClass==i) = interp1(baseData.depths,baseData.alpha(:,i),vRadDepths(mTissueClass==i),'linear');
-    vBeta(mTissueClass==i)  = interp1(baseData.depths,baseData.beta(:,i), vRadDepths(mTissueClass==i),'linear');
+    vAlpha(mTissueClass==i) = interp1(baseData.depths,baseData.alpha(:,i),vRadDepths(mTissueClass==i),'linear','extrap');
+    vBeta(mTissueClass==i)  = interp1(baseData.depths,baseData.beta(:,i), vRadDepths(mTissueClass==i),'linear','extrap');
 end
 
+    

@@ -112,9 +112,9 @@ for j = 1:length(initialRBE)
      
   sData{1,j}{CntEnergy}.energy = i;
   sData{1,j}{CntEnergy}.alphaBetaRatio = alpha_x/beta_x;
-  sData{1,j}{CntEnergy}.depths = vDepth';
-  sData{1,j}{CntEnergy}.alpha(:,j) = alpha_numeratorRapid./dose_accum;
-  sData{1,j}{CntEnergy}.beta(:,j) = (beta_numeratorRapid./dose_accum).^2;
+  sData{1,j}{CntEnergy}.depths = (vDepth')*10;
+  sData{1,j}{CntEnergy}.alpha = alpha_numeratorRapid./dose_accum;
+  sData{1,j}{CntEnergy}.beta = (beta_numeratorRapid./dose_accum).^2;
   sData{1,j}{CntEnergy}.alphaX = alpha_x;
   sData{1,j}{CntEnergy}.betaX = beta_x;
   CntEnergy = CntEnergy+1;

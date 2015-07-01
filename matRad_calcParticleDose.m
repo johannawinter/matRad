@@ -91,7 +91,11 @@ coords_inside = [xCoordsV yCoordsV zCoordsV];
 if strcmp(pln.radiationMode,'protons')
     load protonBaseData;
 elseif strcmp(pln.radiationMode,'carbon')
-    load carbonBaseData;
+    if pln.UseHIT
+           load carbonBaseDataHITBio
+    else
+           load carbonBaseData;
+    end
 end
 
 % generates tissue class matrix for biological optimization
@@ -167,9 +171,18 @@ for i = 1:dij.numOfBeams; % loop over all beams
         
         if ~isempty(stf(i).ray(j).energy)
         
-            % set lateral cutoff for calculation of geometric distances
-            lateralCutoff = 3*baseData(max(stf(i).ray(j).energy) == [baseData.energy]).sigma(end);
-
+           % set lateral cutoff for calculation of geometric distances
+           if pln.UseHIT
+               
+               sigma = sqrt(baseData(max(stf(i).ray(j).energy) == [baseData.energy]).sigma1(end)^2 + ...
+                   baseData(max(stf(i).ray(j).energy) == [baseData.energy]).sigma2(end)^2);
+               
+               lateralCutoff = sigma;
+           else
+               lateralCutoff = 3*baseData(max(stf(i).ray(j).energy) == [baseData.energy]).sigma(end);
+           end
+            
+  
             % Ray tracing for beam i and ray j
             [ix,radDepths,~,latDistsX,latDistsZ] = matRad_calcRadGeoDists(ct.cube,V,...
                     pln.isoCenter,rot_coords,ct.resolution,stf(i).sourcePoint,...
@@ -199,14 +212,21 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 energyIx = find(stf(i).ray(j).energy(k) == [baseData.energy]);
 
                 % find indices
-                currIx = radDepths <= baseData(energyIx).depths(end) & ...
+                
+               if pln.UseHIT
+                   currIx = radDepths <= baseData(energyIx).depths(end) & ...
+                         radialDist_sq <= (baseData(energyIx).sigma2(end)^2)/2;
+               else
+                   currIx = radDepths <= baseData(energyIx).depths(end) & ...
                          radialDist_sq <= 9*baseData(energyIx).sigma(end)^2;
+               end
 
                 % calculate particle dose for bixel k on ray j of beam i
                 bixelDose = matRad_calcParticleDoseBixel(...
                     radDepths(currIx),...
                     radialDist_sq(currIx),...
-                    baseData(energyIx));
+                    baseData(energyIx),...
+                    pln);
                 
                 % Save dose for every bixel in cell array
                 doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix(currIx)),1,bixelDose,numel(ct.cube),1);
@@ -219,7 +239,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
                         radDepths(currIx),...
                         mTissueClass_j(currIx,:),...
                         baseData(energyIx));
-                
+
                     alphaDoseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix(currIx)),1,bixelAlpha.*bixelDose,numel(ct.cube),1);
                     betaDoseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix(currIx)),1,sqrt(bixelBeta).*bixelDose,numel(ct.cube),1);
                 end

@@ -1,4 +1,4 @@
-function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,baseData)
+function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,baseData,pln)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad visualization of two-dimensional dose distributions on ct including
 % segmentation
@@ -44,10 +44,32 @@ function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,baseData)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % interpolate sigma
-sigma = interp1(baseData.depths,baseData.sigma,radDepths);
+if pln.UseHIT
+    
+    sigmaNarr = interp1(baseData.depths,baseData.sigma1,radDepths);
+    sigmaBro = interp1(baseData.depths,baseData.sigma2,radDepths);
+    w= interp1(baseData.depths,baseData.weight,radDepths);
 
-% interpolate depth dose
-Z = interp1(baseData.depths,baseData.Z,radDepths);
+    % interpolate depth dose
+    Z = interp1(baseData.depths,baseData.Z,radDepths);
+     % calculate dose
+    L_Narr = exp( -radialDist_sq ./ (2*sigmaNarr.^2))./(2*pi*sigmaNarr.^2);
+    L_Bro  = exp( -radialDist_sq ./ (2*sigmaBro.^2))./(2*pi*sigmaBro.^2);
+    L = ((1-w).*L_Narr) + (w.*L_Bro);
+    dose = Z.* L_Bro;
+    
 
-% calculate dose
-dose = exp( -radialDist_sq ./ (2*sigma.^2)) .* Z ./(2*pi*sigma.^2);
+    if sum(isnan(dose))>0
+      dose(isnan(dose))=0;
+    end
+     
+else
+    sigma = interp1(baseData.depths,baseData.sigma,radDepths);
+    % interpolate depth dose
+    Z = interp1(baseData.depths,baseData.Z,radDepths);
+    % calculate dose
+    dose = exp( -radialDist_sq ./ (2*sigma.^2)) .* Z ./(2*pi*sigma.^2);
+end
+
+
+

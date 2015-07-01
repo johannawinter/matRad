@@ -83,7 +83,11 @@ if strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     if strcmp(pln.radiationMode,'protons')
         load protonBaseData;
     elseif  strcmp(pln.radiationMode,'carbon')
-        load carbonBaseData;
+       if pln.UseHIT
+           load carbonBaseDataHITBio
+       else
+           load carbonBaseData;
+       end
     end
     
     availableEnergies = [baseData.energy];

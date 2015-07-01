@@ -52,7 +52,7 @@ e = linTerm + quadTerm.^2;
 d = dij.physicalDose*w;
 CutIdx = d>dij.Dcut;
 
-if sum(CutIdx>0)
+if sum(CutIdx)>0
 
     linTermHighDose  = (linTerm(CutIdx)./d(CutIdx)).*dij.Dcut;
     quadTermHighDose = (quadTerm(CutIdx)./d(CutIdx)).*dij.Dcut;
