@@ -1,10 +1,13 @@
 function Pdata=js_getCarbon_Data
 
+% extracts the first foci of each energy from the sis file
+sigmaSISsq = tk_C_sigma_SISsq; 
+
 for i = 1:255
     
-    Pdata(i).fileName = ['C_E' num2str(i) '_3MMRIFI_MS.ddd'];
+    %Pdata(i).fileName = ['C_E' num2str(i) '_3MMRIFI_MS.ddd'];
     
-    fid = fopen(['E:\TRiP98DATA_HIT-20131120\DDD\12C\RF3MM_NEU\12C_E' num2str(i) '_rifi3mm_ddd_new.ddd'],'r');
+    fid = fopen(['\\psf\Home\Documents\Heidelberg\TRiP98DATA\DDD\12C\RF3MM_NEU\12C_E' num2str(i) '_rifi3mm_ddd_new.ddd'],'r');
     
     if fid < 0
         display(['Could not open 12C_E' num2str(i) '_rifi3mm_ddd_new.ddd']);
@@ -48,21 +51,30 @@ while ~feof(fid)
 end
     fclose(fid);    
    
-    %Pdata(i).range = 
-    Pdata(i).depth = depth*100; 
+    if i == 155
+        st =2;
+    end
+    Pdata(i).depths = depth*10; 
     Pdata(i).Z   = ionization;
+    %Pdata(i).DDD   = ionization;
     [val,idx]=max(ionization);
-    Pdata(i).peakPos = Pdata(i).depth(idx)./10;
-    Pdata(i).sigma1 = FWHM1/(2*sqrt(2*log(2)));                                                                  
-    Pdata(i).sigma2 = FWHM2/(2*sqrt(2*log(2)));
+    Pdata(i).peakPos = Pdata(i).depths(idx)./10;
+    %% prepare data for HIT
+    h = sigmaSISsq( i,1);
+    s11 = 1/(2*sqrt(2*log(2)))*abs(FWHM1);
+    s22 = 1/(2*sqrt(2*log(2)))*abs(FWHM2);
+    Pdata(i).sigma1 = sqrt( h + s11(:,1).^2);                                                                
+    Pdata(i).sigma2 = sqrt( h + s22(:,1).^2);
     Pdata(i).weight = weight; 
-     
-
+    
+%     Pdata(i).FWHM1 = FWHM1;
+%     Pdata(i).FWHM2 = FWHM2;
+%     Pdata(i).DDD   = ionization;
     % scaling for h5 file
 %     [Pdata(i).absCalFac, ix] = max(Pdata(i).DDD); %find peak and peak-index ix
 %     Pdata(i).peakPos = Pdata(i).depth(ix);
 %     
 %     Pdata(i).DDD = round(10000 * Pdata(i).DDD / Pdata(i).absCalFac); %DDD of each file Normed to peak-value * 10000
 %     Pdata(i).absCalFac = Pdata(i).absCalFac ./ 10000;
-%     
+    
 end    

@@ -21,16 +21,13 @@ for i = 1:1:255
 voxelsize=1;
 waitbar(i/255,waitb,['Plase wait calculation in progress: step ' num2str(i) ' of 255'] );
 energy=data(i).energy;
-depth=data(i).depth/10;
+depth=data(i).depths/10;
 FWHM1=data(i).FWHM1;
 weight=data(i).weight;
 FWHM2=data(i).FWHM2;
 ion=data(i).DDD;
 
 latcut=zeros(size(depth));
-
-
-
 
 h = sigmaSISsq( i,1);
 

@@ -3,7 +3,7 @@ function [ ddd ] = matRad_interpDoseAvgBioData( ddd, sData, visBool )
 %   Detailed explanation goes here
 
 
-for CntCellLine = 1:3;
+for CntCellLine = 1:11;
     
     
     if visBool

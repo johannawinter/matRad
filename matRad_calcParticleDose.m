@@ -177,7 +177,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
                sigma = sqrt(baseData(max(stf(i).ray(j).energy) == [baseData.energy]).sigma1(end)^2 + ...
                    baseData(max(stf(i).ray(j).energy) == [baseData.energy]).sigma2(end)^2);
                
-               lateralCutoff = sigma;
+               lateralCutoff = sigma/2;
            else
                lateralCutoff = 3*baseData(max(stf(i).ray(j).energy) == [baseData.energy]).sigma(end);
            end

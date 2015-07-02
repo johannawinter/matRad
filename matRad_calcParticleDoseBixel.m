@@ -43,27 +43,21 @@ function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,baseData,pl
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% interpolate sigma
+
 if pln.UseHIT
-    
-    sigmaNarr = interp1(baseData.depths,baseData.sigma1,radDepths);
-    sigmaBro = interp1(baseData.depths,baseData.sigma2,radDepths);
+    % interpolate sigmas and weights
+    sigmaNarr = interp1(baseData.depths,baseData.sigma1,radDepths)*(2*sqrt(2*log(2)));
+    sigmaBro = interp1(baseData.depths,baseData.sigma2,radDepths)*(2*sqrt(2*log(2)));
     w= interp1(baseData.depths,baseData.weight,radDepths);
 
     % interpolate depth dose
     Z = interp1(baseData.depths,baseData.Z,radDepths);
-     % calculate dose
     L_Narr = exp( -radialDist_sq ./ (2*sigmaNarr.^2))./(2*pi*sigmaNarr.^2);
     L_Bro  = exp( -radialDist_sq ./ (2*sigmaBro.^2))./(2*pi*sigmaBro.^2);
     L = ((1-w).*L_Narr) + (w.*L_Bro);
-    dose = Z.* L_Bro;
-    
-
-    if sum(isnan(dose))>0
-      dose(isnan(dose))=0;
-    end
-     
+    dose = Z.* L;
 else
+    % interpolate sigma
     sigma = interp1(baseData.depths,baseData.sigma,radDepths);
     % interpolate depth dose
     Z = interp1(baseData.depths,baseData.Z,radDepths);

@@ -1,6 +1,6 @@
 function [C_sigma_SISsq] = tk_C_sigma_SISsq
 
-fHandle = fopen('C:\klingeDaten\TRiP98DATA_HIT-20131120\SIS\12C_1.6.2008.sis','r');
+fHandle = fopen('\\psf\Home\Documents\Heidelberg\TRiP98DATA\SIS\12C_1.6.2008.sis','r');
 
 
     if fHandle < 0
@@ -32,9 +32,7 @@ while(counter < 261)
             
         end
         
-    counter = counter +1;
-    
-    
+    counter = counter +1;  
     
 end
 
@@ -45,21 +43,7 @@ C_sigma_SISsq = C_sigma_SIS .* C_sigma_SIS;
 energy_C_sigma_SISsq = [energy C_sigma_SISsq];
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 fclose(fHandle);
-
-
 
 
 end
