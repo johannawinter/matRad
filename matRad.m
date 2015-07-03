@@ -58,12 +58,14 @@ pln.UseHIT          = true;
 stf = matRad_generateStf(ct,cst,pln,0);
 
 %% dose calculation
+profile on
 if strcmp(pln.radiationMode,'photons')
     dij = matRad_calcPhotonDose(ct,stf,pln,cst,0);
 elseif strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     dij = matRad_calcParticleDose(ct,stf,pln,cst,0);
 end
-
+profile off
+profile viewer
 resultGUI.physicalDose = reshape(dij.physicalDose*ones(dij.totalNumOfBixels,1),dij.dimensions);
 matRadGUI
 %% inverse planning for imrt

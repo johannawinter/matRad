@@ -46,8 +46,8 @@ function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,baseData,pl
 
 if pln.UseHIT
     % interpolate sigmas and weights
-    sigmaNarr = interp1(baseData.depths,baseData.sigma1,radDepths)*(2*sqrt(2*log(2)));
-    sigmaBro = interp1(baseData.depths,baseData.sigma2,radDepths)*(2*sqrt(2*log(2)));
+    sigmaNarr = interp1(baseData.depths,baseData.sigma1,radDepths);
+    sigmaBro = interp1(baseData.depths,baseData.sigma2,radDepths);
     w= interp1(baseData.depths,baseData.weight,radDepths);
 
     % interpolate depth dose

@@ -5,7 +5,6 @@ function [ ddd ] = matRad_interpDoseAvgBioData( ddd, sData, visBool )
 
 for CntCellLine = 1:11;
     
-    
     if visBool
        figure,hold on, title('dose averaged alpha depth dose curves for 255 energies from one specific cell line')
     end

@@ -1,6 +1,6 @@
-function [P_sigma_SISsq] = tk_P_sigma_SISsq
+function [C_sigma_SISsq] = get_C_sigma_SISsq
 
-fHandle = fopen('E:\Steitz_Daten\Dropbox\Master\matlab\TRiP98DATA_HIT-20131120\SIS\1H_1.1.2009.sis','r');
+fHandle = fopen('E:\TRiP98DATA_HIT-20131120\SIS\12C_1.6.2008.sis','r');
 
 
     if fHandle < 0
@@ -25,39 +25,25 @@ while(counter < 261)
    
         if(strfind(currentline,'energy'))
         energy(i)  = str2double(currentline(8:13));    
-        FWHM(i) = str2double(currentline(20:24)); 
+        focus = cell2mat(textscan(currentline,'energy %*f focus %f %f %f %f %f %f %f')); %at the HIT facility only beams with a FWHM >=6mm are used
+        ix = find(focus>=6,1);
+        FWHM(i) = focus(ix);
         i = i+1;
             
         end
         
-    counter = counter +1;
-    
-    
+    counter = counter +1;  
     
 end
 
 energy = energy';
 FWHM = FWHM';
-P_sigma_SIS = FWHM / (2*sqrt(2*log(2)));
-P_sigma_SISsq = P_sigma_SIS .* P_sigma_SIS;
-energy_P_sigma_SISsq = [energy P_sigma_SISsq];
-
-
-
-
-
-
-
-
-
-
-
-
+C_sigma_SIS = FWHM / (2*sqrt(2*log(2)));
+C_sigma_SISsq = C_sigma_SIS .* C_sigma_SIS;
+energy_C_sigma_SISsq = [energy C_sigma_SISsq];
 
 
 fclose(fHandle);
-
-
 
 
 end
