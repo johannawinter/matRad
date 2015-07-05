@@ -1,20 +1,21 @@
-function ddd=matRad_getDDDfromTxt(Identifier,path)
+function ddd=matRad_getDDDfromTxt(Identifier,basePath)
 
 % extracts the first foci of each energy from the sis file
 % if other foci shold be used, adapt the function
 
 switch Identifier
     case 'C'
-        sigmaSISsq = get_C_sigma_SISsq; 
+        relPath = [filesep 'DDD\12C\RF3MM_NEU'];
     case {'p','H'}
-        sigmaSISsq = get_P_sigma_SISsq; 
+        relPath = [filesep 'DDD\p\RF0MM'];
     case 'O'
-        sigmaSISsq = 0; % not yet implemented
+        relPath = [filesep 'DDD\16O\RF3MM'];
     otherwise
         error('unkown particle type')
 end
 
-Files = dir(path);
+sigmaSISsq = getSigmaSISsq(Identifier,basePath);
+Files = dir([basePath relPath]);
 
 for k = length(Files):-1:1
     % remove hidden folders starting with .
@@ -26,7 +27,7 @@ end
 
 for i = 1:length(Files)
     
-    fid = fopen([path filesep Files(i).name],'r');
+    fid = fopen([basePath relPath filesep Files(i).name],'r');
     if fid < 0
         display(['Could not open ' path filesep Files(i).name]);
     end

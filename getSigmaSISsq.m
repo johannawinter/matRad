@@ -1,22 +1,24 @@
-function [C_sigma_SISsq] = get_C_sigma_SISsq
+function [Sigma_SISsq] = getSigmaSISsq(Identifier,basePath)
 
-fHandle = fopen('E:\TRiP98DATA_HIT-20131120\SIS\12C_1.6.2008.sis','r');
+switch Identifier
+    case 'C'
+        FullFilePath = [basePath filesep 'SIS' filesep '12C_1.6.2008.sis'];
+    case {'p','H'}
+        FullFilePath = [basePath filesep 'SIS' filesep '1H_1.1.2009.sis'];
+    case 'O'
+        FullFilePath = [basePath filesep 'SIS' filesep '16O_20.12.2010'];
+    otherwise
+        error('unkown particle type')
+end
+
+
+fHandle = fopen(FullFilePath,'r');
 
 
     if fHandle < 0
         display('Could not open SIS file');
     end
     
-% fgetl(fHandle);
-% fgetl(fHandle);   
-% fgetl(fHandle);
-% fgetl(fHandle);
-% fgetl(fHandle);
-% fgetl(fHandle);
-% 
-% currentline = fgetl(fHandle);
-% energy = str2double(currentline(8:13));
-
 
 counter = 1;
 i=1 ;
@@ -38,10 +40,8 @@ end
 
 energy = energy';
 FWHM = FWHM';
-C_sigma_SIS = FWHM / (2*sqrt(2*log(2)));
-C_sigma_SISsq = C_sigma_SIS .* C_sigma_SIS;
-energy_C_sigma_SISsq = [energy C_sigma_SISsq];
-
+Sigma_SIS = FWHM / (2*sqrt(2*log(2)));
+Sigma_SISsq = Sigma_SIS .* Sigma_SIS;
 
 fclose(fHandle);
 

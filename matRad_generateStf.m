@@ -85,6 +85,7 @@ if strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     elseif  strcmp(pln.radiationMode,'carbon')
        if pln.UseHIT
            load carbonBaseDataHITBio
+           DefaultLongitudialSpotSpacing = 3;  % in [mm]
        else
            load carbonBaseData;
        end
@@ -212,6 +213,22 @@ for i = 1:length(pln.gantryAngles)
                 % Save energies in stf struct
                 for k = 1:numel(targetEntry)
                     stf(i).ray(j).energy = [stf(i).ray(j).energy availableEnergies(availablePeakPos>=targetEntry(k)&availablePeakPos<=targetExit(k))];
+                    if pln.UseHIT
+                        Tolerance = 0.4;
+                        hasNext = true;
+                        CntEnergy =2;
+                        while hasNext
+                            if abs(stf(i).ray(j).energy(CntEnergy)-stf(i).ray(j).energy(CntEnergy-1))<...
+                                    DefaultLongitudialSpotSpacing-Tolerance
+                                stf(i).ray(j).energy(CntEnergy)=[];
+                            else
+                                CntEnergy = CntEnergy+1;
+                            end
+                            if CntEnergy == length(stf(i).ray(j).energy)
+                                hasNext = false;
+                            end
+                        end
+                    end
                 end
                 
             else % target not hit

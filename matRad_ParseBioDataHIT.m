@@ -117,7 +117,24 @@ for j = 1:length(initialRBE)
   sData{1,j}{CntEnergy}.beta = (beta_numeratorRapid./dose_accum).^2;
   sData{1,j}{CntEnergy}.alphaX = alpha_x;
   sData{1,j}{CntEnergy}.betaX = beta_x;
-  CntEnergy = CntEnergy+1;
+ 
+  %% check if division causes peaks in the tail
+%   figure, hold on
+%   plot(vDepth,sData{1,j}{CntEnergy}.beta)
+%   [maxVal,peakPos] = max(dose_accum);
+%   SecurityBuffer = 4;
+%   Minimum = sData{1,j}{CntEnergy}.alpha(peakPos+SecurityBuffer);
+%   for CntDepth = (peakPos+SecurityBuffer):1:length(vDepth)
+%       if Minimum < sData{1,j}{CntEnergy}.alpha(CntDepth)
+%         sData{1,j}{CntEnergy}.alpha(CntDepth) = Minimum;
+%       else
+%           Minimum = sData{1,j}{CntEnergy}.alpha(CntDepth);
+%       end
+%   end
+   % plot(vDepth,sData{1,j}{CntEnergy}.alpha,'r')
+  
+    
+    CntEnergy = CntEnergy+1;
  end
  CntEnergy = 1;
  

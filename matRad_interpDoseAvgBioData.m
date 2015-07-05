@@ -67,23 +67,11 @@ for CntCellLine = 1:11;
                 ddd(1,i).alpha(:,CntCellLine)=interp1(vX,vAlpha,ddd(1,i).depths,'linear','extrap');
                 ddd(1,i).beta(:,CntCellLine)=interp1(vX,vBeta,ddd(1,i).depths,'linear','extrap');
                 ddd(1,i).alphaBetaRatio(:,CntCellLine) = unique([sData{1,CntCellLine}.alphaBetaRatio]);
-                
-                %extend to deeper depths 
-                
-                
+                  
                 
    end
 
 end
 
 
-
-%    x = [sData{1,1}(idx(1)).depths; sData{1,1}(idx(2)).depths]*100;
-%    y = [sData{1,1}(idx(1)).dEdxA; sData{1,1}(idx(2)).dEdxA];
-%    z = zeros(size(y));
-%    z(1:length(sData{1,1}(idx(1)).depths))=sData{1,1}(idx(1)).energy;
-%    z(length(sData{1,1}(idx(1)).depths):end)=sData{1,1}(idx(2)).energy;
-%    [TI,YI] = meshgrid( 80:1:90 , 0:1:400 );
-%    XI = griddata(z,x,y,TI,YI,'cubic') ;
-%    plot3(TI,YI,XI , 'Marker','o' ),grid on, 
 
