@@ -1,23 +1,31 @@
 clc,
 clear 
 close all
+
+addpath([pwd filesep 'BioDataGeneration']);
+matRad_XlsSpectra2Mat('E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM',[pwd filesep 'baseDataHIT'])
+
+
 %% determine which foci shall be used
-protonBaseDataHIT=matRad_getDDDfromTxt('p','\\psf\Home\Documents\Heidelberg\TRiP98DATA');
-%carbonBaseDataHIT=matRad_getDDDfromTxt('C','\\psf\Home\Documents\Heidelberg\TRiP98DATA');
+clc,
+clear 
+close all
+protonBaseDataHIT=matRad_getDDDfromTxt('p','E:\TRiP98DATA_HIT-20131120',1);
+carbonBaseDataHIT=matRad_getDDDfromTxt('C','E:\TRiP98DATA_HIT-20131120',1);
 
 %% get dEdx* alpha from CNAO files or get them from the 37 spc files
 pathCNAO = '\\psf\Home\Documents\Heidelberg\CNAO_baseData';
-pathHIT = '\\psf\Home\Documents\Heidelberg\matRad\baseDataHIT2'; 
+pathHIT = 'C:\Users\wieserh\Documents\matRad\baseDataHIT'; 
 
 [ sDataHIT ] = matRad_ParseBioDataHIT(pathHIT,0);
 %[ sDataCNAO ] = matRad_ParseBioDataCNAO(pathCNAO,'C',0);
 
 %% merge ddd and dose averaged depth alpha curves
 
- load('\\psf\Home\Documents\Heidelberg\matRad\baseDataHIT2\sDataHIT.mat');
- load('\\psf\Home\Documents\Heidelberg\matRad\baseDataHIT2\carbonBaseDataHIT.mat');
+ load('C:\Users\wieserh\Documents\matRad\sDataHIT.mat');
+ load('C:\Users\wieserh\Documents\matRad\carbonBaseDataHIT.mat');
 
-[ baseData ] = matRad_interpDoseAvgBioData(carbonBaseDataHIT, sDataHIT ,0);
+[ baseData ] = matRad_interpDoseAvgBioData(baseData, sDataHIT ,0);
 
 %% interpolate to deeper depths
 clc

@@ -3,15 +3,14 @@
 clc
 clear
 close all
-vEnergy = 080;
+vEnergy = 280;
 if ~ismac
     pathSpec = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV28000.xlsx';
 else
     pathSpec = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV28000.xlsx';
 end
 
-LOADSPCMAT = true;
-READXLS = false;
+LOADSPCMAT = false;
 
 sParticles = {'H','He','Li','Be','B','C'};
 sParticlesNo = {'1002','2004','3006','4008','5010','6012'};
@@ -23,9 +22,8 @@ if LOADSPCMAT
     fName = fieldnames(SPC);
     SPC = SPC.(fName{1,1});
     
-    else
+else
         %% read spc files from xls files or from .mat
-        if READXLS
             [~,~,raw] = xlsread(pathSpec);
             % skip the first column and first row
             raw = raw(2:end,2:end);
@@ -87,37 +85,9 @@ if LOADSPCMAT
             SPC(79).C.dNdE =0;
             SPC(79).C.N =0;
             clearvars dE dNdE Ehigh Elow Emid iDepth Cnt InnerCnt iPart raw rawNum
-
-
-        else
-                %% 
-                path = ['baseDataHIT' filesep]; %#ok<*UNRCH>
-
-                for i = 80:10:440
-                    if i/10<=9
-                        name = ['C12spc' '0' num2str(i)];
-                    else
-                        name = ['C12spc' num2str(i)];
-                    end
-                    SPC = load([path name]);
-                    fName=fieldnames(SPC);
-                    SPC.(fName{1})(79).C.Elow = 0;
-                    SPC.(fName{1})(79).C.Emid =0;
-                    SPC.(fName{1})(79).Ehigh =0;
-                    SPC.(fName{1})(79).dE =0;
-                    SPC.(fName{1})(79).dNdE =0;
-                    SPC.(fName{1})(79).C.N =0;
-
-                    if i/10<=9
-                        save([name '.mat'],'SPC')
-                    else
-                        save([name '.mat'],'SPC')
-                    end
-
-                end
-
-        end
+      
 end
+
 
 
 
@@ -246,9 +216,9 @@ set(gca,'FontSize',14);
 grid on
 
 %% compare depth dose curves
-vD = baseData.depth/100;
+vD = baseData.depths;
 figure,plot(vD,baseData.Z,'r','LineWidth',4),hold on,grid on
-       plot(vDepth,dose_accum,'k','LineWidth',4)
+       plot(vDepth*10,dose_accum,'k','LineWidth',4)
       
 xlabel('depth in [cm]')
 ylabel('dose in [cGy]')       
@@ -490,8 +460,7 @@ for i = 1:length(sParticles)
             SP_interpCut = interp1(SP.(sParticles{i}).energy,SP.(sParticles{i}).dEdx,SPC(depth,1).(sParticles{i}).Emid(Idx),'pchip','extrap')';
             alpha_Cut=interp1(alphaInfn.(sParticles{i}).Energy,alphaInfn.(sParticles{i}).alpha,SPC(depth,1).(sParticles{i}).Emid(Idx),'pchip','extrap');
             ContribDepthINFN(i,3)=((alpha_Cut.*SP_interpCut')*Fluence(Idx)'/dose_Z(depth));
-            ContribDepthINFN(i,4)=((alpha_Cut.*SP_interpCut')*Fluence(Idx)'/(Fluence(Idx)*SP_interp(Idx)));
-            
+            ContribDepthINFN(i,4)=((alpha_Cut.*SP_interpCut')*Fluence(Idx)'/(Fluence(Idx)*SP_interp(Idx))); 
         end
         
     end
@@ -512,7 +481,7 @@ legend(sParticles)
 xlabel('depth in [cm]');
 ylabel('alpha in Gy^-1');
 set(gca,'FontSize',14);
-set(gca,'YLim',[0 3]),set(gca,'XLim',[0 30])
+set(gca,'YLim',[0 2]),set(gca,'XLim',[0 30])
 figure(10),legend({'H_{Infn}','H_{rapidScholz}','He_{Infn}','He_{rapidScholz}','Li_{Infn}','Li_{rapidScholz}','Be_{Infn}','Be_{rapidScholz}'...
     ,'B_{Infn}','B_{rapidScholz}','C_{Infn}','C_{rapidScholz}'})
 
@@ -525,7 +494,7 @@ load (['baseDataHIT' filesep 'refCNAObeta001E280.mat']);
 
 %% alpha depth curves
 figure,grid on,grid minor ,hold on,title('comparison of alpha-depth curves - 280MeV alpha_x = 0.1Gy^-1'),xlabel('depth in [cm]'),ylabel('alpha in Gy^-1')
-       plot(baseData(EnergyIdx).depths/10,baseData(EnergyIdx).alpha(:,1),'k','Linewidth',3)
+       plot(baseData(EnergyIdx).depths./10,baseData(EnergyIdx).alpha(:,1),'k','Linewidth',3)
        plot(vDepth,(alpha_numeratorInfn./dose_accum),[sLineSpec{4} sColor{2}],'Linewidth',3),
        plot(vDepth,(alpha_numeratorRapid./dose_accum),[sLineSpec{4} sColor{3}],'Linewidth',3),
        
@@ -548,7 +517,7 @@ figure,grid on,grid minor,hold on,title('comparison of alpha-dose-depth curves -
  %% beta depth curve     
 figure,plot(vDepth,(beta_numeratorRapid./dose_accum).^2,'Linewidth',3),hold on,title('comparison of dose averaged beta depth curves')
      BetadEdx_interp=interp1(refCNAOALPHA.depth*10,refCNAOBETA.sqBetadEdx,vT,'pchip')';      
-     plot(vT/10,(BetadEdx_interp./Z_interp).^2,'LineWidth',3)
+     plot(vT./10,(BetadEdx_interp./Z_interp).^2,'LineWidth',3)
       grid on, grid minor,xlabel('depth in cm'),ylabel('beta in Gy^-2'),set(gca,'Fontsize',14), legend({'beta from rapidScholz','beta from A.Mairani'})
 %% beta * dEdx
 figure,plot(refCNAOBETA.depth,refCNAOBETA.sqBetadEdx,'r','LineWidth',3),hold on
@@ -571,8 +540,7 @@ figure,subplot(211),bar([ContribDepthSPC(:,1)/vContribSPC(2) ContribDepthINFN(:,
 
        
 %% plot GSI data
-
-load('C:\Users\wieserh\Documents\matRad\GSI_Chardoma_Carbon_BioData.mat')
+load('C:\Users\wieserh\Documents\matRad\BioDataGeneration\GSI_Chardoma_Carbon_BioData.mat')
 figure,plot(str2num(SPC(1).peakPos)-stBioData{1,1}(3).Depths,stBioData{1,1}(3).Alpha,'Linewidth',3),grid on, grid minor, hold on
       plot(vDepth,(alpha_numeratorRapid./dose_accum),'Linewidth',3),
       legend({'from MTPS','alpha from SPC rapidScholz'}),xlabel('depth in [cm]'), ylabel('alpha in Gy^-1'), set(gca,'FontSize',14)

@@ -52,10 +52,10 @@ for j = 1:length(initialRBE)
         filename = ['C12spc' num2str(i)];
   end
      
-  load([path filename]);
+  SPC=load([path filename]);
   fName=fieldnames(SPC);
   SPC = SPC.(fName{1});
-  vDepth = [SPC(:).depth];
+  vDepth = [SPC(:).depths];
   % extract meta data for current cell line
   RBE_ini = initialRBE(j);
   alpha_x = initialRBE(j).alpha;
@@ -119,21 +119,27 @@ for j = 1:length(initialRBE)
   sData{1,j}{CntEnergy}.betaX = beta_x;
  
   %% check if division causes peaks in the tail
-%   figure, hold on
-%   plot(vDepth,sData{1,j}{CntEnergy}.beta)
-%   [maxVal,peakPos] = max(dose_accum);
-%   SecurityBuffer = 4;
-%   Minimum = sData{1,j}{CntEnergy}.alpha(peakPos+SecurityBuffer);
-%   for CntDepth = (peakPos+SecurityBuffer):1:length(vDepth)
-%       if Minimum < sData{1,j}{CntEnergy}.alpha(CntDepth)
-%         sData{1,j}{CntEnergy}.alpha(CntDepth) = Minimum;
-%       else
-%           Minimum = sData{1,j}{CntEnergy}.alpha(CntDepth);
-%       end
-%   end
-   % plot(vDepth,sData{1,j}{CntEnergy}.alpha,'r')
+  if visBool
+      figure, hold on
+      plot(vDepth,sData{1,j}{CntEnergy}.alpha)    
+  end
+  [maxVal,peakPos] = max(dose_accum);
+  SecurityBuffer = 4;
+  Minimum = sData{1,j}{CntEnergy}.alpha(peakPos+SecurityBuffer);
+  for CntDepth = (peakPos+SecurityBuffer):1:length(vDepth)
+      if Minimum < sData{1,j}{CntEnergy}.alpha(CntDepth)
+        sData{1,j}{CntEnergy}.alpha(CntDepth) = Minimum;
+      else
+          Minimum = sData{1,j}{CntEnergy}.alpha(CntDepth);
+      end
+  end
   
-    
+  if visBool
+    plot(vDepth,sData{1,j}{CntEnergy}.alpha,'r')
+    waitforbuttonpress 
+    close(gcf)
+  end
+
     CntEnergy = CntEnergy+1;
  end
  CntEnergy = 1;

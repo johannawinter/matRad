@@ -1,4 +1,4 @@
-function ddd=matRad_getDDDfromTxt(Identifier,basePath)
+function ddd=matRad_getDDDfromTxt(Identifier,basePath,visBool)
 
 % extracts the first foci of each energy from the sis file
 % if other foci shold be used, adapt the function
@@ -87,4 +87,32 @@ end
 [~,IdxEnergy] = sort([ddd.energy]);
 ddd=ddd(IdxEnergy);
 
-
+%% plot random ddd 
+if visBool
+    
+    switch Identifier
+        case 'C'
+             load carbonBaseData
+        case {'p','H'}
+            load protonBaseData       
+    end
+    
+    vIdx = round(linspace(10,length(baseData)-10,4));
+    figure,
+    
+    for i = 1:length(vIdx)
+        Energy = baseData(vIdx(i)).energy;
+        [~,IdxDDD]=min(abs([ddd.energy]-Energy));
+        subplot(2,2,i),plot(ddd(IdxDDD).depths,ddd(IdxDDD).Z,'r'),hold on
+                       plot(baseData(vIdx(i)).depths,baseData(vIdx(i)).Z,'b');
+                       legend({'new ddd - HIT','existing baseData'});
+                       xlabel(' depth in mm '), ylabel('Z in Gy'), title(['Energy: ' num2str(Energy)])
+    end
+    
+    
+    
+    
+    
+    
+    
+end
