@@ -71,7 +71,7 @@ for i = 1:length(Files)
     ddd(i).depths = depth*10; 
     ddd(i).Z   = ionization;
     [val,idx]=max(ionization);
-    ddd(i).peakPos = ddd(i).depths(idx)./10;
+    ddd(i).peakPos = ddd(i).depths(idx);
     
     %% calculate sigmas and weights used to model lateral profile
     s11 = 1/(2*sqrt(2*log(2)))*abs(FWHM1);

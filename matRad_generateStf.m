@@ -81,7 +81,12 @@ if strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     
     % load base data    
     if strcmp(pln.radiationMode,'protons')
-        load protonBaseData;
+        if pln.UseHIT
+            load protonBaseDataHIT;
+            DefaultLongitudialSpotSpacing = 3;  % in [mm]
+        else
+            load protonBaseData;
+        end
     elseif  strcmp(pln.radiationMode,'carbon')
        if pln.UseHIT
            load carbonBaseDataHITBio

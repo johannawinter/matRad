@@ -89,12 +89,17 @@ coords_inside = [xCoordsV yCoordsV zCoordsV];
 
 % load protonBaseData
 if strcmp(pln.radiationMode,'protons')
-    load protonBaseData;
+     if pln.UseHIT
+         load protonBaseDataHIT;
+     else
+         load protonBaseData;
+     end
+
 elseif strcmp(pln.radiationMode,'carbon')
     if pln.UseHIT
-           load carbonBaseDataHITBio
+         load carbonBaseDataHITBio
     else
-           load carbonBaseData;
+         load carbonBaseData;
     end
 end
 

@@ -47,8 +47,8 @@ pln.couchAngles     = [0]; % [°]
 pln.numOfBeams      = numel(pln.gantryAngles);
 pln.numOfVoxels     = numel(ct.cube);
 pln.voxelDimensions = size(ct.cube);
-pln.radiationMode   = 'carbon'; % either photons / protons / carbon
-pln.bioOptimization = 'effect'; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
+pln.radiationMode   = 'protons'; % either photons / protons / carbon
+pln.bioOptimization = 'none'; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
 pln.numOfFractions  = 20;
 pln.UseHIT          = true;
 %% initial visualization and change objective function settings if desired

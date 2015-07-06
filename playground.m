@@ -2,7 +2,7 @@ clc,
 clear 
 close all
 %% determine which foci shall be used
-%protonBaseDataHIT=matRad_getDDDfromTxt('p','\\psf\Home\Documents\Heidelberg\TRiP98DATA');
+protonBaseDataHIT=matRad_getDDDfromTxt('p','\\psf\Home\Documents\Heidelberg\TRiP98DATA');
 %carbonBaseDataHIT=matRad_getDDDfromTxt('C','\\psf\Home\Documents\Heidelberg\TRiP98DATA');
 
 %% get dEdx* alpha from CNAO files or get them from the 37 spc files
