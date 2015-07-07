@@ -26,9 +26,9 @@
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-clear
-close all
-clc
+% clear
+% close all
+% clc
 
 % load patient data, i.e. ct, voi, cst
 
@@ -48,9 +48,9 @@ pln.numOfBeams      = numel(pln.gantryAngles);
 pln.numOfVoxels     = numel(ct.cube);
 pln.voxelDimensions = size(ct.cube);
 pln.radiationMode   = 'carbon'; % either photons / protons / carbon
-pln.bioOptimization = 'effect'; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
+pln.bioOptimization = 'none'; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
 pln.numOfFractions  = 20;
-pln.UseHIT          = false;
+pln.UseHIT          = true;
 %% initial visualization and change objective function settings if desired
 %matRadGUI
 

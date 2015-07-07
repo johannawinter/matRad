@@ -218,8 +218,8 @@ for i = 1:length(pln.gantryAngles)
                 % Save energies in stf struct
                 for k = 1:numel(targetEntry)
                     stf(i).ray(j).energy = [stf(i).ray(j).energy availableEnergies(availablePeakPos>=targetEntry(k)&availablePeakPos<=targetExit(k))];
-                    if pln.UseHIT
-                        Tolerance = 0.4;
+                    if pln.UseHIT && length(stf(i).ray(j).energy)>2
+                        Tolerance = 0.5;
                         hasNext = true;
                         CntEnergy =2;
                         while hasNext

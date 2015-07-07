@@ -1,11 +1,26 @@
 function ddd=matRad_getDDDfromTxt(Identifier,basePath,visBool)
-
-% extracts the first foci of each energy from the sis file
-% if other foci shold be used, adapt the function
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% matRad_getDDDfromTxt script
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Copyright 2015, Hans-Peter Wieser
+%
+% h.wieser@dkfz.de
+%
+% This file is NOT part of the official matRad release. 
+% This file has to be used only for internal purposes! 
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% This script can be used to parse depth dose distribution from txt files.
+% The identifier is important to chose the correct relative path.
+% if double lateral sigmas are available in the ddd file then they will be
+% used otherwise constant sigma or the highland formula
 
 switch Identifier
     case 'C'
         relPath = [filesep 'DDD\12C\RF3MM_NEU'];
+        %relPath = [filesep 'DDD\12C\RF3MM'];
     case {'p','H'}
         relPath = [filesep 'DDD\p\RF0MM'];
     case 'O'
@@ -14,11 +29,18 @@ switch Identifier
         error('unkown particle type')
 end
 
-sigmaSISsq = getSigmaSISsq(Identifier,basePath);
+% try to read inital widths of the beam
+try
+    sigmaSISsq = getSigmaSISsq(Identifier,basePath);
+catch
+    warning('Couldnt read sis files containing the inital widths');
+    sigmaSISsq = 0;
+end
+
 Files = dir([basePath relPath]);
 
 for k = length(Files):-1:1
-    % remove hidden folders starting with .
+    % remove hidden folders starting with . and .. or .DSStore
     fname = Files(k).name;
     if fname(1) == '.'
         Files(k) = [ ];
@@ -44,7 +66,7 @@ for i = 1:length(Files)
     fgetl(fid);
     fgetl(fid);
 
-
+    % allocate some variables
     depth = [];
     ionization = [];
     FWHM1 = [];
@@ -53,18 +75,16 @@ for i = 1:length(Files)
     
     % parse line
     while ~feof(fid)
-        depthn = fscanf(fid, '%f', 1);
-        ionizationn = fscanf(fid, '%f',1);
-        FWHM1n = fscanf(fid, '%f', 1);
-        weightn = fscanf(fid, '%f', 1);
-        FWHM2n = fscanf(fid, '%f', 1);
-        fgetl(fid);
-
-        depth = vertcat(depth, [depthn]);
-        ionization = vertcat(ionization, [ionizationn]);
-        FWHM1 =vertcat(FWHM1, [FWHM1n]);
-        weight = vertcat(weight, [weightn]);
-        FWHM2 = vertcat(FWHM2, [FWHM2n]);
+        
+        LineData = str2num(fgetl(fid));
+        depth = vertcat(depth, [LineData(1,1)]);
+        ionization = vertcat(ionization, [LineData(1,2)]);
+        
+        if length(LineData)==5
+            FWHM1 =vertcat(FWHM1, [FWHM1n]);
+            weight = vertcat(weight, [weightn]);
+            FWHM2 = vertcat(FWHM2, [FWHM2n]);
+        end
     end
     fclose(fid);    
 
@@ -74,11 +94,17 @@ for i = 1:length(Files)
     ddd(i).peakPos = ddd(i).depths(idx);
     
     %% calculate sigmas and weights used to model lateral profile
-    s11 = 1/(2*sqrt(2*log(2)))*abs(FWHM1);
-    s22 = 1/(2*sqrt(2*log(2)))*abs(FWHM2);
-    ddd(i).sigma1 = sqrt( sigmaSISsq( i,1) + s11(:,1).^2);                                                                
-    ddd(i).sigma2 = sqrt( sigmaSISsq( i,1) + s22(:,1).^2);
-    ddd(i).weight = weight; 
+    if ~isempty(FWHM1)
+        s11 = 1/(2*sqrt(2*log(2)))*abs(FWHM1);
+        s22 = 1/(2*sqrt(2*log(2)))*abs(FWHM2);
+        ddd(i).sigma1 = sqrt( sigmaSISsq( i,1) + s11(:,1).^2);                                                                
+        ddd(i).sigma2 = sqrt( sigmaSISsq( i,1) + s22(:,1).^2);
+        ddd(i).weight = weight; 
+    else
+        %% TODO add analytical calculation of sigma
+        ddd(i).sigma = ones(size(ddd(i).depths,1),1)*sqrt(sigmaSISsq(i,1));
+    end
+
     
     
 end   

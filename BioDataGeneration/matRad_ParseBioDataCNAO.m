@@ -94,7 +94,8 @@ for i=1:CntCellLines
                     Import =importdata([Path filesep  FoundFilePair(l).name]);
                     
                     sData{1,i}{Cnt}.energy(:,1) = sscanf(char(Import.textdata(4,1)),'!Energy: %f');
-                    sData{1,i}{Cnt}.alphaBetaRatio=Directories(i).name;
+                    cString = strsplit(Directories(i).name,'AB');
+                    sData{1,i}{Cnt}.alphaBetaRatio=cString{1,2};
                     sData{1,i}{Cnt}.depths(:,1) = Import.data(:,1)*10;
                     sData{1,i}{Cnt}.dEdxA(:,i) = Import.data(:,2);                                    
                 end

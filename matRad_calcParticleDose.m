@@ -182,7 +182,11 @@ for i = 1:dij.numOfBeams; % loop over all beams
                sigma = sqrt(baseData(max(stf(i).ray(j).energy) == [baseData.energy]).sigma1(end)^2 + ...
                    baseData(max(stf(i).ray(j).energy) == [baseData.energy]).sigma2(end)^2);
                
-               lateralCutoff = sigma/2;
+                if strcmp(pln.radiationMode,'protons')
+                    lateralCutoff = 2*sigma;
+                else
+                    lateralCutoff = sigma/2;
+                end
            else
                lateralCutoff = 3*baseData(max(stf(i).ray(j).energy) == [baseData.energy]).sigma(end);
            end
@@ -219,8 +223,13 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 % find indices
                 
                if pln.UseHIT
-                   currIx = radDepths <= baseData(energyIx).depths(end) & ...
-                         radialDist_sq <= (baseData(energyIx).sigma2(end)^2)/2;
+                   if strcmp(pln.radiationMode,'protons')
+                       currIx = radDepths <= baseData(energyIx).depths(end) & ...
+                             radialDist_sq <= 1.5*sigma^2;
+                   else
+                        currIx = radDepths <= baseData(energyIx).depths(end) & ...
+                         radialDist_sq <= 6*sigma;
+                   end
                else
                    currIx = radDepths <= baseData(energyIx).depths(end) & ...
                          radialDist_sq <= 9*baseData(energyIx).sigma(end)^2;
