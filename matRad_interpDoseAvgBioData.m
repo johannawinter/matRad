@@ -4,39 +4,44 @@ function [ ddd ] = matRad_interpDoseAvgBioData( ddd, sData,CNAOisUsed, visBool )
 
 
 for CntCellLine = 1:length(sData);
-    
    
-
     % cuves need to be divided by the ddd to assess alphas and betas
     if CNAOisUsed
 
         for i = 1:length(sData{1,CntCellLine})
             E0=sData{1,CntCellLine}(i).energy;
             [val,idx]=sort(abs([ddd.energy]-E0));
-            [val,idx1]=sort(abs([sData{1,CntCellLine}.energy]-E0));
+
             % interpolate depth dose profile
-            for j = 1:length(ddd(idx(1)).Z)
-                
+            for j = 1:length(sData{1,CntCellLine}(i).depths)             
                 CntValues = 4;
                 for IdxE = 1:CntValues
                         dummyZ(IdxE) = interp1(ddd(idx(IdxE)).depths,ddd(idx(IdxE)).Z,...
-                            sData{1,CntCellLine}(i).depths(j),'linear');
-                        dummyX(IdxE) = ddd(idx(IdxE)).depths(j);
+                            sData{1,CntCellLine}(i).depths(j),'pchip');
                 end
-                Z(j)=interp1([ddd(idx(1:CntValues)).energy],dummyZ,E0,'linear');
-                vXinterp(j)=interp1([ddd(idx(1:CntValues)).energy],dummyX,E0,'pchip');
-               
+                Z(j)=interp1([ddd(idx(1:CntValues)).energy],dummyZ,E0,'pchip');
+            end
+                     
+            sData{1,CntCellLine}(i).alpha = (sData{1,CntCellLine}(i).dEdxA./Z');
+            sData{1,CntCellLine}(i).beta = sData{1,CntCellLine}(i).dEdxsqB./Z';
+                        
+            %check if division causes valley behind the peak
+            [~,peakPos] = max(Z);
+            SecurityBuffer = 4;
+            Minimum = sData{1,CntCellLine}(i).alpha(peakPos+SecurityBuffer);
+            for CntDepth = (peakPos+SecurityBuffer):1:length(sData{1,CntCellLine}(i).depths)
+                  if Minimum < sData{1,CntCellLine}(i).alpha(CntDepth)
+                    sData{1,CntCellLine}(i).alpha(CntDepth) = Minimum;
+                  else
+                      Minimum = sData{1,CntCellLine}(i).alpha(CntDepth);
+                  end
             end
             
-            Zinterp = interp1(vXinterp,Z,sData{1,CntCellLine}(i).depths,'pchip','extrap');
-            
-            sData{1,CntCellLine}(i).alpha = (sData{1,CntCellLine}(i).dEdxA./Zinterp);
-            sData{1,CntCellLine}(i).beta = sData{1,CntCellLine}(i).dEdxsqB./Zinterp;
             
             if visBool
-             figure,plot(sData{1,CntCellLine}(i).depths,sData{1,CntCellLine}(i).alpha),title(['Energy :' num2str(E0)]),xlabel('depth in mm'), ylabel('alpha in Gy^-1')
-             waitforbuttonpress
-             close(gcf)
+              figure,plot(sData{1,CntCellLine}(i).depths,sData{1,CntCellLine}(i).alpha),title(['Energy :' num2str(E0)]),xlabel('depth in mm'), ylabel('alpha in Gy^-1')
+              waitforbuttonpress
+              close(gcf)
             end      
             
         end
@@ -68,7 +73,7 @@ for CntCellLine = 1:length(sData);
                  vX(j)=0;
                end
                
-               
+
                % interpolate alpha values - take the closest three values
                % into account
                vXPair = [sData{1,CntCellLine}(idx(1)).alpha(j) sData{1,CntCellLine}(idx(2)).alpha(j)...

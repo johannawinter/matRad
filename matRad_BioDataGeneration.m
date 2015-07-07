@@ -47,6 +47,7 @@ pathHIT = 'C:\Users\wieserh\Documents\matRad\baseDataHIT';
 
 % get dose averaged alpha and beta depth curves from the 37spc files, RBE
 % inital file and dEdx file using the rapidScholz algorithm
+
 [ sDataHIT ] = matRad_ParseBioDataHIT(pathHIT,0);
 
 % get dEdx* alpha and dEdx*sqBeta curves from CNAO files. Please keep in
@@ -56,20 +57,23 @@ pathHIT = 'C:\Users\wieserh\Documents\matRad\baseDataHIT';
 % cellline (requirement by matRad).
 [ sDataCNAO ] = matRad_ParseBioDataCNAO(pathCNAO,'C',0);
 
-%% merge ddd and dose averaged depth alpha curves
+%% add to each entry in the ddd the corresponding depth alpha and depth beta curve
 
  load('C:\Users\wieserh\Documents\matRad\sDataHIT.mat');
  load('C:\Users\wieserh\Documents\matRad\carbonBaseDataHIT.mat');
+ 
  CNAOisUsed = true;
-[ baseData ] = matRad_interpDoseAvgBioData(baseData, sDataCNAO ,CNAOisUsed,1);
+[ baseData ] = matRad_interpDoseAvgBioData(baseData, sDataCNAO ,CNAOisUsed, 1);
 
 %% interpolate to deeper depths
+% within the method it can be choosen between linear extrapolation or last
+% known value
 clc
 clear
 close all
 
 load('\\psf\Home\Documents\Heidelberg\matRad\carbonBaseDataHITBio.mat');
-[ baseData ] = extrapDeeper( baseData,0 );
+[ baseData1 ] = extrapDeeper( baseData,1 );
 
 
 

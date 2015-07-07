@@ -123,7 +123,9 @@ for j = 1:length(initialRBE)
       figure, hold on
       plot(vDepth,sData{1,j}{CntEnergy}.alpha)    
   end
-  [maxVal,peakPos] = max(dose_accum);
+  
+  %% This needs to be done better in order to avoid valleys behind the peak
+  [~,peakPos] = max(dose_accum);
   SecurityBuffer = 4;
   Minimum = sData{1,j}{CntEnergy}.alpha(peakPos+SecurityBuffer);
   for CntDepth = (peakPos+SecurityBuffer):1:length(vDepth)
