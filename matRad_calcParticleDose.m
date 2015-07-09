@@ -225,7 +225,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
                if pln.UseHIT
                    if strcmp(pln.radiationMode,'protons')
                        currIx = radDepths <= baseData(energyIx).depths(end) & ...
-                             radialDist_sq <= 1.5*sigma^2;
+                             radialDist_sq <= 2*sigma^2;
                    else
                         currIx = radDepths <= baseData(energyIx).depths(end) & ...
                          radialDist_sq <= 6*sigma;

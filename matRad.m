@@ -47,7 +47,7 @@ pln.couchAngles     = [0]; % [°]
 pln.numOfBeams      = numel(pln.gantryAngles);
 pln.numOfVoxels     = numel(ct.cube);
 pln.voxelDimensions = size(ct.cube);
-pln.radiationMode   = 'carbon'; % either photons / protons / carbon
+pln.radiationMode   = 'protons'; % either photons / protons / carbon
 pln.bioOptimization = 'none'; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
 pln.numOfFractions  = 20;
 pln.UseHIT          = true;
@@ -58,14 +58,13 @@ pln.UseHIT          = true;
 stf = matRad_generateStf(ct,cst,pln,0);
 
 %% dose calculation
-profile on
+
 if strcmp(pln.radiationMode,'photons')
     dij = matRad_calcPhotonDose(ct,stf,pln,cst,0);
 elseif strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     dij = matRad_calcParticleDose(ct,stf,pln,cst,0);
 end
-profile off
-profile viewer
+
 resultGUI.physicalDose = reshape(dij.physicalDose*ones(dij.totalNumOfBixels,1),dij.dimensions);
 matRadGUI
 %% inverse planning for imrt

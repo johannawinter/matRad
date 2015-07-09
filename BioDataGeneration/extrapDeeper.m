@@ -1,6 +1,22 @@
 function [ baseData ] = extrapDeeper(baseData,visBool)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% extrapDeeper script
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Copyright 2015, Hans-Peter Wieser
+%
+% h.wieser@dkfz.de
+%
+% This file is NOT part of the official matRad release. 
+% This file has to be used only for internal purposes! 
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% This method extrapolates to deeper depths according to the specified
+% parameters at the beginnen of this file. This is necessary to avoid
+% later on extrapolations in matRad
+
+
 if isempty(visBool)
     visBool=0;
 end

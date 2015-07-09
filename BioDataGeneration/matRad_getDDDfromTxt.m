@@ -19,12 +19,12 @@ function ddd=matRad_getDDDfromTxt(Identifier,basePath,visBool)
 
 switch Identifier
     case 'C'
-        relPath = [filesep 'DDD\12C\RF3MM_NEU'];
+        relPath = [filesep 'DDD' filesep '12C' filesep 'RF3MM_NEU'];
         %relPath = [filesep 'DDD\12C\RF3MM'];
     case {'p','H'}
-        relPath = [filesep 'DDD\p\RF0MM'];
+        relPath = [filesep 'DDD' filesep' 'p' filesep 'RF0MM'];
     case 'O'
-        relPath = [filesep 'DDD\16O\RF3MM'];
+        relPath = [filesep 'DDD' filesep '16O' filesep 'RF3MM'];
     otherwise
         error('unkown particle type')
 end
@@ -81,9 +81,9 @@ for i = 1:length(Files)
         ionization = vertcat(ionization, [LineData(1,2)]);
         
         if length(LineData)==5
-            FWHM1 =vertcat(FWHM1, [FWHM1n]);
-            weight = vertcat(weight, [weightn]);
-            FWHM2 = vertcat(FWHM2, [FWHM2n]);
+            FWHM1 =vertcat(FWHM1, [LineData(1,3)]);
+            weight = vertcat(weight, [LineData(1,4)]);
+            FWHM2 = vertcat(FWHM2, [LineData(1,5)]);
         end
     end
     fclose(fid);    

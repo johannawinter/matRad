@@ -15,8 +15,9 @@
 % simulation . Each section in this file contains one specific step in the 
 % base data generation procedure. First, depth dose distributions for
 % protons or carbon ions can be extracted (including laterals sigmas and weigths).
-% Once spc files are converted to *.xls files the function XlsSpectra2Mat
-% can used to parse the spectra data in mat files.
+% Once spc files are converted to *.xls files using R, the function XlsSpectra2Mat
+% can used to parse the spectra data and save them to mat files.
+%
 
 %% extract carbon and proton depth dose profiles. Please note that the first foci/width will be extracted from the sis file
 clc,
@@ -41,14 +42,16 @@ addpath([pwd filesep 'BioDataGeneration']);
 matRad_XlsSpectra2Mat('E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM',[pwd filesep 'baseDataHIT'])
 
 
-%% get dEdx* alpha from CNAO files or get them from the 37 spc files
+%% get dEdx* alpha from CNAO files or get them from the 37 spc files, for now the rapid 
+% Scholz algorithm is implemented
+
 pathCNAO = 'C:\Users\wieserh\Documents\matRad\CNAO_baseData';
 pathHIT = 'C:\Users\wieserh\Documents\matRad\baseDataHIT'; 
 
 % get dose averaged alpha and beta depth curves from the 37spc files, RBE
 % inital file and dEdx file using the rapidScholz algorithm
 
-[ sDataHIT ] = matRad_ParseBioDataHIT(pathHIT,0);
+[ sDataHIT ] = matRad_ParseBioDataHIT(pathHIT,1);
 
 % get dEdx* alpha and dEdx*sqBeta curves from CNAO files. Please keep in
 % mind that these curves needs to be divided by the ddd in order to use
@@ -62,8 +65,8 @@ pathHIT = 'C:\Users\wieserh\Documents\matRad\baseDataHIT';
  load('C:\Users\wieserh\Documents\matRad\sDataHIT.mat');
  load('C:\Users\wieserh\Documents\matRad\carbonBaseDataHIT.mat');
  
- CNAOisUsed = true;
-[ baseData ] = matRad_interpDoseAvgBioData(baseData, sDataCNAO ,CNAOisUsed, 1);
+ CNAOisUsed = false;
+[ baseData ] = matRad_interpDoseAvgBioData(baseData, sDataHIT ,CNAOisUsed, 0);
 
 %% interpolate to deeper depths
 % within the method it can be choosen between linear extrapolation or last
@@ -73,7 +76,7 @@ clear
 close all
 
 load('\\psf\Home\Documents\Heidelberg\matRad\carbonBaseDataHITBio.mat');
-[ baseData1 ] = extrapDeeper( baseData,1 );
+[ baseData1 ] = extrapDeeper( baseData,0);
 
 
 
