@@ -30,6 +30,9 @@ function [ rGrid ] = LEM_getOrginalIntegrationSteps(r_min, r_max )
         n_log_steps = n_log_steps-1;
     end
     
+    if isnan(n_steps) || n_steps == 0 || isinf(n_steps)
+       st = 2; 
+    end
     rGrid = zeros(n_steps,1);
     rGrid(1) = r_min;
     

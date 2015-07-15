@@ -32,7 +32,6 @@ if nargin == 3
 end
 
 if nargin == 3 || nargin == 5
-    % density is set to 1 -> water
     rho = 1;
     sLambda = 1/(pi*rho*(1+2*log(sRadiusMax/sRadiusMin))); 
 end
@@ -40,16 +39,17 @@ end
 radialDose = zeros(length(vCurrentRadius),1);
 
 [~,idx] = min(abs(dEdx.energy-sEnergy));
-sLET = dEdx.dEdx(idx);
+sLET = dEdx.dEdx(idx); % LET in MeV/cm^2g
+% Atrack corresponds to the single impact fluence
+Atrack = pi*(sRadiusMax^2); %µm^2
+Atrack = 1/(Atrack/(10000^2)); % in 1/cm^2
 
-radialDose(vCurrentRadius <= sRadiusMin) = (1e-3* sLET) / (sRadiusMin^2);
+constDose = (1.602189e-10*sLET)*Atrack;
+
+radialDose(vCurrentRadius <= sRadiusMin) = (constDose) / (sRadiusMin^2);
 IdxVector = (vCurrentRadius > sRadiusMin) & (vCurrentRadius < sRadiusMax);
-radialDose(IdxVector) = (1e-3* sLET)./(vCurrentRadius(IdxVector).^2);
+radialDose(IdxVector) = (constDose)./(vCurrentRadius(IdxVector).^2);
 
-
-% figure,plot(vCurrentRadius,radialDose,'r','LineWidth',3),hold on,grid on, grid minor
-%        set(gca,'XScale','log'),set(gca,'YScale','log')
-%        legend({'indexed radial dose profile'})
        
 %radialDose = radialDose.*sLambda;
 
