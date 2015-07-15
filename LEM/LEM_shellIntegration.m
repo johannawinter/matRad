@@ -1,4 +1,4 @@
-function [Contribution,vRgrid] = LEM_shellIntegration( ImpactParameter, RadiusTarget,RadiusTrackMax )
+function [Contribution,vRgrid] = LEM_shellIntegration( ImpactParameter, RadiusTarget,RadiusTrackMax,visBool)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -36,10 +36,29 @@ elseif ImpactParameter <= RadiusTarget
 end
 
 
+
 %% shell integration
 % get integration steps
 vRgrid       = LEM_getOrginalIntegrationSteps(r_min, r_max);
 NumRgrid     = length(vRgrid)-1;
+
+
+if visBool
+    Rnuc = 5;
+    [Xnuc,Ynuc] = circle(0,0,5);
+    figure,hold on
+    plot(Xnuc,Ynuc,'LineWidth',4),set(gca,'Xlim',[-2*Rnuc 2*Rnuc]),set(gca,'Ylim',[-2*Rnuc 2*Rnuc]);
+    % sample 100 linear spaced indices from the vRgrid
+    Idx = round(linspace(10,NumRgrid,100));
+    for i = 1:length(Idx)
+        [vX,vY] = circle(ImpactParameter,ImpactParameter,vRgrid(Idx(i)));
+        plot(vX,vY);
+    end
+end
+
+
+
+
 % integrate over the shell
 r_mid        = zeros(NumRgrid,1);
 dr           = zeros(NumRgrid,1);
@@ -60,14 +79,16 @@ for i = 1:NumRgrid
         arg2 =  2 * r_mid(i)* ImpactParameter+0.001;
         phi = acos(arg1/arg2);
     end
-    
+    % calculate the area of the circle segment
     Area(i) = 2 * phi * dr(i) * r_mid(i);
+    
     if isnan(Area(i))
         warning('area not a number');
         Area(i)=0;
     end
     
     Contribution(i) = Area(i) / (pi *RadiusTarget^2);
+    %Contribution(i) = Area(i) / (pi *RadiusTrackMax^2);
    
 end
 
@@ -79,3 +100,13 @@ Contribution = Contribution./(sum(Contribution));
 
 end
 
+function [xp,yp]=circle(x,y,r)
+%x and y are the coordinates of the center of the circle
+%r is the radius of the circle
+%0.01 is the angle step, bigger values will draw the circle faster but
+%you might notice imperfections (not very smooth)
+th = 0:pi/50:2*pi;
+xp = r * cos(th) +x;
+yp = r * sin(th) +y;
+
+end

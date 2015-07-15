@@ -27,6 +27,18 @@ vSurvivalTrack = exp(-vBioEffectTrack);
 vTotSurvivalCentral =  exp(-vBioEffectTrack(1));
 expS = sum((2*ImpactParameter.*exp(-vBioEffectTrack)'.*vDelta)./((RadiusTrack^2)));
 
+%% Monte Carlo Integration
+b = ImpactParameter(end);
+a = ImpactParameter(1);
+n = 10000;
+randIdx = round((length(ImpactParameter)-1).*rand(n,1))+1;
+S_TE = 0;
+for i = 1:n
+    S_TE = S_TE + vSurvivalTrack(randIdx(i))*ImpactParameter(randIdx(i));
+end
+Res = (b/n)*(2*S_TE/RadiusTrack^2);
+
+%% according to existing code
 for i = 1:length(ImpactParameter)-1
  weight(i) = ImpactParameter(i+1)^2-ImpactParameter(i)^2;
 end

@@ -2,7 +2,7 @@ function [vBioEffectTrack] = LEM_singelHIT(ImpactParameter,RadiusTarget, RadiusT
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 
-[Contribution,vRgrid] = LEM_shellIntegration( ImpactParameter, RadiusTarget,RadiusTrack );
+[Contribution,vRgrid] = LEM_shellIntegration( ImpactParameter, RadiusTarget,RadiusTrack,0);
 
 %% get radial dose distribution
 vRadialDose       = LEM_radialDose(vRgrid,Energy,dEdx);
