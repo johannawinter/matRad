@@ -1,4 +1,4 @@
-function [vBioEffectTrack] = LEM_singelHIT(ImpactParameter,RadiusTarget, RadiusTrack,xRay, Energy, dEdx, visBool)
+function [vBioEffectCell] = LEM_singelHIT(ImpactParameter,RadiusTarget, RadiusTrack,xRay, Energy, dEdx, visBool)
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -8,20 +8,16 @@ function [vBioEffectTrack] = LEM_singelHIT(ImpactParameter,RadiusTarget, RadiusT
 vRadialDose       = LEM_radialDose(vRgrid,Energy,dEdx);
 %% based on radial dose from ions - asses biological effect
 vBioResponse      = LEM_xRayResponse(vRadialDose,xRay,0);
-vBioResponse(end) = [];
-%% average number of lethal events within the overlapping area of cel land track
-vBioEffectTrack   = sum(Contribution.*vBioResponse);
-
-
-% sAreaFraction = (RadiusTrackMax^2)/(RadiusTarget^2);
-% SurvivalProp = exp(-sTotBioResponse);
-% N_meanHit = 1;
-% alpha_TE = SurvivalProp;
-% 
-% [~,idx] = min(abs(dEdx.energy-Energy));
-% sLET = dEdx.dEdx(idx);
-% alpha_Z = sTotBioResponse/(sLET*1e-3);
-
+if length(vBioResponse)>1
+    vBioResponse(end) = [];
+end
+%% average number of lethal events within the overlapping area of cell and track
+if length(Contribution) ~= length(vBioResponse)
+    CodeGoesHere = 2;
+    vBioEffectCell = 0;
+else
+    vBioEffectCell   = sum(Contribution.*vBioResponse);
+end
 
 
 

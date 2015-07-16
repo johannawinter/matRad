@@ -88,14 +88,11 @@ for i = 1:NumRgrid
     end
     
     Contribution(i) = Area(i) / (pi *RadiusTarget^2);
-    %Contribution(i) = Area(i) / (pi *RadiusTrackMax^2);
    
 end
 
-
 %normalization
 Contribution = Contribution./(sum(Contribution));
-
 
 
 end
