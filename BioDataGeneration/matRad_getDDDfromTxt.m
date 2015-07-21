@@ -137,8 +137,4 @@ if visBool
     
     
     
-    
-    
-    
-    
 end

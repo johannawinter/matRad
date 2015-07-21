@@ -1,5 +1,5 @@
 function [data, sigmaSISsq] = js_sigmaC_E_z
-
+%% old function from Julian Streitz
 % function gathers depth dose data, gaussian input and calculates a dummy 
 % phantom dose distribution to get dose and lateral threshold values for 
 % the machine file (takes some time).

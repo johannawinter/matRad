@@ -1,5 +1,5 @@
 function Pdata=js_getProton_Data
-
+%% old function from Julian Streitz
 for i = 1:255
     
     %Pdata(i).fileName = ['p_E' num2str(i) '_3MMRIFI_MS.ddd'];

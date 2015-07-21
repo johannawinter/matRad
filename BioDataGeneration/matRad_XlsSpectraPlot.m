@@ -1,3 +1,7 @@
+%%
+% This function is for plotting some curves out of spc files. In addition
+% the RBE_inital data as well as the Stopping Power curves can be loaded
+% and plotted. 
 
 %% read spc file
 clc

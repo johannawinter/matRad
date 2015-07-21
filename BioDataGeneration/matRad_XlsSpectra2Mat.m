@@ -1,4 +1,25 @@
 function  matRad_XlsSpectra2Mat(pathSPC,pathSaving)
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% matRad function to convert xlsx spectra files to *.mat files. Please not
+% that *spc files have to be converted beforehand to xlsx files. This was
+% done using a R script form S.Greilich. This function can convert N -
+% spcEnergyXX.xlsx files to N- spcEnergyXX.mat files.
+%
+% call
+%   matRad_XlsSpectra2Mat(pathSPC,pathSaving)
+% example
+%   matRad_XlsSpectra2Mat('C:\Users\Public',C:\Users\Public\MySPCData)
+%
+% input
+%   pathSPC:              path to SPC.xlsx files
+%   pathSaving:           path where the output will be saved
+%
+% output
+%                           -
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% read spc file
 Directory = dir([pathSPC filesep '*.xlsx']);
 

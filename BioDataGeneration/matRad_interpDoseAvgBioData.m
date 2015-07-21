@@ -3,7 +3,7 @@ function [ ddd ] = matRad_interpDoseAvgBioData( ddd, sData,CNAOisUsed, visBool )
 % matRad_interpDoseAvgBioData script
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Copyright 2015, Hans-Peter Wieser
+% Hans-Peter Wieser
 %
 % h.wieser@dkfz.de
 %
@@ -16,9 +16,9 @@ function [ ddd ] = matRad_interpDoseAvgBioData( ddd, sData,CNAOisUsed, visBool )
 % depth dose distribution within the ddd file a corresponding alpha and beta depth
 % curve is going to be interpolated from the sData. Special attention is
 % required when CNAO data is used, as they are stored as dEdxA and
-% dEdxsqrtBeta curves. 
+% dEdxsqrtBeta. 
 
-%% if dEdxA curves shall be divided by interpolated ddd, then interpolation becomes tricky
+% If dEdxA curves are going to be divided by interpolated ddds, then the interpolation becomes tricky
 % is recommended to divide dEdxA curves by the corresponding ddds. For
 % instance if you would like to use the HIT ddds and die CNAO bio data than postprocessing in
 % necesarry as different data from different ddd is mixed.
@@ -49,7 +49,7 @@ for CntCellLine = 1:11%length(sData);
                         
             %check if division causes valley behind the peak
             % this is necessary when dEdxA is divided by different dose
-            % profile
+            % profiles
             if PostProcessing
                 [~,peakPos] = max(Z);
                 SecurityBuffer = 4;

@@ -27,8 +27,8 @@ close all
 %in the matRad root directory in order to use within matRad - analog for
 %carbons
 addpath([pwd filesep 'BioDataGeneration']);
-protonBaseDataHIT=matRad_getDDDfromTxt('p','E:\TRiP98DATA_HIT-20131120',0);
-carbonBaseDataHIT=matRad_getDDDfromTxt('C','E:\TRiP98DATA_HIT-20131120',0);
+%baseData=matRad_getDDDfromTxt('p','E:\TRiP98DATA_HIT-20131120',0);
+baseData=matRad_getDDDfromTxt('C','E:\TRiP98DATA_HIT-20131120',0);
 
 
 %% each *xls file in the provided folder will be converted to *.mat files to use
@@ -70,7 +70,8 @@ pathHIT = 'C:\Users\wieserh\Documents\matRad\baseDataHIT';
 
 %% interpolate to deeper depths
 % within the method it can be choosen between linear extrapolation or last
-% known value
+% known value - if you don't what to extract to deeper depth then just
+% comment this section
 clc
 clear
 close all

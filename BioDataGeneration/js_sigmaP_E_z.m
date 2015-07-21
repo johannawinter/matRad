@@ -1,4 +1,5 @@
 function [data, sigmaSISsq] = js_sigmaP_E_z
+%% old function from Julian Streitz
 
 data=js_getProton_Data; 
 sigmaSISsq = tk_P_sigma_SISsq;          

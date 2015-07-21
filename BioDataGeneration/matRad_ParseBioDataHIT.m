@@ -19,8 +19,6 @@ function [ sData ] = matRad_ParseBioDataHIT(PathToHITBaseData,visBool)
 %   sData:                 returns a cell array, whereat each cell
 %                          represents the bio data for one specific cell line 
 %
-% References
-%
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

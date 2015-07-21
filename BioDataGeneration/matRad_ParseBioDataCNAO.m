@@ -1,7 +1,8 @@
 function [ sData ] = matRad_ParseBioDataCNAO(PathToBaseData,ParticlePrefix,visBool)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% matRad fucntion to parse CNAO dEdx*alpha and dEdx*sqrtBeta curves from
-% monte carlo simulations
+% matRad function to parse CNAO dEdx*alpha and dEdx*sqrtBeta curves from
+% monte carlo simulations. Please note that the output has to be divided by
+% the dEdx curves in order to use it for matRad.
 %
 % call
 %   sData = matRad_ParseBioDataCNAO(PathToBaseData,ParticlePrefix,visBool)
