@@ -42,16 +42,15 @@ radialDose = zeros(length(vCurrentRadius),1);
 sLET = dEdx.dEdx(idx); % LET in MeV/cm^2g
 % Atrack corresponds to the single impact fluence
 Atrack = pi*(sRadiusMax^2); %µm^2
-Atrack = 1/(Atrack/(10000^2)); % in 1/cm^2
-
-constDose = (1.602189e-10*sLET)*Atrack;
+Fluence = 1/(Atrack/(10000^2)); % in 1/cm^2
+constDose = LET2Dose(sLET, 1, Atrack/(10000^2));
 
 radialDose(vCurrentRadius <= sRadiusMin) = (constDose) / (sRadiusMin^2);
 IdxVector = (vCurrentRadius > sRadiusMin) & (vCurrentRadius < sRadiusMax);
 radialDose(IdxVector) = (constDose)./(vCurrentRadius(IdxVector).^2);
 
        
-%radialDose = radialDose.*sLambda;
+radialDose = radialDose.*sLambda;
 
 end
 

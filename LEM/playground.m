@@ -5,15 +5,15 @@ close all
 %% set parameters
 addpath(['..' filesep 'baseDataHIT'])
 load dEdx
-vEnergy        = [1 5 10 20 30 40 50];
+vEnergy        = [9 10];
 vFluence_cm2       = [0.5 1 2 3 5 10];
 Particle       = 'C';
 MaterialRho    = 1;
-RadiusTarget   = 10;    % in µm
+RadiusTarget   = 5;    % in µm
 NumImpactSteps = 100;
 xRay.sDcut   = 30;     % Gy
-xRay.sAlphaX = 0.18;   % Gy^-1
-xRay.sBetaX  = 0.028;  % Gy^-2
+xRay.sAlphaX = 0.1;   % Gy^-1
+xRay.sBetaX  = 0.05;  % Gy^-2
 %%
 
 
@@ -27,7 +27,7 @@ Dose_GyR = round(Dose_Gy);
 [counts,centers] = hist(Dose_GyR,Dose_GyR(end));
 %% mean number of traversals per unit dose
 N_TE = mean(counts);
-
+N_TE = 3;
 for Eidx = 1:length(vEnergy)
 
     vBioEffect  = zeros(NumImpactSteps,1);
@@ -39,8 +39,8 @@ for Eidx = 1:length(vEnergy)
      vBioEffect(i) = LEM_singelHIT( ImpactParameter(i), RadiusTarget, RadiusTrack,xRay,vEnergy(Eidx), dEdx.(Particle),0);
     end
 
-    vCellSurvival      = exp(-vBioEffect);
-    TotSurvivalCentral =  exp(-vBioEffect(1));
+    vCellSurvival       = exp(-vBioEffect);
+    SurvivalCentralAxis =  exp(-vBioEffect(1));
 
     %% weightening according to code snipped from S.Greilich
     % only S_r dr needs to be calculated due to normalizing the contribution in
@@ -59,9 +59,13 @@ for Eidx = 1:length(vEnergy)
 
 end
 
+%% Try to calculate the cell curvival for fluence 1:1:10 and 
+% calculate Dose based on LET2Dose, Then plot dose against cell survival
+
+
 
 figure,plot(vEnergy,alpha_TE),grid on, grid minor, set(gca,'xscale','log')
 xlabel('Energy in MeV'), ylabel('alpha_{T,E}')
 
-figure,plot(vEnergy,alpha_z),grid on, grid minor, set(gca,'xscale','log')
-xlabel('Energy in MeV'), ylabel('alpha_{Z}')
+% figure,plot(vEnergy,alpha_z),grid on, grid minor, set(gca,'xscale','log')
+% xlabel('Energy in MeV'), ylabel('alpha_{Z}')
