@@ -1,4 +1,4 @@
-function [Contribution,vRgrid] = LEM_shellIntegration( ImpactParameter, RadiusTarget,RadiusTrackMax,visBool)
+function [Contribution,vRgrid] = LEM_shellIntegration( ImpactParameter, RadiusTarget_um,RadiusTrackMax_um,visBool)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -6,33 +6,44 @@ function [Contribution,vRgrid] = LEM_shellIntegration( ImpactParameter, RadiusTa
 %% shell integration
 
 % Set integration range depending on impact parameter(radial position of
-% the particle)
+% the particle), 
+% rmin...lower boundary of shell integration
+% rmin...upper boundary of shell integration
 r_min = 0.0;
 r_max = 0.0;
 Contribution = 0;
 vRgrid = 0;
 
 % if there is no overlap between particle track and target
-if ImpactParameter >= RadiusTarget + RadiusTrackMax
+if ImpactParameter >= RadiusTarget_um + RadiusTrackMax_um
     return
     % do nothing as particle track does not overlap with nucleus
     
-% if particle track is outside the nucleus but still overlaps partly the
-% cell nucleus; integrate from outer cell nucleus boundary either other side of nucleus or track width
-elseif ImpactParameter > RadiusTarget && ImpactParameter < (RadiusTarget + RadiusTrackMax)
-
-    r_min = (ImpactParameter - RadiusTarget) + 1e-4;
-	r_max = abs(ImpactParameter - RadiusTrackMax) - 1e-3;
-     
-% if particle track is complete within the cell nucleus; integrate from 0.1 nm to RadiusTrackMax     
-elseif ImpactParameter <= RadiusTarget
+% if central particle track is outside the nucleus but still overlaps partly the
+% cell nucleus; integrate from outer cell nucleus boundary to either other side of nucleus or track width
+elseif ImpactParameter > RadiusTarget_um && (ImpactParameter - RadiusTrackMax_um) < RadiusTarget_um
+    
+    r_min = (ImpactParameter - RadiusTarget_um) + 1e-4;
+	r_max = abs(ImpactParameter - RadiusTrackMax_um) - 1e-3;
+    
+% if central particle track is inside the nucleus but not completly
+% overlapping with the cell nucleus
+elseif ImpactParameter < RadiusTarget_um && (ImpactParameter + RadiusTrackMax_um) > RadiusTarget_um 
+    
+    
+    
+% if particle track is complete within the cell nucleus; integrate from 0.1 nm to RadiusTrackMax_um     
+elseif ImpactParameter <= RadiusTarget_um
     
     r_min = 1e-4;
-    if RadiusTrackMax>RadiusTarget
-        r_max = abs(ImpactParameter - RadiusTarget);
+    if RadiusTrackMax_um>RadiusTarget_um
+        r_max = abs(ImpactParameter - RadiusTarget_um);
     else
-        r_max = RadiusTrackMax;
+        r_max = RadiusTrackMax_um;
     end
+    
+else
+    warning('something is wrong!')
 end
 
 
@@ -72,10 +83,10 @@ for i = 1:NumRgrid
     % get delta_r
     dr(i)    = vRgrid(i+1) - vRgrid(i);
     % if track is inside target
-    if r_mid(i) <= RadiusTarget - ImpactParameter
+    if r_mid(i) <= RadiusTarget_um - ImpactParameter
         phi = pi;
     else
-        arg1 = (r_mid(i)+RadiusTarget) * (r_mid(i)-RadiusTarget) + ImpactParameter^2;
+        arg1 = (r_mid(i)+RadiusTarget_um) * (r_mid(i)-RadiusTarget_um) + ImpactParameter^2;
         arg2 =  2 * r_mid(i)* ImpactParameter+0.001;
         phi = acos(arg1/arg2);
     end
@@ -87,7 +98,7 @@ for i = 1:NumRgrid
         Area(i)=0;
     end
     
-    Contribution(i) = Area(i) / (pi *RadiusTarget^2);
+    Contribution(i) = Area(i) / (pi *RadiusTarget_um^2);
    
 end
 

@@ -1,13 +1,14 @@
-function [vBioEffectCell] = LEM_singelHIT(ImpactParameter,RadiusTarget, RadiusTrack,xRay, Energy, dEdx, visBool)
+function [vBioEffectCell] = LEM_singelHIT(ImpactParameter, RadiusTarget_um, RadiusTrack_um, xRayData, ...
+                                          Energy_MeV, dEdx, visBool)
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
 
-[Contribution,vRgrid] = LEM_shellIntegration( ImpactParameter, RadiusTarget,RadiusTrack,0);
+[Contribution,vRgrid] = LEM_shellIntegration(ImpactParameter, RadiusTarget_um, RadiusTrack_um,0);
 
 %% get radial dose distribution
-vRadialDose       = LEM_radialDose(vRgrid,Energy,dEdx);
+vRadialDose       = LEM_radialDose(vRgrid,Energy_MeV,dEdx);
 %% based on radial dose from ions - asses biological effect
-vBioResponse      = LEM_xRayResponse(vRadialDose,xRay,0);
+vBioResponse      = LEM_xRayResponse(vRadialDose,xRayData,0);
 if length(vBioResponse)>1
     vBioResponse(end) = [];
 end
