@@ -5,42 +5,46 @@ close all
 %% set parameters
 addpath(['..' filesep 'baseDataHIT'])
 load dEdx
-vEnergy        = [9 10];
-vFluence_cm2       = [0.5 1 2 3 5 10];
+vEnergy        = [20];
+vFluence_cm2   = [1];
 Particle       = 'C';
 MaterialRho    = 1;
-RadiusTarget   = 5;    % in µm
+RadiusTarget_um   = 10;    % in µm
 NumImpactSteps = 100;
-xRay.sDcut   = 30;     % Gy
-xRay.sAlphaX = 0.1;   % Gy^-1
-xRay.sBetaX  = 0.05;  % Gy^-2
+xRayData.sDcut   = 30;     % Gy
+xRayData.sAlphaX = 0.18;   % Gy^-1
+xRayData.sBetaX  = 0.028;  % Gy^-2
 %%
 
 
-[~,idx] = min(abs(dEdx.(Particle).energy-vEnergy(2)));
-sLET = dEdx.(Particle).dEdx(idx);
+[~,idx] = min(abs(dEdx.(Particle).energy-vEnergy));
+LET_MeVcm2_g = dEdx.(Particle).dEdx(idx);
+% calculate the dose for Number of particles from 1:50
 for i = 1:50
-    Dose_Gy(i,1) = LET2Dose(sLET, i, ((RadiusTarget*1e-4)^2));
+    Dose_Gy(i,1) = LET2Dose(LET_MeVcm2_g, i, ((RadiusTarget_um*1e-4)^2));
 end
 
+%% mean number of traversals per unit dose
 Dose_GyR = round(Dose_Gy);
 [counts,centers] = hist(Dose_GyR,Dose_GyR(end));
-%% mean number of traversals per unit dose
 N_TE = mean(counts);
-N_TE = 3;
-for Eidx = 1:length(vEnergy)
+
+for IdxE = 1:length(vEnergy)
 
     vBioEffect  = zeros(NumImpactSteps,1);
     weight      = zeros(NumImpactSteps,1);
-    RadiusTrack = LEM_maxElectronRange(vEnergy(Eidx),0);
-    [ImpactParameter, vDelta] = LEM_getImpactParameterSteps(RadiusTarget,RadiusTrack,NumImpactSteps);
+    %determine the maximal range of delta electrons = track radius
+    RadiusTrack_um = LEM_maxElectronRange(vEnergy(IdxE),0);
+    % get impact parameter steps to determine the average damage to cell by
+    % a random traversal
+    [ImpactParameter, vDelta] = LEM_getImpactParameterSteps(RadiusTarget_um,RadiusTrack_um,NumImpactSteps);
 
     for i = 1:length(ImpactParameter)
-     vBioEffect(i) = LEM_singelHIT( ImpactParameter(i), RadiusTarget, RadiusTrack,xRay,vEnergy(Eidx), dEdx.(Particle),0);
+     vBioEffect(i) = LEM_singelHIT( ImpactParameter(i), RadiusTarget_um, RadiusTrack_um,xRayData,vEnergy(IdxE), dEdx.(Particle),0);
     end
 
-    vCellSurvival       = exp(-vBioEffect);
-    SurvivalCentralAxis =  exp(-vBioEffect(1));
+    vCellSurvival      = exp(-vBioEffect);
+    TotSurvivalCentral =  exp(-vBioEffect(1));
 
     %% weightening according to code snipped from S.Greilich
     % only S_r dr needs to be calculated due to normalizing the contribution in
@@ -53,19 +57,15 @@ for Eidx = 1:length(vEnergy)
     expectedBioEffect    = sum(vBioEffect.*weight);
     expectedCellSurvival = exp(-expectedBioEffect);
 
-    alpha_TE(Eidx) = (1-expectedCellSurvival)*N_TE;
-    alpha_z(Eidx)  = expectedBioEffect/(sLET*1e-3);
+    alpha_TE(IdxE) = (1-expectedCellSurvival)*N_TE;
+    alpha_z(IdxE)  = expectedBioEffect/(sLET*1e-3);
 
 
 end
-
-%% Try to calculate the cell curvival for fluence 1:1:10 and 
-% calculate Dose based on LET2Dose, Then plot dose against cell survival
-
 
 
 figure,plot(vEnergy,alpha_TE),grid on, grid minor, set(gca,'xscale','log')
 xlabel('Energy in MeV'), ylabel('alpha_{T,E}')
 
-% figure,plot(vEnergy,alpha_z),grid on, grid minor, set(gca,'xscale','log')
-% xlabel('Energy in MeV'), ylabel('alpha_{Z}')
+figure,plot(vEnergy,alpha_z),grid on, grid minor, set(gca,'xscale','log')
+xlabel('Energy in MeV'), ylabel('alpha_{Z}')
