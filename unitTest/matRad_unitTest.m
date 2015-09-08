@@ -1,5 +1,5 @@
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% matRad script
+% matRad unit test script
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -25,64 +25,33 @@
 % <http://www.gnu.org/licenses/>.
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
- clear
- close all
- clc
-
-% load patient data, i.e. ct, voi, cst
-
-load HEAD_AND_NECK
-%load TG119.mat
-%load PROSTATE.mat
-%load LIVER.mat
-%load BOXPHANTOM.mat
+clc, clear, close all
 
 % meta information for treatment plan
 pln.SAD             = 1000; %[mm]
-pln.isoCenter       = matRad_getIsoCenter(cst,ct,0);
 pln.bixelWidth      = 5; % [mm] / also corresponds to lateral spot spacing for particles
 pln.gantryAngles    = [0:72:359]; % [°]
 pln.couchAngles     = [0 0 0 0 0]; % [°]
 pln.numOfBeams      = numel(pln.gantryAngles);
-pln.numOfVoxels     = numel(ct.cube);
-pln.voxelDimensions = size(ct.cube);
 pln.radiationMode   = 'photons'; % either photons / protons / carbon
 pln.bioOptimization = 'none'; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
-pln.numOfFractions  = 1;
+pln.numOfFractions  = 20;
 pln.runSequencing   = true; % 1/true: run sequencing, 0/false: don't / will be ignored for particles and also triggered by runDAO below
 pln.runDAO          = true; % 1/true: run DAO, 0/false: don't / will be ignored for particles
 
-%% initial visualization and change objective function settings if desired
-matRadGUI
+FlagSuccess = matRad_unitTestGenData(pln,'BOXPHANTOM');
 
-%% generate steering file
-stf = matRad_generateStf(ct,cst,pln);
+%% run tests
+SaveResultToDisk = true;
+matRad_unitTestRun('unitTest_result_X_001_BOXPHANTOM',SaveResultToDisk);
 
-%% dose calculation
-if strcmp(pln.radiationMode,'photons')
-    dij = matRad_calcPhotonDose(ct,stf,pln,cst,0);
-elseif strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
-    dij = matRad_calcParticleDose(ct,stf,pln,cst,0);
-end
 
-%% inverse planning for imrt
-resultGUI = matRad_fluenceOptimization(dij,cst,pln,0);
 
-%% sequencing
-if strcmp(pln.radiationMode,'photons') && (pln.runSequencing || pln.runDAO)
-    %resultGUI = matRad_xiaLeafSequencing(resultGUI.w,stf,dij,5);
-    resultGUI = matRad_engelLeafSequencing(resultGUI.w,stf,dij,5,resultGUI);
-end
 
-%% DAO
-if strcmp(pln.radiationMode,'photons') && pln.runDAO
-   resultGUI = matRad_directApertureOptimization(dij,cst,resultGUI.apertureInfo,resultGUI,1);
-   matRad_visApertureInfo(resultGUI.apertureInfo);
-end
 
-%% start gui for visualization of result
-matRadGUI
 
-%% dvh
-matRad_calcDVH(resultGUI,cst)
+
+
+
+
+

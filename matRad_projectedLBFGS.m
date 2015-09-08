@@ -1,4 +1,4 @@
-function optResult = matRad_projectedLBFGS(objFunc,wInit,visBool,varargin)
+function wOpt = matRad_projectedLBFGS(objFunc,projFunc,wInit,visBool,varargin)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % projected L-BFGS optimizer including a positivity constraints on the
 % optimization variable
@@ -14,7 +14,7 @@ function optResult = matRad_projectedLBFGS(objFunc,wInit,visBool,varargin)
 %   varargin:   optional: number of iterations and precision
 %
 % output
-%   optResult:  struct containing the optimized fluence vector
+%   wOpt:       optimized vector
 %
 % References
 %   [1] Kelley: Iterative methods for optimization 1999
@@ -49,7 +49,7 @@ function optResult = matRad_projectedLBFGS(objFunc,wInit,visBool,varargin)
 iter      = 0;
 if isempty(varargin{1,1})
     numOfIter = 1000;
-    prec      = 1e-3;
+    prec      = 1e-5;
 else
     optParam = varargin{1,1};
     numOfIter = optParam{1,1}.numOfIter;
@@ -59,16 +59,48 @@ end
 numOfParameters = numel(wInit);
 % plot objective function output
 if visBool
-    figOpt=figure('Name','Progress of Optimization','NumberTitle','off');
-    hold on, grid on, grid minor, xlabel('# iterations','Fontsize',14),ylabel('objective value','Fontsize',14)
-    set(gca,'YScale','log');
-    title('Progress of Optimization','LineWidth',14),
+    try
+        figHandles = get(0,'Children');
+        IdxHandle = [];
+        if ~isempty(figHandles)
+            v=version;
+            if str2num(v(1:3))>=8.5
+                IdxHandle = strcmp({figHandles(:).Name},'Progress of Optimization');
+            else
+                IdxHandle = strcmp(get(figHandles,'Name'),'Progress of Optimization');
+            end
+        end
+        if ~isempty(IdxHandle) &&  length(IdxHandle) > 1
+            figOpt = figHandles(IdxHandle);
+            AxesInfigOpt = findall(figOpt,'type','axes');
+            set(AxesInfigOpt,'NextPlot', 'replacechildren')
+            v=version;
+            if str2num(v(1:3))>=8.5
+                delete(AxesInfigOpt.Children);
+            else
+                children = get(AxesInfigOpt,'children');
+                delete(children);
+            end
+        else
+            figOpt=figure('Name','Progress of Optimization','NumberTitle','off');
+            hold on, grid on, grid minor,
+            AxesInfigOpt = findall(figOpt,'type','axes');
+        end 
+        set(AxesInfigOpt,'YScale','log');
+        title(AxesInfigOpt,'Progress of Optimization','LineWidth',14),
+        xlabel(AxesInfigOpt,'# iterations','Fontsize',14),ylabel(AxesInfigOpt,'objective function value','Fontsize',14)
+    catch 
+        warning('couldnt initialize figure to plot the objective value')
+    end
+
 end
 % initialize LBFGS optimizer
 historyCounter = 0;
 mem            = 10;        % number of past gradients and function values used for inverse hessian contruction
 x              = NaN*ones(numOfParameters,mem);
 x(:,1)         = wInit;
+
+[~,isConstrActive] = projFunc(x(:,1));
 
 objFuncValue   = NaN*ones(1,mem);
 dx             = NaN*ones(numOfParameters,mem);
@@ -80,11 +112,13 @@ a_k            = ones(1,mem-1);
 
 % 1st calculation of objective function and gradient
 [objFuncValue(1),dx(:,1)] = objFunc(wInit);
-objFuncValue(2) = 2*objFuncValue(1);
+objFuncValue(2:end) = 2*objFuncValue(1);
 
 % convergence if change in objective function smaller than prec or maximum
 % number of iteration reached. no convergence if lbfgs has just been rest
-continueOpt = 1;
+continueOpt    = 1;
+convergenceLag = 1;
+
 while continueOpt == 1
     % implementation of L-BFGS according to
     % http://en.wikipedia.org/wiki/L-BFGS
@@ -111,7 +145,7 @@ while continueOpt == 1
 
     continueLineSearch = true;
     
-    expectedDescend = ((x(:,1)>0).*dir)'*dx(:,1);
+    expectedDescend = (~isConstrActive.*dir)'*dx(:,1);
     
     fprintf('Starting line search ')
     while continueLineSearch
@@ -121,10 +155,12 @@ while continueOpt == 1
         candidateX = x(:,1) + alpha*dir;
 
         % project candidate to feasible set
-        candidateX(candidateX<0) = 0;
+        [candidateX, isConstrActive] = projFunc(candidateX);
         
-        lineSearchObjFuncValue = objFunc(candidateX);
+        % evaluate objective function and gradient
+        [lineSearchObjFuncValue,lineSearchDx] = objFunc(candidateX);
         
+        % check if armijo criterion fulfilled
         continueLineSearch = lineSearchObjFuncValue > objFuncValue(1) + c_1*alpha*expectedDescend;
     
         if alpha < 1e-10;
@@ -151,13 +187,14 @@ while continueOpt == 1
 
     objFuncValue(2) = objFuncValue(1);
     
-    [objFuncValue(1),dx(:,1)] = objFunc(x(:,1));
+    objFuncValue(1) = lineSearchObjFuncValue;
+    dx(:,1)         = lineSearchDx;
         
     s_k = -diff(x,[],2);
     y_k = -diff(dx,[],2);
 
-    s_k(x(:,1)<=0,1) = 0;
-    y_k(x(:,1)<=0,1) = 0;
+    s_k(isConstrActive,1) = 0;
+    y_k(isConstrActive,1) = 0;
     
     r_k = 1./diag(y_k'*s_k);
         
@@ -180,19 +217,22 @@ while continueOpt == 1
     
     fprintf(1,'Iteration %d: alpha = %f, Obj func = %f\n',iter,alpha,objFuncValue(1));
 
-    continueOpt = (iter < numOfIter && abs((objFuncValue(2)-objFuncValue(1))/objFuncValue(1))>prec) || historyCounter < 2;
+    continueOpt = (iter < numOfIter && abs((objFuncValue(1+convergenceLag)-objFuncValue(1))/objFuncValue(1))>prec) || historyCounter < 2 ;
+    
     if  objFuncValue(2)== 0 && objFuncValue(1) == 0 
         continueOpt = 0;
-        disp('!!! please review your constraints !!!')
+        disp('objective function reached theoretical minimum f = 0 - this is fishy. please double check your optimization objectives.')
     end
     
     if visBool
         objFuncValues{iter}=objFuncValue(1);
-        plot(1:1:iter,cell2mat(objFuncValues),'b','Linewidth',3); drawnow
+        axes(AxesInfigOpt)
+        plot(AxesInfigOpt,1:1:iter,cell2mat(objFuncValues),'b','Linewidth',3);
+        drawnow
     end
     
 end
 
 fprintf(['\n' num2str(iter) ' iteration(s) performed to converge\n'])
 
-optResult.w = x(:,1);
+wOpt = x(:,1);

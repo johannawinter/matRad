@@ -49,6 +49,11 @@ if nargin < 4
     visMode = 0;
 end
 
+if numel(pln.gantryAngles) ~= numel(pln.couchAngles)
+    error('Inconsistent number of gantry and couch angles.');
+end
+              
+
 %
 if ~strcmp(pln.radiationMode,'carbon') && sum(strcmp(pln.bioOptimization,{'effect','RBExD'}))>0
     fprintf('\n ********************************************************************************************************* \n');
@@ -67,13 +72,20 @@ end
 % Remove double voxels
 V = unique(V);
 
+% generate voi cube
+voi    = zeros(size(ct.cube));
+voi(V) = 1;
+    
 % add margin
 addmarginBool = 1;
 if addmarginBool
-    voi    = zeros(size(ct.cube));
-    voi(V) = 1;
-    voi    = matRad_addMargin(voi,ct.resolution,ct.resolution,true);
-    V      = find(voi>0);
+    voi = matRad_addMargin(voi,ct.resolution,ct.resolution,true);
+    V   = find(voi>0);
+end
+
+% throw error message if no target is found
+if isempty(V)
+    error('Could not find target.');
 end
 
 % prepare structures necessary for particles
@@ -99,6 +111,10 @@ if strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     
     clear baseData;
     
+elseif strcmp(pln.radiationMode,'photons')
+    
+    load photonPencilBeamKernels_6MV;
+
 end
 
 % Convert linear indices to 3D voxel coordinates
@@ -150,6 +166,43 @@ for i = 1:length(pln.gantryAngles)
     rayPos = unique(pln.bixelWidth*round([            coordsAtIsoCenterPlane(:,1) ... 
                                           zeros(size(coordsAtIsoCenterPlane,1),1) ...
                                                       coordsAtIsoCenterPlane(:,2)]/pln.bixelWidth),'rows');
+                                                  
+	 % pad ray position array if resolution of target voxel grid not sufficient
+     if pln.bixelWidth<max(ct.resolution)
+        origRayPos = rayPos;
+        for j = -floor(max(ct.resolution)/pln.bixelWidth):floor(max(ct.resolution)/pln.bixelWidth)
+            for k = -floor(max(ct.resolution)/pln.bixelWidth):floor(max(ct.resolution)/pln.bixelWidth)
+                if abs(j)+abs(k)==0
+                    continue;
+                end
+                
+                rayPos = [rayPos; origRayPos(:,1)+j*pln.bixelWidth origRayPos(:,2) origRayPos(:,3)+k*pln.bixelWidth];
+                                
+            end
+        end
+     end
+     
+     % remove spaces within rows of bixels for DAO
+     if pln.runDAO
+         % create single x,y,z vectors
+         x = rayPos(:,1);
+         y = rayPos(:,2);
+         z = rayPos(:,3);
+         uniZ = unique(z);
+         for j = 1:numel(uniZ)
+             x_loc = x(z == uniZ(j));
+             x_min = min(x_loc);
+             x_max = max(x_loc);
+             x = [x; [x_min:pln.bixelWidth:x_max]'];
+             y = [y; zeros((x_max-x_min)/pln.bixelWidth+1,1)];
+             z = [z; uniZ(j)*ones((x_max-x_min)/pln.bixelWidth+1,1)];             
+         end
+         
+         rayPos = [x,y,z];
+     end
+    
+    % remove double rays
+    rayPos = unique(rayPos,'rows');
     
     % Save the number of rays
     stf(i).numOfRays = size(rayPos,1);
@@ -191,10 +244,14 @@ for i = 1:length(pln.gantryAngles)
     % find appropriate energies for particles
     if strcmp(stf(i).radiationMode,'protons') || strcmp(stf(i).radiationMode,'carbon')
         
-        for j = 1:stf(i).numOfRays
+        for j = stf(i).numOfRays:-1:1
             
             % ray tracing necessary to determine depth of the target
-            [~,l,rho,~] = matRad_siddonRayTracer(pln.isoCenter,ct.resolution,stf(i).sourcePoint,stf(i).ray(j).targetPoint,{ct.cube,voi});
+            [~,l,rho,~] = matRad_siddonRayTracer(pln.isoCenter, ...
+                            ct.resolution, ...
+                            stf(i).sourcePoint, ...
+                            stf(i).ray(j).targetPoint, ...
+                            {ct.cube,voi});
             
             if sum(rho{2}) > 0 % target hit
                 
@@ -208,7 +265,7 @@ for i = 1:length(pln.gantryAngles)
                 targetExit  = radDepths(diff_voi == -1);
                 
                 if numel(targetEntry) ~= numel(targetExit)
-                    error('Inconsistency during ray tracing\n\n');
+                    error('Inconsistency during ray tracing.');
                 end
                 
                 stf(i).ray(j).energy = [];
@@ -238,23 +295,27 @@ for i = 1:length(pln.gantryAngles)
                     
                 end
                 
+                
             else % target not hit
-                stf(i).ray(j).energy = [];
+                stf(i).ray(j)               = [];
             end
-            
-            % count bixels per ray
-            stf(i).numOfBixelsPerRay(j) = numel(stf(i).ray(j).energy);
-            
+                        
         end
-        
+
+        % book keeping
+        stf(i).numOfRays = size(stf(i).ray,2);
+        for j = 1:stf(i).numOfRays
+            stf(i).numOfBixelsPerRay(j) = numel(stf(i).ray(j).energy);
+        end
+
     elseif strcmp(stf(i).radiationMode,'photons')
         % set dummy values for photons
         for j = 1:stf(i).numOfRays
-            stf(i).ray(j).energy = NaN;
+            stf(i).ray(j).energy = energy;
             stf(i).numOfBixelsPerRay(j) = 1;
         end
     else
-        error('Error generating stf struct: invalid radiation modality\n\n');
+        error('Error generating stf struct: invalid radiation modality.');
     end
     %%
     
