@@ -1,17 +1,17 @@
 % TRiP98 spectra file format
 % Spectra (SPC) files are binary files containing energy spectra and related histograms of 
 % the various particles created when an ion undergoes nuclear interactions with the traversed matter. 
-%There is one file per initial beam energy. Spectra are stored as a function of depth in water. 
-%The file is organized in a similar fashion as a TIFF file, i.e. each data entry is preceeded by a so-called 
-%tag field which identifies the following data item by a unique number and contains the length of that item. 
-%This way a reader progam can skip irrelevant or unknown data items. With a few exceptions the 
-%data items (including the tags) are binary, and thus can be directly read only on a CPU architecture 
-%with the same byte order. This was implemented deliberately, since spectra are meant to be memory-mapped 
-%read-only into CPU address space, which disallows byte swap operations. Memory mapping also implies that 
-%structured data must be written padded to 8-byte boundaries, otherwise data access time penalties and/or
-%access violations may occur. Hence 4-byte integers are expanded to 8 bytes and character strings always end 
-%on 8-byte boundaries, with binary zeroes padded. Floating point numbers in TRiP98 are always 8-byte double 
-%precision IEEE numbers anyway.
+% There is one file per initial beam energy. Spectra are stored as a function of depth in water. 
+% The file is organized in a similar fashion as a TIFF file, i.e. each data entry is preceeded by a so-called 
+% tag field which identifies the following data item by a unique number and contains the length of that item. 
+% This way a reader progam can skip irrelevant or unknown data items. With a few exceptions the 
+% data items (including the tags) are binary, and thus can be directly read only on a CPU architecture 
+% with the same byte order. This was implemented deliberately, since spectra are meant to be memory-mapped 
+% read-only into CPU address space, which disallows byte swap operations. Memory mapping also implies that 
+% structured data must be written padded to 8-byte boundaries, otherwise data access time penalties and/or
+% access violations may occur. Hence 4-byte integers are expanded to 8 bytes and character strings always end 
+% on 8-byte boundaries, with binary zeroes padded. Floating point numbers in TRiP98 are always 8-byte double 
+% precision IEEE numbers anyway.
 % 
 % A tag entry is defined as
 % 
@@ -108,93 +108,81 @@ path = ('E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV09000.sp
 % http://bio.gsi.de/DOCS/TRiP98BEAM/DOCS/trip98fmtspc.html
 
 filename = path;		% hypothetical file
-segsize = 100000;
 
-%fid = fopen(filename,'r','b');
+TagMAP = containers.Map;
+TagMAP('1') = 'FILETYPE';
+TagMAP('2') = 'FILEVERSION';
+TagMAP('3') = 'FILEDATE';
+TagMAP('4') = 'TARGET';
+TagMAP('5') = 'PROJECTILE';
+TagMAP('6') = 'BEAM_ENERGY_MeV_u';
+TagMAP('7') = 'PEAK_POS_g_cm_2';
+TagMAP('8') = 'NORMALIZATION';
+TagMAP('9') = 'NUM_DEPTH';
 
-
-Encoding = {'Big5','ISO-8859-1','windows-932','GB2312','ISO-8859-2',...
-    'windows-936','EUC-KR','ISO-8859-3','windows-949','EUC-JP','ISO-8859-4',...
-	'windows-950','GBK','ISO-8859-9','windows-1250','KSC_5601','ISO-8859-13','windows-1251',...
-    'Macintosh','ISO-8859-15','windows-1252','Shift_JIS','windows-1253',...
-    'US-ASCII','windows-1254','UTF-8','windows-1257'};
-
-HeaderLength = 80;
-fid = fopen(filename,'r','b');
-
-fseek(fid,0,'eof');
-EndPos = ftell(fid);
-fseek(fid,0,'bof');
-StartPos = ftell(fid);
-
-tag = 1;
-MaxTag = 20000;
-mTag = zeros(MaxTag,4);
-
-mTag(tag,1) = ftell(fid);
-for i=1:100
-
-if i <39
-    bytes = fread(fid,8,'int8');
-    unicodestr = native2unicode(bytes,'ISO-8859-15')
-else
-     bytes = fread(fid,32,'double');
-    unicodestr = native2unicode(bytes,'ISO-8859-1')
-end
-
-end
-
-Byte = fread(fid,HeaderLength,'*char');
-SPC.FileType = strtrim(reshape(Byte,1,HeaderLength));
-SPC.FileType(SPC.FileType == char(0)) = '';
-
-Byte = fread(fid,HeaderLength,'*char');
-SPC.FileVersion = strtrim(reshape(Byte,1,HeaderLength));
-SPC.FileVersion(SPC.FileVersion == char(0)) = '';
-
-Byte = fread(fid,HeaderLength,'*char');
-SPC.FileDate = strtrim(reshape(Byte,1,HeaderLength));
-SPC.FileDate(SPC.FileDate == char(0)) = '';
-
-Byte = fread(fid,60,'*char');
-SPC.TargetName = strtrim(reshape(Byte,1,60));
-SPC.TargetName(SPC.TargetName == char(0)) = '';
-
-% parse 3 double numbers and one 8-byte unsigned integer
-Byte = fread(fid,56,'uint8=>char');
-% for I have no clue how to convert these values to numbers
-
-Byte = fread(fid,1000,'int');
+spc = struct;
 
 
+CurrPos = 0;
+fid = fopen(filename,'rt','b');
 
-
-tags = 1;
-Maxtags = 20000;
-mTag = zeros(4,Maxtags);
-
-FirstLine = fgetl(fid)
-SecondLine = fgetl(fid)
-ThirdLine = fgetl(fid)
-
-test = fread(fid)
-    
-fclose(fid);
-for i = 1:length(Encoding)
-    
-    Byte = fread(fid);
-    for j = 1:5000
-     testi{j}=char(Byte(j));
+for i=1:9
+    % find unique tag number
+    while true
+        Tag = fread(fid,CurrPos+1);
+        if Tag >0
+            break;
+        end
     end
+    
+    % find byte length
+    while true
+        TagLength = fread(fid,CurrPos+1);
+        if TagLength >0
+            break;
+        end
+    end
+  % first 5 entries are characters   
+  if i<6
+    Tmp = fread(fid,TagLength);
+    Tmp(Tmp==0) = [];
+    spc.(TagMAP(num2str(Tag))) = (char(Tmp))';
+    
+  else
+
+    switch Tag
+        % read double
+        case {6,7,8,10}
+            fseek(fid, 3, 0);
+            Tmp = fread(fid,TagLength);
+            spc.(TagMAP(num2str(Tag))) = typecast(uint8(Tmp),'double');
+            
+        % read 8-byte unsigned integer
+        case  9
+            Tmp = fread(fid,TagLength);
+            Tmp(Tmp==0) = [];
+            spc.(TagMAP(num2str(Tag))) = Tmp;
+    end
+            
+    
+  end
 end
 
-while ~feof(fid)
-    Byte = fread(fid);
-    %fseek(fid, 2, 0);
-    for i = 1:length(Encoding)
-     unicodestr{i} = native2unicode(Byte(598),Encoding{1,i});
-    end
-   
-end
-    
-fclose(fid);
+
+%% start parsing depth data blocks
+    %% parse each depth block
+
+% create
+spc.data(1).depthStep = 1;
+spc.data(1).H.Elow = 1;
+spc.data(1).H.Emid =  1;
+spc.data(1).H.Ehigh =  1;
+spc.data(1).H.dE = 1;
+spc.data(1).H.dNdE = 1;
+spc.data(1).H.N = 1;
+
+% spc.data(1).He = 
+% spc.data(1).Li =
+% spc.data(1).Be =
+% spc.data(1).B =
+% spc.data(1).C =
