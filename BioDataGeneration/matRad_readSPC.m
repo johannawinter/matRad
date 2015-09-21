@@ -1,3 +1,5 @@
+function spc = matRad_calcParticleDose(path)
+
 % TRiP98 spectra file format
 % Spectra (SPC) files are binary files containing energy spectra and related histograms of 
 % the various particles created when an ion undergoes nuclear interactions with the traversed matter. 
@@ -102,7 +104,7 @@
 %with the decimal point after the middle digit. Example: 12C.H2O.MeV27000.spc refers to 270 MeV/u. 
 
 clc
-clear all
+clear
 close all
 path = ('E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV09000.spc');
 % http://bio.gsi.de/DOCS/TRiP98BEAM/DOCS/trip98fmtspc.html
@@ -118,61 +120,87 @@ TagMAP('5') = 'PROJECTILE';
 TagMAP('6') = 'BEAM_ENERGY_MeV_u';
 TagMAP('7') = 'PEAK_POS_g_cm_2';
 TagMAP('8') = 'NORMALIZATION';
-TagMAP('9') = 'NUM_DEPTH';
+TagMAP('9') = 'NUM_DEPTH_STEPS';
+TagMAP('10') = 'Depth';
+TagMAP('11') = 'DepthNormalization';
+TagMAP('12') = 'NumParticles';
+TagMAP('13') = 'TypeOfParticle';
+TagMAP('14') = 'CumSumFragements';
+TagMAP('15') = 'nC';
+TagMAP('16') = 'NumOfEnergyBin';
+TagMAP('17') = 'EnergyBinValue';
+TagMAP('18') = 'Eref';
+TagMAP('19') = 'Hist';
+TagMAP('20') = 'RunningSum';
+   
 
-spc = struct;
-
-
-CurrPos = 0;
+SPC = struct;
 fid = fopen(filename,'rt','b');
+LengthMetaData = 9;
 
-for i=1:9
-    % find unique tag number
-    while true
-        Tag = fread(fid,CurrPos+1);
-        if Tag >0
-            break;
-        end
-    end
-    
-    % find byte length
-    while true
-        TagLength = fread(fid,CurrPos+1);
-        if TagLength >0
-            break;
-        end
-    end
-  % first 5 entries are characters   
-  if i<6
-    Tmp = fread(fid,TagLength);
-    Tmp(Tmp==0) = [];
-    spc.(TagMAP(num2str(Tag))) = (char(Tmp))';
-    
-  else
 
-    switch Tag
+for i=1:LengthMetaData
+
+    [Tag, TagLength] = findNextTag(fid);
+          
+      switch Tag
+        % first 5 entries are characters  
+        case {1,2,3,4,5}
+            SPC.(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'char');    
         % read double
-        case {6,7,8,10}
-            fseek(fid, 3, 0);
-            Tmp = fread(fid,TagLength);
-            spc.(TagMAP(num2str(Tag))) = typecast(uint8(Tmp),'double');
-            
+        case {6,7,8}
+            SPC.(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'double');          
         % read 8-byte unsigned integer
         case  9
-            Tmp = fread(fid,TagLength);
-            Tmp(Tmp==0) = [];
-            spc.(TagMAP(num2str(Tag))) = Tmp;
-    end
+            SPC.(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'integer'); 
+       end
             
-    
-  end
 end
 
 
 %% start parsing depth data blocks
     %% parse each depth block
+for DepthStep = 1:SPC.NUM_DEPTH_STEPS
+    while true
 
-% create
+       [Tag, TagLength] = findNextTag(fid);
+
+        switch Tag
+            
+            % read depth as double
+            case 10
+                 SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'double'); 
+            
+            % read normalization as double
+            case 11   
+                 SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'double');
+            % read number of particle species as integer
+            case  12
+            
+                SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'integer');
+            % read atomic number z and mass number a as double and long 
+            case 13
+                
+                SPC(DepthStep).TypeOfParticle = readSpcValue(fid,16,'double');
+                A_Z = readSpcValue(fid,8,'long');
+                
+            case 14
+               
+                 SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'double');
+                 
+            case 15
+                SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'integer');
+                
+            case 16
+                SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'integer');
+                
+            case 17
+                SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'double');
+        end
+
+    end
+
+end
 spc.data(1).depthStep = 1;
 spc.data(1).H.Elow = 1;
 spc.data(1).H.Emid =  1;
@@ -186,3 +214,52 @@ spc.data(1).H.N = 1;
 % spc.data(1).Be =
 % spc.data(1).B =
 % spc.data(1).C =
+end
+
+
+function value = readSpcValue(fid,NumOfBytesToRead,ValueType)
+
+    switch ValueType
+        
+        case 'double'
+             value = uint8(fread(fid,NumOfBytesToRead));
+             value = typecast(value,'double');
+
+        case 'integer'
+            value = uint8(fread(fid,NumOfBytesToRead));
+            value(value==0)=[];
+            
+            if length(value )>1
+               a = uint8([0 0 0 8 3 0 0 0]);
+               a = typecast(a,'double');
+               
+            end
+            
+        case 'char'
+            value = (fread(fid,NumOfBytesToRead));
+            value(value==0)=[];
+            value =(char(value))';
+            
+        case 'long'
+             value = uint8(fread(fid,NumOfBytesToRead));
+             value = typecast(value,'uint32');
+    end
+end
+
+
+function [Tag, Length] = findNextTag(fid)
+
+      while true
+            Tag = fread(fid,1);
+            if Tag >0
+                break;
+            end
+      end
+       
+      Length = readSpcValue(fid,7,'integer');
+      
+end
+
+
+
+
