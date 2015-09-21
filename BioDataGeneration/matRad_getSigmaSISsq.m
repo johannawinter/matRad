@@ -1,4 +1,4 @@
-function [Sigma_SISsq] = getSigmaSISsq(Identifier,basePath)
+function [Sigma_SISsq,vEnergy] = matRad_getSigmaSISsq(Identifier,basePath,FocusIdx)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % getSigmaSISsq script
@@ -30,37 +30,28 @@ end
 
 fHandle = fopen(FullFilePath,'r');
 
+if fHandle < 0
+    display('Could not open SIS file');
+end
+    
+Cnt=1;
+currentline = fgetl(fHandle);
+while ischar(currentline)
 
-    if fHandle < 0
-        display('Could not open SIS file');
+    if(strfind(currentline,'energy'))
+        vEnergy(Cnt)  = str2double(currentline(8:13));    
+        vFoci = cell2mat(textscan(currentline,'energy %*f focus %f %f %f %f %f %f %f')); 
+        FWHM(Cnt) = vFoci(FocusIdx);
+        Cnt = Cnt+1;
     end
-    
-
-counter = 1;
-i=1 ;
-while(counter < 261)
-  currentline = fgetl(fHandle);
-   
-        if(strfind(currentline,'energy'))
-        energy(i)  = str2double(currentline(8:13));    
-        %at the HIT facility only beams with a FWHM >=6mm are used
-        focus = cell2mat(textscan(currentline,'energy %*f focus %f %f %f %f %f %f %f')); 
-        ix = find(focus>=6,1);
-        FWHM(i) = focus(ix);
-        i = i+1;
-            
-        end
-        
-    counter = counter +1;  
-    
+    currentline = fgetl(fHandle);       
 end
 
-energy = energy';
+vEnergy = vEnergy';
 FWHM = FWHM';
-Sigma_SIS = FWHM / (2*sqrt(2*log(2)));
-Sigma_SISsq = Sigma_SIS .* Sigma_SIS;
+Sigma_SIS = FWHM./(2*sqrt(2*log(2)));
+Sigma_SISsq = Sigma_SIS.^2;
 
 fclose(fHandle);
-
 
 end
