@@ -26,9 +26,12 @@ close all
 %e.g. rename protonBaseDataHIT into baseData and save it as protonBaseData
 %in the matRad root directory in order to use within matRad - analog for
 %carbons
-addpath([pwd filesep 'BioDataGeneration']);
-%baseData=matRad_getDDDfromTxt('p','E:\TRiP98DATA_HIT-20131120',0);
-baseData=matRad_getDDDfromTxt('C','E:\TRiP98DATA_HIT-20131120',0);
+
+%addpath([pwd filesep 'BioDataGeneration']);
+FocusIdx = 1;
+visBool = 1;
+%baseData=matRad_getDDDfromTxt('p','E:\TRiP98DATA_HIT-20131120',FocusIdx,visBool);
+baseData=matRad_getDDDfromTxt('C','E:\TRiP98DATA_HIT-20131120',FocusIdx,visBool);
 
 
 %% each *xls file in the provided folder will be converted to *.mat files to use
