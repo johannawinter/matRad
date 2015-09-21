@@ -107,6 +107,7 @@ clc
 clear
 close all
 path = ('E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV09000.spc');
+path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV09000.spc';
 % http://bio.gsi.de/DOCS/TRiP98BEAM/DOCS/trip98fmtspc.html
 
 filename = path;		% hypothetical file
@@ -195,7 +196,21 @@ for DepthStep = 1:SPC.NUM_DEPTH_STEPS
                 SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'integer');
                 
             case 17
-                SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'double');
+                
+                NumEnergies =  SPC(DepthStep).(TagMAP('16'));
+                for idxEnergy = 1:NumEnergies + 1
+                    if idxEnergy == 1
+                       vEnergy(idxEnergy).E_low  = readSpcValue(fid,TagLength,'double');
+                    else
+                       vEnergy(idxEnergy).E_low    = readSpcValue(fid,TagLength,'double');
+                       vEnergy(idxEnergy-1).E_high = vEnergy(idxEnergy).E_low;
+                       vEnergy(idxEnergy-1).E_mid  = sqrt(vEnergy(idxEnergy-1).E_high * vEnergy(idxEnergy-1).E_low);
+                       %vEnergy(idxEnergy-1).E_mid  = (vEnergy(idxEnergy-1).E_high + vEnergy(idxEnergy-1).E_low)/2;
+                       vEnergy(idxEnergy-1).dE = vEnergy(idxEnergy-1).E_high - vEnergy(idxEnergy-1).E_low;
+                    end
+                   
+                end
+                vEnergy(end) = [];
         end
 
     end
@@ -229,10 +244,9 @@ function value = readSpcValue(fid,NumOfBytesToRead,ValueType)
             value = uint8(fread(fid,NumOfBytesToRead));
             value(value==0)=[];
             
-            if length(value )>1
-               a = uint8([0 0 0 8 3 0 0 0]);
-               a = typecast(a,'double');
-               
+            if length(value )> 1
+                warning('add a saver routine');
+               value = value(1,1);
             end
             
         case 'char'
