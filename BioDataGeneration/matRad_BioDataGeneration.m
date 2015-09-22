@@ -34,6 +34,23 @@ visBool = 1;
 baseData=matRad_getDDDfromTxt('C','E:\TRiP98DATA_HIT-20131120',FocusIdx,visBool);
 
 
+
+
+%% parse single spc files 
+pathToSPC = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV09000.spc';
+matRad_readSPC(pathToSPC);
+
+%% parse all spc files in a specific folder
+pathToSPCfiles = 'E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\'
+dirInfo = dir([pathToSPCfiles '*.spc'])
+
+for i = 1:length(dirInfo)
+   
+    SPC = matRad_readSPC(dirInfo(i).name);
+    save(dirInfo(i).name,SPC);
+    
+end
+
 %% each *xls file in the provided folder will be converted to *.mat files to use
 % them further on for the bio base data generation.
 
