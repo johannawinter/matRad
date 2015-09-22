@@ -1,4 +1,4 @@
-function [ baseData ] = extrapDeeper(baseData,visBool)
+function [ baseData ] = matRad_extrapDeeper(baseData,visBool)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % extrapDeeper script
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

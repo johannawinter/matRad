@@ -1,17 +1,19 @@
+function spc = matRad_calcParticleDose(path)
+
 % TRiP98 spectra file format
 % Spectra (SPC) files are binary files containing energy spectra and related histograms of 
 % the various particles created when an ion undergoes nuclear interactions with the traversed matter. 
-%There is one file per initial beam energy. Spectra are stored as a function of depth in water. 
-%The file is organized in a similar fashion as a TIFF file, i.e. each data entry is preceeded by a so-called 
-%tag field which identifies the following data item by a unique number and contains the length of that item. 
-%This way a reader progam can skip irrelevant or unknown data items. With a few exceptions the 
-%data items (including the tags) are binary, and thus can be directly read only on a CPU architecture 
-%with the same byte order. This was implemented deliberately, since spectra are meant to be memory-mapped 
-%read-only into CPU address space, which disallows byte swap operations. Memory mapping also implies that 
-%structured data must be written padded to 8-byte boundaries, otherwise data access time penalties and/or
-%access violations may occur. Hence 4-byte integers are expanded to 8 bytes and character strings always end 
-%on 8-byte boundaries, with binary zeroes padded. Floating point numbers in TRiP98 are always 8-byte double 
-%precision IEEE numbers anyway.
+% There is one file per initial beam energy. Spectra are stored as a function of depth in water. 
+% The file is organized in a similar fashion as a TIFF file, i.e. each data entry is preceeded by a so-called 
+% tag field which identifies the following data item by a unique number and contains the length of that item. 
+% This way a reader progam can skip irrelevant or unknown data items. With a few exceptions the 
+% data items (including the tags) are binary, and thus can be directly read only on a CPU architecture 
+% with the same byte order. This was implemented deliberately, since spectra are meant to be memory-mapped 
+% read-only into CPU address space, which disallows byte swap operations. Memory mapping also implies that 
+% structured data must be written padded to 8-byte boundaries, otherwise data access time penalties and/or
+% access violations may occur. Hence 4-byte integers are expanded to 8 bytes and character strings always end 
+% on 8-byte boundaries, with binary zeroes padded. Floating point numbers in TRiP98 are always 8-byte double 
+% precision IEEE numbers anyway.
 % 
 % A tag entry is defined as
 % 
@@ -102,99 +104,176 @@
 %with the decimal point after the middle digit. Example: 12C.H2O.MeV27000.spc refers to 270 MeV/u. 
 
 clc
-clear all
+clear
 close all
 path = ('E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV09000.spc');
+path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV09000.spc';
 % http://bio.gsi.de/DOCS/TRiP98BEAM/DOCS/trip98fmtspc.html
 
 filename = path;		% hypothetical file
-segsize = 100000;
 
-%fid = fopen(filename,'r','b');
-
-
-Encoding = {'Big5','ISO-8859-1','windows-932','GB2312','ISO-8859-2',...
-    'windows-936','EUC-KR','ISO-8859-3','windows-949','EUC-JP','ISO-8859-4',...
-	'windows-950','GBK','ISO-8859-9','windows-1250','KSC_5601','ISO-8859-13','windows-1251',...
-    'Macintosh','ISO-8859-15','windows-1252','Shift_JIS','windows-1253',...
-    'US-ASCII','windows-1254','UTF-8','windows-1257'};
-
-HeaderLength = 80;
-fid = fopen(filename,'r','b');
-
-fseek(fid,0,'eof');
-EndPos = ftell(fid);
-fseek(fid,0,'bof');
-StartPos = ftell(fid);
-
-tag = 1;
-MaxTag = 20000;
-mTag = zeros(MaxTag,4);
-
-mTag(tag,1) = ftell(fid);
-for i=1:100
-
-if i <39
-    bytes = fread(fid,8,'int8');
-    unicodestr = native2unicode(bytes,'ISO-8859-15')
-else
-     bytes = fread(fid,32,'double');
-    unicodestr = native2unicode(bytes,'ISO-8859-1')
-end
-
-end
-
-Byte = fread(fid,HeaderLength,'*char');
-SPC.FileType = strtrim(reshape(Byte,1,HeaderLength));
-SPC.FileType(SPC.FileType == char(0)) = '';
-
-Byte = fread(fid,HeaderLength,'*char');
-SPC.FileVersion = strtrim(reshape(Byte,1,HeaderLength));
-SPC.FileVersion(SPC.FileVersion == char(0)) = '';
-
-Byte = fread(fid,HeaderLength,'*char');
-SPC.FileDate = strtrim(reshape(Byte,1,HeaderLength));
-SPC.FileDate(SPC.FileDate == char(0)) = '';
-
-Byte = fread(fid,60,'*char');
-SPC.TargetName = strtrim(reshape(Byte,1,60));
-SPC.TargetName(SPC.TargetName == char(0)) = '';
-
-% parse 3 double numbers and one 8-byte unsigned integer
-Byte = fread(fid,56,'uint8=>char');
-% for I have no clue how to convert these values to numbers
-
-Byte = fread(fid,1000,'int');
-
-
-
-
-tags = 1;
-Maxtags = 20000;
-mTag = zeros(4,Maxtags);
-
-FirstLine = fgetl(fid)
-SecondLine = fgetl(fid)
-ThirdLine = fgetl(fid)
-
-test = fread(fid)
-    
-fclose(fid);
-for i = 1:length(Encoding)
-    
-    Byte = fread(fid);
-    for j = 1:5000
-     testi{j}=char(Byte(j));
-    end
-end
-
-while ~feof(fid)
-    Byte = fread(fid);
-    %fseek(fid, 2, 0);
-    for i = 1:length(Encoding)
-     unicodestr{i} = native2unicode(Byte(598),Encoding{1,i});
-    end
+TagMAP = containers.Map;
+TagMAP('1') = 'FILETYPE';
+TagMAP('2') = 'FILEVERSION';
+TagMAP('3') = 'FILEDATE';
+TagMAP('4') = 'TARGET';
+TagMAP('5') = 'PROJECTILE';
+TagMAP('6') = 'BEAM_ENERGY_MeV_u';
+TagMAP('7') = 'PEAK_POS_g_cm_2';
+TagMAP('8') = 'NORMALIZATION';
+TagMAP('9') = 'NUM_DEPTH_STEPS';
+TagMAP('10') = 'Depth';
+TagMAP('11') = 'DepthNormalization';
+TagMAP('12') = 'NumParticles';
+TagMAP('13') = 'TypeOfParticle';
+TagMAP('14') = 'CumSumFragements';
+TagMAP('15') = 'nC';
+TagMAP('16') = 'NumOfEnergyBin';
+TagMAP('17') = 'EnergyBinValue';
+TagMAP('18') = 'Eref';
+TagMAP('19') = 'Hist';
+TagMAP('20') = 'RunningSum';
    
+
+SPC = struct;
+fid = fopen(filename,'rt','b');
+LengthMetaData = 9;
+
+
+for i=1:LengthMetaData
+
+    [Tag, TagLength] = findNextTag(fid);
+          
+      switch Tag
+        % first 5 entries are characters  
+        case {1,2,3,4,5}
+            SPC.(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'char');    
+        % read double
+        case {6,7,8}
+            SPC.(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'double');          
+        % read 8-byte unsigned integer
+        case  9
+            SPC.(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'integer'); 
+       end
+            
 end
-    
-fclose(fid);
+
+
+%% start parsing depth data blocks
+    %% parse each depth block
+for DepthStep = 1:SPC.NUM_DEPTH_STEPS
+    while true
+
+       [Tag, TagLength] = findNextTag(fid);
+
+        switch Tag
+            
+            % read depth as double
+            case 10
+                 SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'double'); 
+            
+            % read normalization as double
+            case 11   
+                 SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'double');
+            % read number of particle species as integer
+            case  12
+            
+                SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'integer');
+            % read atomic number z and mass number a as double and long 
+            case 13
+                
+                SPC(DepthStep).TypeOfParticle = readSpcValue(fid,16,'double');
+                A_Z = readSpcValue(fid,8,'long');
+                
+            case 14
+               
+                 SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'double');
+                 
+            case 15
+                SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'integer');
+                
+            case 16
+                SPC(DepthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'integer');
+                
+            case 17
+                
+                NumEnergies =  SPC(DepthStep).(TagMAP('16'));
+                for idxEnergy = 1:NumEnergies + 1
+                    if idxEnergy == 1
+                       vEnergy(idxEnergy).E_low  = readSpcValue(fid,TagLength,'double');
+                    else
+                       vEnergy(idxEnergy).E_low    = readSpcValue(fid,TagLength,'double');
+                       vEnergy(idxEnergy-1).E_high = vEnergy(idxEnergy).E_low;
+                       vEnergy(idxEnergy-1).E_mid  = sqrt(vEnergy(idxEnergy-1).E_high * vEnergy(idxEnergy-1).E_low);
+                       %vEnergy(idxEnergy-1).E_mid  = (vEnergy(idxEnergy-1).E_high + vEnergy(idxEnergy-1).E_low)/2;
+                       vEnergy(idxEnergy-1).dE = vEnergy(idxEnergy-1).E_high - vEnergy(idxEnergy-1).E_low;
+                    end
+                   
+                end
+                vEnergy(end) = [];
+        end
+
+    end
+
+end
+spc.data(1).depthStep = 1;
+spc.data(1).H.Elow = 1;
+spc.data(1).H.Emid =  1;
+spc.data(1).H.Ehigh =  1;
+spc.data(1).H.dE = 1;
+spc.data(1).H.dNdE = 1;
+spc.data(1).H.N = 1;
+
+% spc.data(1).He = 
+% spc.data(1).Li =
+% spc.data(1).Be =
+% spc.data(1).B =
+% spc.data(1).C =
+end
+
+
+function value = readSpcValue(fid,NumOfBytesToRead,ValueType)
+
+    switch ValueType
+        
+        case 'double'
+             value = uint8(fread(fid,NumOfBytesToRead));
+             value = typecast(value,'double');
+
+        case 'integer'
+            value = uint8(fread(fid,NumOfBytesToRead));
+            value(value==0)=[];
+            
+            if length(value )> 1
+                warning('add a saver routine');
+               value = value(1,1);
+            end
+            
+        case 'char'
+            value = (fread(fid,NumOfBytesToRead));
+            value(value==0)=[];
+            value =(char(value))';
+            
+        case 'long'
+             value = uint8(fread(fid,NumOfBytesToRead));
+             value = typecast(value,'uint32');
+    end
+end
+
+
+function [Tag, Length] = findNextTag(fid)
+
+      while true
+            Tag = fread(fid,1);
+            if Tag >0
+                break;
+            end
+      end
+       
+      Length = readSpcValue(fid,7,'integer');
+      
+end
+
+
+
+
