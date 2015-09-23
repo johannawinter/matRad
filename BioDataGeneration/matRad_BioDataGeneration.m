@@ -29,9 +29,10 @@ close all
 
 %addpath([pwd filesep 'BioDataGeneration']);
 FocusIdx = 1;
-visBool = 1;
-%baseData=matRad_getDDDfromTxt('p','E:\TRiP98DATA_HIT-20131120',FocusIdx,visBool);
-baseData=matRad_getDDDfromTxt('C','E:\TRiP98DATA_HIT-20131120',FocusIdx,visBool);
+Offset = -2.89; % in mm
+visBool = 0;
+%baseData=matRad_getDDDfromTxt('p','E:\TRiP98DATA_HIT-20131120',FocusIdx,Offset,visBool);
+baseData=matRad_getDDDfromTxt('C','E:\TRiP98DATA_HIT-20131120',FocusIdx,Offset,visBool);
 
 
 

@@ -1,4 +1,4 @@
-function ddd=matRad_getDDDfromTxt(Identifier,basePath,FocusIdx,visBool)
+function baseData = matRad_getDDDfromTxt(Identifier,basePath,FocusIdx,Offset,visBool)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad_getDDDfromTxt script
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -60,7 +60,7 @@ for i = 1:length(Files)
 
     % read energy
     currentline = fgetl(fid);
-    ddd(i).energy = strread(currentline,'!energy %f');
+    baseData(i).energy = strread(currentline,'!energy %f');
 
     %skip another 2 lines
     fgetl(fid);
@@ -97,15 +97,15 @@ for i = 1:length(Files)
     
     fclose(fid);    
     % convert depth from cm to mm;
-    ddd(i).depths = depth*10; 
+    baseData(i).depths = depth*10; 
     % save Z in MeV cm2 / g
-    ddd(i).Z   = ionization;
+    baseData(i).Z   = ionization;
     % extract peak position
     [~,idx]=max(ionization);
-    ddd(i).peakPos = ddd(i).depths(idx);
+    baseData(i).peakPos = baseData(i).depths(idx);
     % add offset
     offset = -2.89;
-    ddd(i).offset = ones(length(ionization),1)*offset;
+    baseData(i).offset = ones(length(ionization),1)*offset;
     
     %% calculate sigmas and weights used to model lateral profile
     if ~isempty(FWHM1)
@@ -114,25 +114,35 @@ for i = 1:length(Files)
         sigma2 = abs(FWHM2)/(2*sqrt(2*log(2)));
         % according to Julian Streitz Thesis; 
         % add inital beam width to sigmas
-        ddd(i).sigma1 = sqrt(sigmaSISsq(i,1) + sigma1(:,1).^2);                                                                
-        ddd(i).sigma2 = sqrt(sigmaSISsq(i,1) + sigma2(:,1).^2);
-        ddd(i).weight = weight; 
+        baseData(i).sigma1 = sqrt(sigmaSISsq(i,1) + sigma1(:,1).^2);                                                                
+        baseData(i).sigma2 = sqrt(sigmaSISsq(i,1) + sigma2(:,1).^2);
+        baseData(i).weight = weight; 
     elseif ~isempty(FWHM)
         sigma = abs(FWHM)/(2*sqrt(2*log(2)));
-        ddd(i).sigma = sqrt(sigmaSISsq(i,1) + sigma(:,1).^2);     
+        baseData(i).sigma = sqrt(sigmaSISsq(i,1) + sigma(:,1).^2);     
     else           
         %% TODO: add analytical calculation of sigma according 
         %to Hong or the Highland formula
-        ddd(i).sigma = ones(size(ddd(i).depths,1),1);
+        baseData(i).sigma = ones(size(baseData(i).depths,1),1);
     end
 
 end   
 
-% sort content according to enertgy;
-[~,IdxEnergy] = sort([ddd.energy]);
-ddd=ddd(IdxEnergy);
+% sort content according to energy;
+[~,IdxEnergy] = sort([baseData.energy]);
+baseData=baseData(IdxEnergy);
 
-%% plot random ddd 
+%add offset to each entry
+for i = 1:length(baseData)
+   baseData(i).offset = Offset; 
+end
+
+
+
+
+
+
+%% plot random baseData 
 if visBool
     
     switch Identifier
@@ -148,8 +158,8 @@ if visBool
     figure,
     for i = 1:length(vIdx)
         Energy = baseData(vIdx(i)).energy;
-        [~,IdxDDD]=min(abs([ddd.energy]-Energy));
-        subplot(2,2,i),plot(ddd(IdxDDD).depths,ddd(IdxDDD).Z,'r'),hold on
+        [~,IdxDDD]=min(abs([baseData.energy]-Energy));
+        subplot(2,2,i),plot(baseData(IdxDDD).depths,baseData(IdxDDD).Z,'r'),hold on
                        plot(baseData(vIdx(i)).depths,baseData(vIdx(i)).Z,'b');
                        legend({'new ddd - HIT','existing baseData'});
                        xlabel(' depth in mm '), ylabel('Z in MeVcm^2 / g'), title(['Energy: ' num2str(Energy)])
@@ -157,12 +167,12 @@ if visBool
     
     % plot sigmas againts depth
     figure, hold on 
-    plot(ddd(Idx).depths,ddd(Idx).sigma1,'LineWidth',3)
-    plot(ddd(Idx).depths,ddd(Idx).sigma2,'LineWidth',3)
-    sigmaMix = (1-ddd(Idx).weight).*ddd(Idx).sigma1 + ddd(Idx).weight.*ddd(Idx).sigma2;
-    plot(ddd(Idx).depths,sigmaMix,'LineWidth',3)
+    plot(baseData(Idx).depths,baseData(Idx).sigma1,'LineWidth',3)
+    plot(baseData(Idx).depths,baseData(Idx).sigma2,'LineWidth',3)
+    sigmaMix = (1-baseData(Idx).weight).*baseData(Idx).sigma1 + baseData(Idx).weight.*baseData(Idx).sigma2;
+    plot(baseData(Idx).depths,sigmaMix,'LineWidth',3)
     grid on, grid minor, xlabel('depth in mm'),ylabel('sigma'),
     legend({'sigma1','sigma2','sigmas weighted'})
-    title(['sigmas of a ' Identifier ' beam with energy ' num2str(ddd(Idx).energy) ' MeVcm^2/g'])
+    title(['sigmas of a ' Identifier ' beam with energy ' num2str(baseData(Idx).energy) ' MeVcm^2/g'])
     
 end
