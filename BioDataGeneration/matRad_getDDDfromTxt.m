@@ -1,4 +1,4 @@
-function baseData = matRad_getDDDfromTxt(Identifier,basePath,FocusIdx,Offset,visBool)
+function baseData = matRad_getDDDfromTxt(Identifier,basePath,focusIdx,offset,visBool)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad_getDDDfromTxt script
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -31,10 +31,10 @@ end
 
 % try to read inital beam width which is energy and and machine specific
 try
-    [Sigma_SISsq,vEnergySIS] = matRad_getSigmaSISsq(Identifier,basePath,FocusIdx);
+    [Sigma_SIS,vEnergySIS] = matRad_getSigmaSIS(Identifier,basePath,focusIdx);
 catch
     warning('Could not read sis files containing the inital beam widths');
-    Sigma_SISsq = 0;
+    Sigma_SIS = 0;
 end
 
 % check the content of the directory
@@ -105,12 +105,13 @@ end
 % sort content according to energy - in ascending order;
 [~,IdxEnergy] = sort([baseData.energy]);
 baseData=baseData(IdxEnergy);
+
 %add offset to each entry
 for i = 1:length(baseData)
-   baseData(i).offset = Offset; 
+   baseData(i).offset = offset; 
 end
 
-if sum(abs([baseData.energy]'-vEnergySIS))>1
+if sum(abs([baseData.energy]-vEnergySIS))>1
    disp('check if foki and ddd exist on the same energy levels');
 end
 
@@ -122,13 +123,13 @@ for i = 1:length(baseData)
         sigma1 = baseData(i).FWHM1/(2*sqrt(2*log(2)));
         sigma2 = baseData(i).FWHM2/(2*sqrt(2*log(2)));
         % add inital beam width to sigmas
-        baseData(i).sigma1 = sqrt(Sigma_SISsq(i,1) + sigma1(:,1).^2);                                                                
-        baseData(i).sigma2 = sqrt(Sigma_SISsq(i,1) + sigma2(:,1).^2);
+        baseData(i).sigma1 = sqrt(Sigma_SIS(i,1).^2 + sigma1(:,1).^2);                                                                
+        baseData(i).sigma2 = sqrt(Sigma_SIS(i,1).^2 + sigma2(:,1).^2);
         
     elseif ~isempty(FWHM)
         
         sigma = abs(FWHM)/(2*sqrt(2*log(2)));
-        baseData(i).sigma = sqrt(Sigma_SISsq(i,1) + sigma(:,1).^2);   
+        baseData(i).sigma = sqrt(Sigma_SIS(i,1).^2 + sigma(:,1).^2);   
         
     else           
         %% TODO: add analytical calculation of sigma according 

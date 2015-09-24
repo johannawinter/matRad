@@ -1,4 +1,4 @@
-function [Sigma_SISsq,vEnergy] = matRad_getSigmaSISsq(Identifier,basePath,FocusIdx)
+function [Sigma_SIS,vEnergySIS] = matRad_getSigmaSIS(Identifier,basePath,FocusIdx)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % getSigmaSISsq script
@@ -39,7 +39,7 @@ currentline = fgetl(fHandle);
 while ischar(currentline)
 
     if(strfind(currentline,'energy'))
-        vEnergy(Cnt)  = str2double(currentline(8:13));    
+        vEnergySIS(Cnt)  = str2double(currentline(8:13));    
         vFoci = cell2mat(textscan(currentline,'energy %*f focus %f %f %f %f %f %f %f')); 
         FWHM(Cnt) = vFoci(FocusIdx);
         Cnt = Cnt+1;
@@ -47,10 +47,7 @@ while ischar(currentline)
     currentline = fgetl(fHandle);       
 end
 
-vEnergy = vEnergy';
-FWHM = FWHM';
-Sigma_SIS = FWHM./(2*sqrt(2*log(2)));
-Sigma_SISsq = Sigma_SIS.^2;
+Sigma_SIS = (FWHM./(2*sqrt(2*log(2))))';
 
 fclose(fHandle);
 
