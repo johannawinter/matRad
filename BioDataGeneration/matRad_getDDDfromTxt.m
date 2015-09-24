@@ -31,22 +31,16 @@ end
 
 % try to read inital beam width which is energy and and machine specific
 try
-    sigmaSISsq = matRad_getSigmaSISsq(Identifier,basePath,FocusIdx);
+    [Sigma_SISsq,vEnergySIS] = matRad_getSigmaSISsq(Identifier,basePath,FocusIdx);
 catch
-    warning('Could not read sis files containing the inital widths');
-    sigmaSISsq = 0;
+    warning('Could not read sis files containing the inital beam widths');
+    Sigma_SISsq = 0;
 end
 
-Files = dir([basePath relPath]);
+% check the content of the directory
+Files = dir([basePath relPath filesep '*.ddd']);
 
-for k = length(Files):-1:1
-    % remove hidden folders starting with . and .. or .DSStore
-    fname = Files(k).name;
-    if fname(1) == '.'
-        Files(k) = [ ];
-    end
-end
-
+% parse all ddd files
 for i = 1:length(Files)
     
     fid = fopen([basePath relPath filesep Files(i).name],'r');
@@ -76,9 +70,8 @@ for i = 1:length(Files)
     weight = [];
     FWHM2 = [];
     
-    % parse line
+    % read the whole file
     currentLine = fgetl(fid);
-    
     while ischar(currentLine)
         currentLine = str2num(currentLine);
         depth       = vertcat(depth,currentLine(1));
@@ -91,7 +84,6 @@ for i = 1:length(Files)
         elseif length(currentLine)==3
             FWHM  = vertcat(FWHM1,currentLine(3));
         end
-        
         currentLine = fgetl(fid);
     end
     
@@ -103,41 +95,51 @@ for i = 1:length(Files)
     % extract peak position
     [~,idx]=max(ionization);
     baseData(i).peakPos = baseData(i).depths(idx);
-    % add offset
-    offset = -2.89;
-    baseData(i).offset = ones(length(ionization),1)*offset;
     
-    %% calculate sigmas and weights used to model lateral profile
-    if ~isempty(FWHM1)
-        % convert full width half maximum to sigma
-        sigma1 = abs(FWHM1)/(2*sqrt(2*log(2)));
-        sigma2 = abs(FWHM2)/(2*sqrt(2*log(2)));
-        % according to Julian Streitz Thesis; 
-        % add inital beam width to sigmas
-        baseData(i).sigma1 = sqrt(sigmaSISsq(i,1) + sigma1(:,1).^2);                                                                
-        baseData(i).sigma2 = sqrt(sigmaSISsq(i,1) + sigma2(:,1).^2);
-        baseData(i).weight = weight; 
-    elseif ~isempty(FWHM)
-        sigma = abs(FWHM)/(2*sqrt(2*log(2)));
-        baseData(i).sigma = sqrt(sigmaSISsq(i,1) + sigma(:,1).^2);     
-    else           
-        %% TODO: add analytical calculation of sigma according 
-        %to Hong or the Highland formula
-        baseData(i).sigma = ones(size(baseData(i).depths,1),1);
-    end
-
+    baseData(i).FWHM1 =FWHM1;
+    baseData(i).FWHM2 =FWHM2;
+    baseData(i).weight =weight;
+   
 end   
 
-% sort content according to energy;
+% sort content according to energy - in ascending order;
 [~,IdxEnergy] = sort([baseData.energy]);
 baseData=baseData(IdxEnergy);
-
 %add offset to each entry
 for i = 1:length(baseData)
    baseData(i).offset = Offset; 
 end
 
+if sum(abs([baseData.energy]'-vEnergySIS))>1
+   disp('check if foki and ddd exist on the same energy levels');
+end
 
+% calculate sigmas and weights used to model lateral profile
+for i = 1:length(baseData)
+    
+    if ~isempty(FWHM1)
+        % convert full width half maximum to sigma
+        sigma1 = baseData(i).FWHM1/(2*sqrt(2*log(2)));
+        sigma2 = baseData(i).FWHM2/(2*sqrt(2*log(2)));
+        % add inital beam width to sigmas
+        baseData(i).sigma1 = sqrt(Sigma_SISsq(i,1) + sigma1(:,1).^2);                                                                
+        baseData(i).sigma2 = sqrt(Sigma_SISsq(i,1) + sigma2(:,1).^2);
+        
+    elseif ~isempty(FWHM)
+        
+        sigma = abs(FWHM)/(2*sqrt(2*log(2)));
+        baseData(i).sigma = sqrt(Sigma_SISsq(i,1) + sigma(:,1).^2);   
+        
+    else           
+        %% TODO: add analytical calculation of sigma according 
+        %to Hong or the Highland formula
+        baseData(i).sigma = ones(size(baseData(i).depths,1),1);
+    end
+end
+
+% remove FWHM fields
+baseData = rmfield(baseData,'FWHM1');
+baseData = rmfield(baseData,'FWHM2');
 
 
 

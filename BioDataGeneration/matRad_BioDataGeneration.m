@@ -32,7 +32,7 @@ FocusIdx = 1;
 Offset = -2.89; % in mm
 visBool = 0;
 %baseData=matRad_getDDDfromTxt('p','E:\TRiP98DATA_HIT-20131120',FocusIdx,Offset,visBool);
-baseData=matRad_getDDDfromTxt('C','E:\TRiP98DATA_HIT-20131120',FocusIdx,Offset,visBool);
+baseData = matRad_getDDDfromTxt('C','E:\TRiP98DATA_HIT-20131120',FocusIdx,Offset,visBool);
 
 
 %% each *xls file in the provided folder will be converted to *.mat files to use
