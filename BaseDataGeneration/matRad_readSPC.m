@@ -1,4 +1,4 @@
-function SPC = matRad_calcParticleDose(path)
+function[Meta, SPC] = matRad_calcParticleDose(path)
 
 % TRiP98 spectra file format
 % Spectra (SPC) files are binary files containing energy spectra and related histograms of 
@@ -136,42 +136,48 @@ TagMAP('18') = 'Eref';
 TagMAP('19') = 'Hist';
 TagMAP('20') = 'RunningSum';
 
-sParticleNames = {'H','He','Li','Be','B','C'};
+% create LookUpTable
+sParticleInfo(1:7,1) = {'p';'H';'He';'Li';'Be';'B';'C'};
+% Z = number of protons
+sParticleInfo(1:7,2) = {1;1;2;3;4;5;6};
+% A = atomic number ;
+sParticleInfo(1:7,3) = {1;2;4;6;8;10;12};
 
-SPC = struct;
+SPC  = struct;
+Meta = struct;
 % second argument 'l' or 'b' determiens endian - little or big
 fid = fopen(path,'rb','l');
 
 %% parse meta data
+CurrPos = ftell(fid);
+fseek(fid,0,'eof');
+EndPos = ftell(fid);
+fseek(fid,CurrPos,'bof');
 LengthMetaData = 9;
+
 for i=1:LengthMetaData
 
-    [Tag, TagLength] = findNextTag(fid);
+    [Tag, TagLength] = findNextTag(fid,EndPos);
           
       switch Tag
         % first 5 entries are characters  
-        case {1,2,3,4,5}
-            SPC.(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'char');    
+        case {'1','2','3','4','5'}
+            Meta.(TagMAP(Tag)) = readSpcValue(fid,TagLength,'char');    
         % read double
-        case {6,7,8}
-            SPC.(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'double');          
+        case {'6','7','8'}
+            Meta.(TagMAP(Tag)) = readSpcValue(fid,TagLength,'double');          
         % read 8-byte unsigned integer
-        case  9
-            SPC.(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'integer'); 
-       end
-         
+        case  '9'
+            Meta.(TagMAP(Tag)) = readSpcValue(fid,TagLength,'integer'); 
+      end      
 end
 
 
 
 %% parse spectrum 
-
 ReferenceBlockIdx = 0;
 depthStep = 0;
-CurrPos = ftell(fid);
-fseek(fid,0,'eof');
-EndPos = ftell(fid);
-fseek(fid,CurrPos,'bof');
+DoubleByteLength = 8;
 
 while true
     
@@ -180,138 +186,137 @@ while true
         switch Tag
             
             % read depth as double - Tag 10 indicates new depth block
-            case 10
+            case '10'
                  depthStep = depthStep + 1;
-                 Process = double(depthStep)/double(SPC.(TagMAP('9')));
+                 Process = double(depthStep)/double(Meta.(TagMAP('9')));
                  waitbar(Process,h,'parsing depth blocks');
                  
-                 SPC.Data(depthStep).depthStep     = depthStep;
-                 SPC.Data(depthStep).(TagMAP('4')) = SPC.(TagMAP('4'));
-                 SPC.Data(depthStep).(TagMAP('5')) = SPC.(TagMAP('5'));
-                 SPC.Data(depthStep).(TagMAP('6')) = SPC.(TagMAP('6'));
-                 SPC.Data(depthStep).(TagMAP('7')) = SPC.(TagMAP('7'));
-                 SPC.Data(depthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'double'); 
+                 SPC(depthStep).depthStep     = depthStep;
+                 SPC(depthStep).(TagMAP('4')) = Meta.(TagMAP('4'));
+                 SPC(depthStep).(TagMAP('5')) = Meta.(TagMAP('5'));
+                 SPC(depthStep).(TagMAP('6')) = Meta.(TagMAP('6'));
+                 SPC(depthStep).(TagMAP('7')) = Meta.(TagMAP('7'));
+                 SPC(depthStep).(TagMAP(Tag)) = readSpcValue(fid,TagLength,'double'); 
             
-            % read normalization as double
-            case {11,14}   
-                 SPC.(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'double');
+            % read normalization as double and the cumulated number (running sum) of fragments
+            case {'11','14'}   
+                 SPC(depthStep).(TagMAP(Tag)) = readSpcValue(fid,TagLength,'double');
 
             % read number of particle species as integer
-            case  12
-                SPC.(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'integer');
+            case  '12'
+                SPC(depthStep).(TagMAP(Tag)) = readSpcValue(fid,TagLength,'integer');
                 
             % read atomic number z and mass number a as double and long 
-            case 13
+            case '13'
                 
                 % Tag 13 indicates a new depth block
-                if isfield(SPC,TagMAP('13')) 
-                    if size(SPC.(TagMAP(num2str(Tag))),2) < SPC.(TagMAP('12'))
-                        SPC.(TagMAP('13')) = horzcat(SPC.(TagMAP('13')),readSpcValue(fid,16,'double'));
-                    else
-                        % read it out but dont store it
-                        tmp = readSpcValue(fid,16,'double');
-                    end
+                if isfield(SPC(depthStep),TagMAP('13')) 
+                    SPC(depthStep).(TagMAP('13')) = horzcat(SPC(depthStep).(TagMAP('13')),readSpcValue(fid,16,'double'));
                 else
-                    SPC.(TagMAP('13')) = readSpcValue(fid,16,'double');
+                    SPC(depthStep).(TagMAP('13')) = readSpcValue(fid,16,'double');
                 end
-              
-                A_Z = readSpcValue(fid,8,'long');
+                % Z = number of protons; A = atomic number 
+                Z_A = readSpcValue(fid,8,'long')';
                 
-                if sum(A_Z == [1;2])==2
-                    CurrentParticle = 'H';
-                elseif sum(A_Z == [2;4])==2
-                    CurrentParticle = 'He';
-                elseif sum(A_Z == [3;6])==2
-                    CurrentParticle = 'Li';
-                elseif sum(A_Z == [4;8])==2
-                    CurrentParticle = 'Be';
-                elseif sum(A_Z == [5;10])==2
-                    CurrentParticle = 'B';
-                elseif sum(A_Z == [6;12])==2
-                    CurrentParticle = 'C';
+                Idx = find(Z_A(1) == [sParticleInfo{:,2}] & Z_A(2) ==...
+                    [sParticleInfo{:,3}]);
+                
+                switch Idx
+                    case 1
+                        CurrentParticle = 'p';
+                    case 2
+                        CurrentParticle = 'H';
+                    case 3
+                        CurrentParticle = 'He';
+                    case 4
+                        CurrentParticle = 'Li';
+                    case 5
+                        CurrentParticle = 'Be';
+                    case 6
+                        CurrentParticle = 'B';
+                    case 7
+                        CurrentParticle = 'C';
+                    otherwise
+                        error('particle not defined')
                 end
                 
-            case {15,16}
-                 % number of energy bins for a specific species
-                SPC.(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'long');
                 
-            case 17
+                
+                %%
+                
+            case {'15','16'}
+                 % nC lateral scattering for each fragment can be included. At present nC=0. 
+                 %and number of energy bins for a specific species
+                SPC(depthStep).(TagMAP(num2str(Tag))) = readSpcValue(fid,TagLength,'long');
+                
+            case '17'
                 % parse low and high energy borders of each bin and
                 % calculated mid energy
-                NumEnergies =  SPC.(TagMAP('16'));
-                Elow = zeros(1,NumEnergies);
-                Ehigh = zeros(1,NumEnergies);
-                Emid = zeros(1,NumEnergies);
-                dE = zeros(1,NumEnergies);
+                NumEnergies =  SPC(depthStep).(TagMAP('16'))+1;
+
+                Elow = readSpcValue(fid,DoubleByteLength*NumEnergies,'double');
                 
-                for idx = 1:NumEnergies + 1
-                    if idx == 1
-                       Elow(idx)  = readSpcValue(fid,TagLength,'double');
-                    else
-                       Elow(idx)    = readSpcValue(fid,TagLength,'double');
-                       Ehigh(idx-1) = Elow(idx);
-                       Emid(idx-1)  =  sqrt(Ehigh(idx-1) * Elow(idx-1));
-                       %Emid  = (Ehigh(idx-1) + Elow(idx-1))/2;
-                       dE(idx-1) = Ehigh(idx-1) - Elow(idx-1);
-                    end
-                end
-                
+                Ehigh = Elow(2:end);
                 Elow(end) = [];
-                SPC.Data(depthStep).(CurrentParticle).Elow = Elow;
-                SPC.Data(depthStep).(CurrentParticle).Emid = Emid;
-                SPC.Data(depthStep).(CurrentParticle).Ehigh = Ehigh;
-                SPC.Data(depthStep).(CurrentParticle).dE = dE;
-                SPC.Data(depthStep).(CurrentParticle).ReferenceBlockIdx = ReferenceBlockIdx;
+                % calc geometric mean
+                Emid  =  sqrt(Ehigh .* Elow);
+                 
+                SPC(depthStep).(CurrentParticle).Elow = Elow';
+                SPC(depthStep).(CurrentParticle).Emid = Emid';
+                SPC(depthStep).(CurrentParticle).Ehigh = Ehigh';
+                SPC(depthStep).(CurrentParticle).dE = (Ehigh-Elow)';
+                SPC(depthStep).(CurrentParticle).ReferenceBlockIdx = ReferenceBlockIdx;
                 ReferenceBlockIdx = ReferenceBlockIdx + 1;
                
-            case 18
+            case '18'
                 
                % energy bins are reused to save some space
                % reference to a species with identical energy binning is
                % provided  (0..<nS>-1)
-
-               RefIdx = readSpcValue(fid,8,'double');
+               RefIdx = readSpcValue(fid,DoubleByteLength,'double');
                
                if RefIdx > ReferenceBlockIdx
                 disp('reference to non existing energy block');
                end
                
-               %resolve index
-               DepthStepRef  = (RefIdx/SPC.(TagMAP('12'))) + 1;
-               ParticleNoRef = (mod(RefIdx,SPC.(TagMAP('12')))) + 1; 
+               %resolve index - assuming Number of particles is the same in
+               %each depth step
+               DepthStepRef  = (RefIdx/SPC(1).(TagMAP('12'))) + 1;
+               % find corresponding depth block index
+               NumParticles = SPC(1).(TagMAP('12'));
+               if NumParticles > 1
+                  Offset = 1; % increment 1 as p is at the first position
+               else 
+                  Offset = 0;
+               end
+               ParticleNoRef = (mod(RefIdx,NumParticles)) + Offset + 1; 
              
-               % find depth block index
-               SPC.Data(depthStep).(CurrentParticle).Elow = SPC.Data(DepthStepRef).(sParticleNames{ParticleNoRef}).Elow;
-               SPC.Data(depthStep).(CurrentParticle).Emid = SPC.Data(DepthStepRef).(sParticleNames{ParticleNoRef}).Emid;
-               SPC.Data(depthStep).(CurrentParticle).Ehigh = SPC.Data(DepthStepRef).(sParticleNames{ParticleNoRef}).Ehigh;
-               SPC.Data(depthStep).(CurrentParticle).dE = SPC.Data(DepthStepRef).(sParticleNames{ParticleNoRef}).dE;
+               % copy refernece energy bins
+               SPC(depthStep).(CurrentParticle).Elow = SPC(DepthStepRef).(sParticleInfo{ParticleNoRef,1}).Elow;
+               SPC(depthStep).(CurrentParticle).Emid = SPC(DepthStepRef).(sParticleInfo{ParticleNoRef,1}).Emid;
+               SPC(depthStep).(CurrentParticle).Ehigh = SPC(DepthStepRef).(sParticleInfo{ParticleNoRef,1}).Ehigh;
+               SPC(depthStep).(CurrentParticle).dE = SPC(DepthStepRef).(sParticleInfo{ParticleNoRef,1}).dE;
                
-               SPC.Data(depthStep).(CurrentParticle).ReferenceBlockIdx = ReferenceBlockIdx;
+               SPC(depthStep).(CurrentParticle).ReferenceBlockIdx = ReferenceBlockIdx;
                ReferenceBlockIdx = ReferenceBlockIdx + 1;
                 
-            case 19
+            case '19'
                                
-                NumEnergies = SPC.(TagMAP('16'));
+                NumEnergies = SPC(depthStep).(TagMAP('16'));
                 dNdE = readSpcValue(fid,8*NumEnergies,'double');
-                SPC.Data(depthStep).(CurrentParticle).dNdE = dNdE';
+                SPC(depthStep).(CurrentParticle).dNdE = dNdE';
                      
-            case 20
+            case '20'
                 
                 % read the number of particles per primary for each bin
-                NumEnergies =  SPC.(TagMAP('16'))+1;
+                NumEnergies =  SPC(depthStep).(TagMAP('16'))+1;
                
-                for idx = 1:NumEnergies+1                 
-                    if idx == 1
-                      N(idx)  = readSpcValue(fid,8,'double');
-                    else
-                      N(idx) = readSpcValue(fid,8,'double') - sum([N(1:idx-1)]);   
-                    end
-
-                end
-                
-               SPC.Data(depthStep).(CurrentParticle).N = N(2:end);
+                vN_cumsum = readSpcValue(fid,DoubleByteLength*NumEnergies,'double');
+                vTmp = vN_cumsum(2:end);
+                vN = vTmp - vN_cumsum(1:end-1);
+                SPC(depthStep).(CurrentParticle).N = vN';
         
-            case -1
+            case '-1'
                 % reached end of file
                 close(h);
                 break;
@@ -320,8 +325,11 @@ while true
 
 end
 
-
-
+%% add available particles to meta struct
+IdxZ = ismember([sParticleInfo{:,2}],SPC(1).typeOfParticle(1,:));
+IdxA = ismember([sParticleInfo{:,3}],SPC(1).typeOfParticle(2,:));
+Idx = IdxA & IdxZ;
+Meta.particles = sParticleInfo(Idx,1)';
 end
 
 
@@ -373,7 +381,7 @@ function [Tag, Length] = findNextTag(fid,EndPos)
       end
        
       Length = readSpcValue(fid,7,'integer');
-      
+      Tag = num2str(Tag);
 end
 
 

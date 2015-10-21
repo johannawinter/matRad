@@ -14,13 +14,12 @@ function baseData = matRad_getDDDfromTxt(Identifier,basePath,focusIdx,offset,vis
 %
 % This script can be used to parse depth dose distribution from txt files.
 % The identifier is important to chose the correct relative path.
-% if double lateral sigmas are available in the ddd file then they will be
-% used otherwise constant sigma or the highland formula
+
 
 switch Identifier
     case 'C'
         relPath = [filesep 'DDD' filesep '12C' filesep 'RF3MM_NEU'];
-        %relPath = [filesep 'DDD\12C\RF3MM'];
+        %relPath = [filesep 'DDD' filesep ' '12C' 'RF3MM'];
     case {'p','H'}
         relPath = [filesep 'DDD' filesep' 'p' filesep 'RF0MM'];
     case 'O'
@@ -29,7 +28,7 @@ switch Identifier
         error('unkown particle type')
 end
 
-% try to read inital beam width which is energy and and machine specific
+%read inital beam width which is energy and and machine specific
 try
     [Sigma_SIS,vEnergySIS] = matRad_getSigmaSIS(Identifier,basePath,focusIdx);
 catch
@@ -56,7 +55,7 @@ for i = 1:length(Files)
     currentline = fgetl(fid);
     baseData(i).energy = strread(currentline,'!energy %f');
 
-    %skip another 2 lines
+    %skip another 2 lines of meta info
     fgetl(fid);
     fgetl(fid);
 
@@ -111,7 +110,7 @@ for i = 1:length(baseData)
    baseData(i).offset = offset; 
 end
 
-if sum(abs([baseData.energy]-vEnergySIS))>1
+if sum(abs([baseData.energy]-vEnergySIS'))>0.05
    disp('check if foki and ddd exist on the same energy levels');
 end
 
@@ -133,7 +132,7 @@ for i = 1:length(baseData)
         
     else           
         %% TODO: add analytical calculation of sigma according 
-        %to Hong or the Highland formula
+        %Hong or the Highland formula
         baseData(i).sigma = ones(size(baseData(i).depths,1),1);
     end
 end
@@ -145,37 +144,55 @@ baseData = rmfield(baseData,'FWHM2');
 
 
 
-%% plot random baseData 
+%% plots linear spaced baseData 
 if visBool
-    
+    %copy baseData into baseDataNew
+    baseDataNew = baseData;
     switch Identifier
         case 'C'
-            load carbonBaseData
+            load (['..' filesep 'carbonBaseData'])
             Idx = 150;
         case {'p','H'}
-            load protonBaseData   
-            Idx = 250;
+            load (['..' filesep 'protonBaseData'])
     end
     
-    vIdx = round(linspace(10,length(baseData)-10,4));
-    figure,
+    vIdx = round(linspace(10,length(baseDataNew)-10,4));
+    figure, set(gcf,'Color',[1 1 1]),hold on 
     for i = 1:length(vIdx)
-        Energy = baseData(vIdx(i)).energy;
-        [~,IdxDDD]=min(abs([baseData.energy]-Energy));
-        subplot(2,2,i),plot(baseData(IdxDDD).depths,baseData(IdxDDD).Z,'r'),hold on
-                       plot(baseData(vIdx(i)).depths,baseData(vIdx(i)).Z,'b');
-                       legend({'new ddd - HIT','existing baseData'});
+        Energy = baseDataNew(vIdx(i)).energy;
+        [~,ix]= min(abs([baseData.energy]-Energy));
+        subplot(2,2,i),plot(baseData(ix).depths,baseData(ix).Z,'r-','LineWidth',3),hold on
+                       plot(baseDataNew(vIdx(i)).depths + baseDataNew(vIdx(i)).offset,...
+                           baseDataNew(vIdx(i)).Z,'b--','LineWidth',3);grid on
+                       legend({'existing baseData','parsed baseData'});
                        xlabel(' depth in mm '), ylabel('Z in MeVcm^2 / g'), title(['Energy: ' num2str(Energy)])
     end
     
-    % plot sigmas againts depth
-    figure, hold on 
-    plot(baseData(Idx).depths,baseData(Idx).sigma1,'LineWidth',3)
-    plot(baseData(Idx).depths,baseData(Idx).sigma2,'LineWidth',3)
-    sigmaMix = (1-baseData(Idx).weight).*baseData(Idx).sigma1 + baseData(Idx).weight.*baseData(Idx).sigma2;
-    plot(baseData(Idx).depths,sigmaMix,'LineWidth',3)
-    grid on, grid minor, xlabel('depth in mm'),ylabel('sigma'),
-    legend({'sigma1','sigma2','sigmas weighted'})
-    title(['sigmas of a ' Identifier ' beam with energy ' num2str(baseData(Idx).energy) ' MeVcm^2/g'])
-    
+    % plot sigmas againts depth - check if double gaussian or single
+    % gaussian is available
+   
+    if isfield(baseDataNew,'sigma')
+         figure, set(gcf,'Color',[1 1 1]),hold on 
+        for i = 1:length(vIdx)
+            Energy = baseDataNew(vIdx(i)).energy;
+            subplot(2,2,i), plot(baseDataNew(vIdx(i)).depths + baseDataNew(vIdx(i)).offset,...
+                                baseDataNew(vIdx(i)).sigma,'LineWidth',3),hold on
+            
+            legend({'sigma'});grid on
+            xlabel(' depth in mm '), ylabel('sigma'), title(['Energy: ' num2str(Energy)])
+        end
+    elseif isfield(baseDataNew,'sigma1')
+         figure, set(gcf,'Color',[1 1 1]),hold on 
+          for i = 1:length(vIdx)
+             subplot(2,2,i), 
+             plot(baseDataNew(vIdx(i)).depths,baseDataNew(vIdx(i)).sigma1,'LineWidth',3),hold on
+             plot(baseDataNew(vIdx(i)).depths,baseDataNew(vIdx(i)).sigma2,'LineWidth',3),hold on
+             sigmaMix = (1-baseDataNew(vIdx(i)).weight).*baseDataNew(vIdx(i)).sigma1 + ...
+                 baseDataNew(vIdx(i)).weight.*baseDataNew(vIdx(i)).sigma2;
+             plot(baseDataNew(vIdx(i)).depths,sigmaMix,'LineWidth',3)
+             grid on, grid minor, xlabel('depth in mm'),ylabel('sigmas'),
+             legend({'sigma1','sigma2','sigmas weighted'},'Location','northwest')
+             title(['sigmas of a ' Identifier ' beam with energy ' num2str(baseDataNew(vIdx(i)).energy) ' MeVcm^2/g'])
+          end
+    end
 end

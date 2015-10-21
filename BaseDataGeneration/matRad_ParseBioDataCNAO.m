@@ -98,7 +98,9 @@ for i=1:CntCellLines
                     cString = strsplit(Directories(i).name,'AB');
                     sData{1,i}{Cnt}.alphaBetaRatio=cString{1,2};
                     sData{1,i}{Cnt}.depths(:,1) = Import.data(:,1)*10;
-                    sData{1,i}{Cnt}.dEdxA(:,1) = Import.data(:,2);                                    
+                    sData{1,i}{Cnt}.dEdxA(:,1) = Import.data(:,2);  
+                    [val,maxIdx] = max(sData{1,i}{Cnt}.dEdxA(:,1));
+                    sData{1,i}{Cnt}.peakPos = sData{1,i}{Cnt}.depths(maxIdx);
                 end
 
                 if ~isempty(strfind(FoundFilePair(l).name, 'beta')) && ~isempty(strfind(FoundFilePair(l).name,  Headers{Cnt}))

@@ -39,7 +39,7 @@ currentline = fgetl(fHandle);
 while ischar(currentline)
 
     if(strfind(currentline,'energy'))
-        vEnergySIS(Cnt)  = str2double(currentline(8:13));    
+        vEnergySIS(Cnt,1)  = str2double(currentline(8:13));    
         vFoci = cell2mat(textscan(currentline,'energy %*f focus %f %f %f %f %f %f %f')); 
         FWHM(Cnt) = vFoci(FocusIdx);
         Cnt = Cnt+1;
