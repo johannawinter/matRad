@@ -12,8 +12,10 @@ function baseData = matRad_getDDDfromTxt(Identifier,basePath,focusIdx,offset,vis
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% This script can be used to parse depth dose distribution from txt files.
+% This script can be used to parse depth dose distribution from ddd files.
 % The identifier is important to chose the correct relative path.
+
+
 
 
 switch Identifier
@@ -115,24 +117,26 @@ if sum(abs([baseData.energy]-vEnergySIS'))>0.05
 end
 
 % calculate sigmas and weights used to model lateral profile
+FWHM2SIGMA = 2*sqrt(2*log(2));
+
 for i = 1:length(baseData)
     
     if ~isempty(FWHM1)
         % convert full width half maximum to sigma
-        sigma1 = baseData(i).FWHM1/(2*sqrt(2*log(2)));
-        sigma2 = baseData(i).FWHM2/(2*sqrt(2*log(2)));
+        sigma1 = baseData(i).FWHM1/(FWHM2SIGMA);
+        sigma2 = baseData(i).FWHM2/(FWHM2SIGMA);
         % add inital beam width to sigmas
         baseData(i).sigma1 = sqrt(Sigma_SIS(i,1).^2 + sigma1(:,1).^2);                                                                
         baseData(i).sigma2 = sqrt(Sigma_SIS(i,1).^2 + sigma2(:,1).^2);
         
     elseif ~isempty(FWHM)
         
-        sigma = abs(FWHM)/(2*sqrt(2*log(2)));
+        sigma = abs(FWHM)/(FWHM2SIGMA);
         baseData(i).sigma = sqrt(Sigma_SIS(i,1).^2 + sigma(:,1).^2);   
         
     else           
         %% TODO: add analytical calculation of sigma according 
-        %Hong or the Highland formula
+        % Hong or the Highland formula
         baseData(i).sigma = ones(size(baseData(i).depths,1),1);
     end
 end
@@ -170,7 +174,6 @@ if visBool
     
     % plot sigmas againts depth - check if double gaussian or single
     % gaussian is available
-   
     if isfield(baseDataNew,'sigma')
          figure, set(gcf,'Color',[1 1 1]),hold on 
         for i = 1:length(vIdx)

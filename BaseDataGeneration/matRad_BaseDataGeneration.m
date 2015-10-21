@@ -12,33 +12,32 @@
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % This script can be used to generate baseData sets from files stemming from monte carlo
-% simulation . Each section in this file contains one specific step in the 
+% simulations stored as *.ddd. Each section in this file contains one specific step in the 
 % base data generation procedure. First, depth dose distributions for
-% protons or carbon ions can be extracted (including laterals sigmas and weigths).
-% Once spc files are converted to *.xls files using R, the function XlsSpectra2Mat
-% can used to parse the spectra data and save them to mat files.
-%
+% protons or carbon ions can be extracted (including single and double laterals sigmas and weigths).
+% In addition the whole content of the TRiP planning folder can be parsed, plotted and saved as 
+% *.mat file for further processing.
 
 %% set global path which is valid for all subsections
 clc,
 clear 
 close all
-pathTRiP = '\\Mac\Home\Documents\Heidelberg\TRiP98DATA';
-%pathTRiP = 'E:\TRiP98DATA_HIT-20131120';
+pathTRiP = 'E:\TRiP98DATA_HIT-20131120';
 
 %% extract carbon and proton depth dose profiles
-
-%e.g. rename protonBaseDataHIT into baseData and save it as protonBaseData
-%in the matRad root directory in order to use within matRad - analog for
-%carbons
 
 FocusIdx = 1;
 Offset   = -2.89; % in mm
 visBool  = 1;
-baseData = matRad_getDDDfromTxt('p',pathTRiP,FocusIdx,Offset,visBool);
+Identifier = 'p'; % either p for protons, C for carbons
+% parse and save proton ddd's
+baseData = matRad_getDDDfromTxt(Identifier,pathTRiP,FocusIdx,Offset,visBool);
 save(['..' filesep 'protonBaseDataHIT'],'baseData');
-baseData = matRad_getDDDfromTxt('C',pathTRiP,FocusIdx,Offset,visBool);
+% parse and save carbon ddd's
+Identifier = 'C';
+baseData = matRad_getDDDfromTxt(Identifier,pathTRiP,FocusIdx,Offset,visBool);
 save(['..' filesep 'carbonBaseDataHIT'],'baseData');
+
 
 %% interpolate double gaussian data froms sparse sigma1, sigma2 and weight matrix
 load(['..' filesep 'protonBaseDataHIT.mat']);
@@ -46,7 +45,7 @@ load(['..' filesep 'protonBaseDataHIT.mat']);
 pathToSparseData = [pathTRiP '\DDD\p\HIT_2D_DB_p_NEW'];
 Identifier = 'p';
 % if visBool is on then dont forget to press a key to step to the next plot
-baseData = matRad_interpLateralBaseData(baseData,pathTRiP,pathToSparseData,Identifier,0);
+baseData = matRad_interpLateralBaseData(baseData,pathTRiP,pathToSparseData,Identifier,1);
 
 
 %% parse single spc files 
@@ -54,7 +53,7 @@ pathToSPC = [pathTRiP filesep 'SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV09000.spc'];
 [meta,SPC] = matRad_readSPC(pathToSPC);
 
 %% parse all spc files in a specific folder
-% pathToSPCfiles = [pathTRiP filesep 'SPC\12C\RF3MM\'];
+pathToSPCfiles = [pathTRiP filesep 'SPC\12C\RF3MM\'];
 dirInfo = dir([pathToSPCfiles '*.spc']);
 
 for i = 1:length(dirInfo)
@@ -107,23 +106,13 @@ else
     [baseData] = matRad_interpDoseAvgBioData(baseData, sDataHIT ,CNAOisUsed, 1);
 end
 
-%%
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%% old code below %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%% old code %%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% interpolate to deeper depths
-% within the method it can be choosen between linear extrapolation or last
-% known value - if you don't what to extract to deeper depth then just
-% comment this section
-clc
-clear
-close all
-
-load('\\psf\Home\Documents\Heidelberg\matRad\carbonBaseDataHITBio.mat');
-[ baseData1 ] = extrapDeeper( baseData,0);
-
-
-
 %% each *xls file in the provided folder will be converted to *.mat files to use
 % them further on for the bio base data generation.
 % clc,

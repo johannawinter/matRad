@@ -35,33 +35,30 @@ function [ baseData ] = matRad_interpLateralBaseData(baseData,pathTRiP,pathToSpa
 focusIdx = 1;
 [Sigma_SIS,vEnergySIS] = matRad_getSigmaSIS(Identifier,pathTRiP,focusIdx);
 
-% ! DIRTY ! parse sparse lateral double gaussian information
+%parse sparse lateral double gaussian information
 Files = dir([pathToSparseData filesep '*.txt']);
-SamplePoints = struct;
 
-for i = 1 : 255
+for i = 1 : length(Files)
   
-    filename = ['p_E' num2str(i) 'NEW.txt'];
-    AbsolutPath = [pathToSparseData filesep filename];
+    EnergyIdx = str2num(regexprep(Files(i).name,'[^0-9]',''));
+    AbsolutPath = [pathToSparseData filesep Files(i).name];
     
-    if exist( AbsolutPath) == 2
-        
-        Ecell = transpose(strsplit(fileread(AbsolutPath),'\n'));
-        E= zeros(size(Ecell,1)-2,7);
-        for j = 2: size(Ecell,1)-1
-            CurrentLine = strsplit(Ecell{j});
-            for k = 1 : length(CurrentLine)
-                E(j -1,k) = str2num(CurrentLine{k});
-            end
+    Ecell = transpose(strsplit(fileread(AbsolutPath),'\n'));
+    data= zeros(size(Ecell,1)-2,7);
+    for j = 2: size(Ecell,1)-1
+        CurrentLine = strsplit(Ecell{j});
+        for k = 1 : length(CurrentLine)
+            data(j -1,k) = str2num(CurrentLine{k});
         end
-        SamplePoints(i).depth = E(:,1);
-        SamplePoints(i).sigma1 = E(:,2);
-        SamplePoints(i).sigma2 = E(:,3);
-        SamplePoints(i).weight = E(:,4);
     end
+    SamplePoints(EnergyIdx).depth  = data(:,1);
+    SamplePoints(EnergyIdx).sigma1 = data(:,2);
+    SamplePoints(EnergyIdx).sigma2 = data(:,3);
+    SamplePoints(EnergyIdx).weight = data(:,4);
+    
 end
 
-%% start interpolating
+%% start interpolating lateral double gaussian information
 
 Idx = zeros(1,length(SamplePoints));
 linIdx = 0;
@@ -78,7 +75,7 @@ end
 
 vEnergy = [baseData.energy];
 if sum(abs(vEnergySIS-vEnergy')) > 1e-1
-    warning('sis energies differ from baseData enegies')
+    warning('sis energies differ from baseData energies')
 end 
 
 h = waitbar(0,'initializing waitbar ...');
@@ -99,12 +96,11 @@ for i = 1:length(baseData)
          vE = vEnergy(linIdx(vIdx));
          
          % get query points - simply take union
-         vDepthPoints = [];
-         for k = 1:length(vIdx)
-             vDepthPoints = vertcat(vDepthPoints, SamplePoints(linIdx(vIdx(k))).depth);
-         end
-        
-         vDepthPoints          = unique(sort(vDepthPoints));
+         vDepthPointsLower = SamplePoints(linIdx(vIdx(1))).depth;
+         vDepthPointsUpper = SamplePoints(linIdx(vIdx(2))).depth;
+         
+         AddIdx       = find(vDepthPointsUpper < max(vDepthPointsLower));
+         vDepthPoints = unique(sort([vDepthPointsLower; vDepthPointsUpper(AddIdx)]));
          NumPoints             = length(vDepthPoints);
          SamplePoints(i).depth = vDepthPoints;
          

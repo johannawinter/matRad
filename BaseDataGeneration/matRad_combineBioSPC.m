@@ -2,6 +2,11 @@ function [ sData ] = matRad_combineBioSPC(PathToSPC,visBool)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad fucntion to generate depth dose alpha curves
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Hans-Peter Wieser
+%
+% h.wieser@dkfz.de
+%
 %
 % call
 %   sData = matRad_CombineRBE_SPC(PathToSPC,visBool)
@@ -17,6 +22,9 @@ function [ sData ] = matRad_combineBioSPC(PathToSPC,visBool)
 % output
 %   sData:                 returns a cell array, whereat each cell
 %                          represents the bio data for one specific cell line 
+%
+% This file is NOT part of the official matRad release. 
+% This file has to be used only for internal purposes! 
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

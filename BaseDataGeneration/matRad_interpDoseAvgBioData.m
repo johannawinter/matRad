@@ -18,8 +18,6 @@ function [ baseData ] = matRad_interpDoseAvgBioData( baseData, sData,CNAOisUsed,
 % required when CNAO data is used, as they are stored as dEdxA and
 % dEdxsqrtBeta. 
 
-% If dEdxA curves are going to be divided by interpolated baseDatas, then the interpolation becomes tricky
-% is recommended to divide dEdxA curves by the corresponding baseDatas.
 
 
 for CntCell = 1:length(sData)
@@ -69,57 +67,52 @@ for CntCell = 1:length(sData)
     for i = 1:length(baseData)
         
        E0 = baseData(i).energy;
-       vEnergySPC = [sData{1,CntCell}.energy];
-       [~,IdxAll]= sort(abs(vEnergySPC-E0));
-       vIdx = IdxAll(1:2);
-       vE = (vEnergySPC(vIdx));
-       NumPoints = Inf;
-       for k = 1:length(vIdx)
-         CurrentNumPoints = length(sData{1,CntCell}(vIdx(k)).depths);
-         if NumPoints > CurrentNumPoints
-            NumPoints = CurrentNumPoints;
-         end
+       vE_SPC = [sData{1,CntCell}.energy];
+       [~,IdxAll]= sort(abs(vE_SPC-E0));
+       vIdx = sort(IdxAll(1:2));
+       vE = (vE_SPC(vIdx));
+       
+       vDepthLower = [sData{1,CntCell}(vIdx(1)).depths]./sData{1,CntCell}(vIdx(1)).peakPos;
+       vDepthUpper = [sData{1,CntCell}(vIdx(2)).depths]./sData{1,CntCell}(vIdx(2)).peakPos;
+       
+       if max(vDepthLower) > max(vDepthUpper)
+             AddIdx = find(vDepthLower < max(vDepthUpper));
+             vDepth = unique(sort([vDepthLower(AddIdx) vDepthUpper]));
+       else
+             AddIdx = find(vDepthUpper < max(vDepthLower));
+             vDepth = unique(sort([vDepthLower vDepthUpper(AddIdx)]));
        end
-         
-       for j = 1:NumPoints
-           for k = 1:length(vIdx);
-               vDepthRange(k) = sData{1,CntCell}(vIdx(k)).depths(j)./sData{1,CntCell}(vIdx(k)).peakPos;
-           end 
-           vX(j) = interp1(vE,vDepthRange,E0,'linear','extrap');
-           vDepthRange = [];
-       end     
-               
-       if sum(isnan(vX)) > 0
-        warning('interpolated depth values contain NAN!');
-       end
-        
+     
 
-       for j = 1:NumPoints
-           for k = 1:length(vIdx);
-                vAlphaRange(k)  = interp1(sData{1,CntCell}(vIdx(k)).depths./sData{1,CntCell}(vIdx(k)).peakPos,...
-                    sData{1,CntCell}(vIdx(k)).alpha,vX(j),'linear','extrap');
-                vBetaRange(k)   = interp1(sData{1,CntCell}(vIdx(k)).depths./sData{1,CntCell}(vIdx(k)).peakPos,...
-                    sData{1,CntCell}(vIdx(k)).beta,vX(j),'linear','extrap');
-           end 
-           vA(j) = interp1(vE,vAlphaRange,E0,'linear','extrap');
-           vB(j) = interp1(vE,vBetaRange,E0,'linear','extrap');
-           vAlphaRange = []; vBetaRange = [];
+       for j = 1:length(vDepth)
+    
+                vAlpha(1)  = interp1(vDepthLower,sData{1,CntCell}(vIdx(1)).alpha,vDepth(j));
+                vAlpha(2)  = interp1(vDepthUpper,sData{1,CntCell}(vIdx(2)).alpha,vDepth(j));
+                
+                vBeta(1)   = interp1(vDepthLower,sData{1,CntCell}(vIdx(1)).beta,vDepth(j));
+                vBeta(2)   = interp1(vDepthLower,sData{1,CntCell}(vIdx(2)).beta,vDepth(j));
+    
+           vA(j) = interp1(vE,vAlpha,E0);
+           vB(j) = interp1(vE,vBeta,E0);
+         
        end 
        
-       if sum(isnan(vX)) > 0 || sum(isnan(vA)) > 0 || sum(isnan(vB)) > 0
+       interpPeakPos = interp1(vE,[sData{1,CntCell}(vIdx).peakPos],E0);
+        
+       if sum(isnan(vDepth)) > 0 || sum(isnan(vA)) > 0 || sum(isnan(vB)) > 0 || isnan(interpPeakPos)
           warning('interpolated alpha or beta values contain NAN!');
        end
        
-       interpPeakPos = interp1(vE,[sData{1,CntCell}(vIdx).peakPos],E0,'linear','extrap');
+
         if visBool
             
              subplot(231),cla
              subplot(231),plot(sData{1,CntCell}(vIdx(1)).depths./sData{1,CntCell}(vIdx(1)).peakPos,'r','LineWidth',3),hold on
              subplot(231),plot(sData{1,CntCell}(vIdx(2)).depths./sData{1,CntCell}(vIdx(2)).peakPos,'b','LineWidth',3),hold on
-             subplot(231),plot(vX  ,'k--','LineWidth',2)
+             subplot(231),plot(vDepth  ,'k--','LineWidth',2)
               hold on,ylabel('relative depth to bragg peak position'),xlabel('index'),
-              legend({['Data at Energy = ' num2str(vEnergySPC(min(vIdx))) ' MeV'],...
-                      ['Data at Energy = ' num2str(vEnergySPC(max(vIdx))) ' MeV'],...
+              legend({['Data at Energy = ' num2str(vE_SPC(min(vIdx))) ' MeV'],...
+                      ['Data at Energy = ' num2str(vE_SPC(max(vIdx))) ' MeV'],...
                       ['Interpolated data; Energy = ' num2str(E0) ' MeV']},'Location','northwest'),grid on;
              
              subplot(232),cla
@@ -137,25 +130,25 @@ for CntCell = 1:length(sData)
              subplot(234),cla
              subplot(234),plot(sData{1,CntCell}(min(vIdx)).depths,'r','LineWidth',3),hold on
              subplot(234),plot(sData{1,CntCell}(max(vIdx)).depths,'b','LineWidth',3),hold on
-             subplot(234),plot(vX.*interpPeakPos  ,'k--','LineWidth',2)
+             subplot(234),plot(vDepth.*interpPeakPos  ,'k--','LineWidth',2)
              ylabel('depth in mm'),xlabel('index'),grid on
              
              subplot(235),cla
              subplot(235),plot(sData{1,CntCell}(min(vIdx)).depths,sData{1,CntCell}(vIdx(1)).alpha,'r','LineWidth',3),hold on
              subplot(235),plot(sData{1,CntCell}(max(vIdx)).depths,sData{1,CntCell}(vIdx(2)).alpha,'b','LineWidth',3),hold on
-             subplot(235),plot(vX.*interpPeakPos,vA  ,'k--','LineWidth',2)
+             subplot(235),plot(vDepth.*interpPeakPos,vA  ,'k--','LineWidth',2)
              ylabel('alpha'),xlabel('depth in mm'),grid on,hold on
              
              subplot(236),cla
              subplot(236),plot(sData{1,CntCell}(min(vIdx)).depths,sData{1,CntCell}(vIdx(1)).beta,'r','LineWidth',3),hold on
              subplot(236),plot(sData{1,CntCell}(max(vIdx)).depths,sData{1,CntCell}(vIdx(2)).beta,'b','LineWidth',3),hold on
-             subplot(236),plot(vX.*interpPeakPos,vB  ,'k--','LineWidth',2)
+             subplot(236),plot(vDepth.*interpPeakPos,vB  ,'k--','LineWidth',2)
              ylabel('beta'),xlabel('depth in mm'),grid on, hold on     
                   
         end
         
-        baseData(1,i).alpha(:,CntCell)= interp1(vX.*interpPeakPos,vA,baseData(1,i).depths,'linear');
-        baseData(1,i).beta(:,CntCell) = interp1(vX.*interpPeakPos,vB,baseData(1,i).depths,'linear');
+        baseData(1,i).alpha(:,CntCell)= interp1(vDepth.*interpPeakPos,vA,baseData(1,i).depths,'linear');
+        baseData(1,i).beta(:,CntCell) = interp1(vDepth.*interpPeakPos,vB,baseData(1,i).depths,'linear');
         baseData(1,i).alphaBetaRatio(:,CntCell) = unique([sData{1,CntCell}.alphaBetaRatio]);
         %plot final interpolated depth dose values
         if visBool
