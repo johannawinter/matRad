@@ -88,9 +88,9 @@ V = unique([cell2mat(cst(:,4))]);
 % Convert CT subscripts to linear indices.
 [yCoordsV, xCoordsV, zCoordsV] = ind2sub(size(ct.cube),V);
 
-xCoordsV = xCoordsV(:)*ct.resolution(1)-pln.isoCenter(1);
-yCoordsV = yCoordsV(:)*ct.resolution(2)-pln.isoCenter(2);
-zCoordsV = zCoordsV(:)*ct.resolution(3)-pln.isoCenter(3);
+xCoordsV = xCoordsV(:)*ct.resolution.x-pln.isoCenter(1);
+yCoordsV = yCoordsV(:)*ct.resolution.y-pln.isoCenter(2);
+zCoordsV = zCoordsV(:)*ct.resolution.z-pln.isoCenter(3);
 coordsV  = [xCoordsV yCoordsV zCoordsV];
 
 % load protonBaseData
@@ -166,6 +166,9 @@ for i = 1:dij.numOfBeams; % loop over all beams
     
     rot_coordsV = coordsV*rotMx_XZ*rotMx_XY;
     
+    rot_coordsV(:,1) = rot_coordsV(:,1)-sourcePoint_bev(1);
+    rot_coordsV(:,2) = rot_coordsV(:,2)-sourcePoint_bev(2);
+    rot_coordsV(:,3) = rot_coordsV(:,3)-sourcePoint_bev(3);
     
     for j = 1:stf(i).numOfRays % loop over all rays
         
@@ -217,7 +220,10 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 counter = counter + 1;
                 % Display progress
                 matRad_progress(counter,dij.totalNumOfBixels);
-                waitbar(counter/dij.totalNumOfBixels);
+                % update waitbar only 100 times
+                if mod(counter,round(dij.totalNumOfBixels/100)) == 0
+                    waitbar(counter/dij.totalNumOfBixels);
+                end
                 % remember beam and  bixel number
                 dij.beamNum(counter)  = i;
                 dij.rayNum(counter)   = j;
