@@ -28,24 +28,27 @@ pathTRiP = 'E:\TRiP98DATA_HIT-20131120';
 
 FocusIdx = 1;
 Offset   = -2.89; % in mm
-visBool  = 1;
+visBool  = 0;
 Identifier = 'p'; % either p for protons, C for carbons
 % parse and save proton ddd's
-baseData = matRad_getDDDfromTxt(Identifier,pathTRiP,FocusIdx,Offset,visBool);
-save(['..' filesep 'protonBaseDataHIT'],'baseData');
+machine = matRad_getDDDfromTxt(Identifier,pathTRiP,FocusIdx,Offset,visBool);
+Name = [machine.meta.radiationMode  '_'  machine.meta.name];
+save(Name,'machine');
+
 % parse and save carbon ddd's
 Identifier = 'C';
-baseData = matRad_getDDDfromTxt(Identifier,pathTRiP,FocusIdx,Offset,visBool);
-save(['..' filesep 'carbonBaseDataHIT'],'baseData');
+machine = matRad_getDDDfromTxt(Identifier,pathTRiP,FocusIdx,Offset,visBool);
+Name = [machine.meta.radiationMode  '_'  machine.meta.name];
+save(Name,'machine');
 
 
 %% interpolate double gaussian data froms sparse sigma1, sigma2 and weight matrix
-load(['..' filesep 'protonBaseDataHIT.mat']);
+load('carbon_HIT.mat');
 %path to sampling points/Stützstellen provided by Katia P.
-pathToSparseData = [pathTRiP '\DDD\p\HIT_2D_DB_p_NEW'];
-Identifier = 'p';
+pathToSparseData = [pathTRiP '\DDD\12C\HIT_2D_DB_Cwith_KatjaP'];
+Identifier = 'C';
 % if visBool is on then dont forget to press a key to step to the next plot
-baseData = matRad_interpLateralBaseData(baseData,pathTRiP,pathToSparseData,Identifier,1);
+machine = matRad_interpLateralBaseData(machine,pathTRiP,pathToSparseData,Identifier,0);
 
 
 %% parse single spc files 
@@ -61,7 +64,6 @@ for i = 1:length(dirInfo)
     Filename = dirInfo(i).name;
     save([pathToSPCfiles Filename(1:end-4) '.mat'],'MetaSPC','SPC');
 end
-
 
  %% parse dEdx file
 pathdEdx = [pathTRiP filesep '\DEDX\dEdxFLUKAxTRiP.dedx'];
@@ -98,12 +100,12 @@ pathCNAO = '\\Mac\Home\Documents\Heidelberg\CNAO_baseData';
 %% interpolate each entry in the ddd the corresponding depth alpha and depth beta curve
 load('sDataHIT.mat');
 %load('sDataCNAO.mat');
-load(['..' filesep 'carbonBaseDataHIT.mat']);
+load(['..' filesep 'carbon_HIT.mat']);
 CNAOisUsed = false;
 if CNAOisUsed
-    [baseData] = matRad_interpDoseAvgBioData(baseData, sDataCNAO ,CNAOisUsed, 1);
+    [machine] = matRad_interpDoseAvgBioData(machine, sDataCNAO ,CNAOisUsed, 0);
 else
-    [baseData] = matRad_interpDoseAvgBioData(baseData, sDataHIT ,CNAOisUsed, 1);
+    [machine] = matRad_interpDoseAvgBioData(machine, sDataHIT ,CNAOisUsed, 0);
 end
 
 

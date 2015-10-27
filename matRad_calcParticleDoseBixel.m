@@ -1,4 +1,4 @@
-function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,baseData,pln)
+function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,baseData)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad visualization of two-dimensional dose distributions on ct including
 % segmentation
@@ -46,13 +46,14 @@ function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,baseData,pl
 
 % range shift
 depths = baseData.depths + baseData.offset;
-%convert units from MeV cm^2/g per primary to Gy mm^2 per 1e6 primaries
+
+% convert from MeV cm^2/g per primary to Gy mm^2 per 1e6 primaries
 conversionFactor = 1.6021766208e-02;
 
-if pln.UseHIT
+if ~isfield(baseData,'sigma')
     % interpolate depth dose, sigmas, and weights    
     X = interp1(depths,[conversionFactor*baseData.Z baseData.sigma1 baseData.weight baseData.sigma2],radDepths,'linear');
-    
+   
     % calculate lateral dose from narrow and broad gaussian
     L_Narr = exp( -radialDist_sq ./ (2*X(:,2).^2))./(2*pi*X(:,2).^2);
     L_Bro  = exp( -radialDist_sq ./ (2*X(:,4).^2))./(2*pi*X(:,4).^2);

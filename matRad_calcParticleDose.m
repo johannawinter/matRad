@@ -93,19 +93,12 @@ yCoordsV = yCoordsV(:)*ct.resolution.y-pln.isoCenter(2);
 zCoordsV = zCoordsV(:)*ct.resolution.z-pln.isoCenter(3);
 coordsV  = [xCoordsV yCoordsV zCoordsV];
 
-% load protonBaseData
-if strcmp(pln.radiationMode,'protons')
-    if pln.UseHIT
-        load protonBaseDataHIT;
-    else
-        load protonBaseData;
-    end
-elseif strcmp(pln.radiationMode,'carbon')
-    if pln.UseHIT
-        load carbonBaseDataHITBio;
-    else
-        load carbonBaseData;
-    end
+% load machine file
+fileName = [pln.radiationMode '_' pln.machine];
+try
+   load(fileName);
+catch
+   error(['Could not find the following machine file: ' fileName ]); 
 end
 
 % generates tissue class matrix for biological optimization
@@ -124,7 +117,7 @@ if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') .
         end
         
         % check consitency of biological baseData and cst settings
-        baseDataAlphaBetaRatios =  reshape([baseData(:).alphaBetaRatio],numel(baseData(1).alphaBetaRatio),size(baseData,2));
+        baseDataAlphaBetaRatios =  reshape([machine.data(:).alphaBetaRatio],numel(machine.data(1).alphaBetaRatio),size(machine.data,2));
         if norm(baseDataAlphaBetaRatios(cst{i,5}.TissueClass,:) - cst{i,5}.alphaX/cst{i,5}.betaX)>0
             error('biological base data and cst inconsistent\n');
         end
@@ -176,13 +169,12 @@ for i = 1:dij.numOfBeams; % loop over all beams
         
             % find index of maximum used energy (round to keV for numerical
             % reasons
-            energyIx = max(round2(stf(i).ray(j).energy,4)) == round2([baseData.energy],4);
+            energyIx = max(round2(stf(i).ray(j).energy,4)) == round2([machine.data.energy],4);
             
             % set lateral cutoff for calculation of geometric distances
-           if pln.UseHIT
-               
-               sigma = sqrt(baseData(energyIx).sigma1(end)^2 + ...
-                   baseData(energyIx).sigma2(end)^2);
+           if strcmp(pln.machine,'HIT')
+               sigma = sqrt(machine.data(energyIx).sigma1(end)^2 + ...
+                   machine.data(energyIx).sigma2(end)^2);
                % sigma needs to be tuned
                 if strcmp(pln.radiationMode,'protons')
                     lateralCutoff = 2*sigma;
@@ -190,7 +182,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
                     lateralCutoff = sigma/2;
                 end
            else
-               lateralCutoff = 3*baseData(energyIx).sigma(end);
+               lateralCutoff = 3*machine.data(energyIx).sigma(end);
            end
            
             % Ray tracing for beam i and ray j
@@ -230,21 +222,21 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 dij.bixelNum(counter) = k;
 
                 % find energy index in base data
-                energyIx = find(round2(stf(i).ray(j).energy(k),4) == round2([baseData.energy],4));
+                energyIx = find(round2(stf(i).ray(j).energy(k),4) == round2([machine.data.energy],4));
 
                 
                 % find indices
-               if pln.UseHIT
+               if strcmp(pln.machine,'HIT');
                    if strcmp(pln.radiationMode,'protons')
-                       currIx = radDepths <= baseData(energyIx).depths(end) + baseData(energyIx).offset & ...
+                       currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
                              radialDist_sq <= 2*sigma^2;
                    else
-                        currIx = radDepths <= baseData(energyIx).depths(end) + baseData(energyIx).offset & ...
+                        currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
                          radialDist_sq <= 6*sigma;
                    end
                else
-                        currIx = radDepths <= baseData(energyIx).depths(end) + baseData(energyIx).offset & ...
-                         radialDist_sq <= 9*baseData(energyIx).sigma(end)^2;
+                        currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
+                         radialDist_sq <= 9*machine.data(energyIx).sigma(end)^2;
                end
                 
                 
@@ -252,19 +244,18 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 bixelDose = matRad_calcParticleDoseBixel(...
                     radDepths(currIx),...
                     radialDist_sq(currIx),...
-                    baseData(energyIx),pln);
+                    machine.data(energyIx));
                 
                 % Save dose for every bixel in cell array
                 doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix(currIx)),1,bixelDose,numel(ct.cube),1);
                             
                 if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ... 
                     && strcmp(pln.radiationMode,'carbon')
-                    % calculate alpha and beta values for bixel k on ray j of
-                    % beam i - call duration 0.0020s                    
+                    % calculate alpha and beta values for bixel k on ray j of                  
                     [bixelAlpha, bixelBeta] = matRad_calcLQParameter(...
                         radDepths(currIx),...
                         mTissueClass_j(currIx,:),...
-                        baseData(energyIx));
+                        machine.data(energyIx));
                 
                     alphaDoseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix(currIx)),1,bixelAlpha.*bixelDose,numel(ct.cube),1);
                     betaDoseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix(currIx)),1,sqrt(bixelBeta).*bixelDose,numel(ct.cube),1);

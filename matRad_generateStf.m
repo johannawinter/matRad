@@ -89,31 +89,23 @@ if isempty(V)
 end
 
 % prepare structures necessary for particles
+fileName = [pln.radiationMode '_' pln.machine];
+try
+   load(fileName);
+catch
+   error(['Could not find the following machine file: ' fileName ]); 
+end
+
 if strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
-    
-    % load base data    
-    if strcmp(pln.radiationMode,'protons')
-        if pln.UseHIT
-            load protonBaseDataHIT;
-        else
-            load protonBaseData;
-        end
-    elseif  strcmp(pln.radiationMode,'carbon')
-       if pln.UseHIT
-           load carbonBaseDataHITBio
-       else
-           load carbonBaseData;
-       end
-    end
-    
-    availableEnergies = [baseData.energy];
-    availablePeakPos  = [baseData.peakPos] + [baseData.offset];
+      
+    availableEnergies = [machine.data.energy];
+    availablePeakPos  = [machine.data.peakPos] + [machine.data.offset];
     
     if sum(availablePeakPos<0)>0
-       error('at least one available peak position is negative - inconsistent basedata') 
+       error('at least one available peak position is negative - inconsistent machine file') 
     end
 
-    clear baseData;
+    clear machine;
     
 elseif strcmp(pln.radiationMode,'photons')
     
@@ -280,7 +272,7 @@ for i = 1:length(pln.gantryAngles)
                     % adjust spot spacing according to pln.bixelWidth when using HIT basedata
                     %DefaultLongitudialSpotSpacing = pln.bixelWidth;  % in [mm]
                     DefaultLongitudialSpotSpacing = 3;
-                    if pln.UseHIT && length(stf(i).ray(j).energy)>2
+                    if strcmp(pln.machine,'HIT') && length(stf(i).ray(j).energy)>2
                         Tolerance = 0.5;
                         hasNext = true;
                         CntEnergy =2;
