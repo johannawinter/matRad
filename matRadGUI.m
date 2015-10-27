@@ -581,7 +581,12 @@ pln = evalin('base','pln');
 if length(pln.gantryAngles) ~= length(pln.couchAngles) 
   warndlg('number of gantryAngles != number of couchAngles'); 
 end
-
+%%
+if ~checkRadiationComposition(handles);
+    fileName = [pln.radiationMode '_' pln.machine];
+    errordlg(['Could not find the following machine file: ' fileName ]);
+    return;
+end
 %% security check if isocenter is not existing so far
 if ~isfield(pln,'isoCenter')
     warning('no iso center set - using center of gravity of all targets');
@@ -2367,7 +2372,18 @@ function popUpMachine_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns popUpMachine contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from popUpMachine
+contents = cellstr(get(hObject,'String'));
 checkRadiationComposition(handles);
+if handles.State>0
+    pln = evalin('base','pln');
+    if handles.State>0 && ~strcmp(contents(get(hObject,'Value')),pln.machine)
+        handles.State=1;
+        UpdateState(handles);
+        guidata(hObject,handles);
+    end
+   getPln(handles);
+end
+
 
 function Valid = checkRadiationComposition(handles)
 Valid = true;
