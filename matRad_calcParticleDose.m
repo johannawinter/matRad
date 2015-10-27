@@ -172,7 +172,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
             energyIx = max(round2(stf(i).ray(j).energy,4)) == round2([machine.data.energy],4);
             
             % set lateral cutoff for calculation of geometric distances
-           if strcmp(pln.machine,'HIT')
+           if strcmp(machine.meta.dataType,'doubleGauss')
                sigma = sqrt(machine.data(energyIx).sigma1(end)^2 + ...
                    machine.data(energyIx).sigma2(end)^2);
                % sigma needs to be tuned
@@ -181,7 +181,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 else
                     lateralCutoff = sigma/2;
                 end
-           else
+           elseif strcmp(machine.meta.dataType,'singleGauss')
                lateralCutoff = 3*machine.data(energyIx).sigma(end);
            end
            

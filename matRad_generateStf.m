@@ -106,10 +106,6 @@ if strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     end
 
     clear machine;
-    
-elseif strcmp(pln.radiationMode,'photons')
-    
-    load photonPencilBeamKernels_6MV;
 
 end
 
@@ -293,7 +289,7 @@ for i = 1:length(pln.gantryAngles)
                 
                 
             else % target not hit
-                stf(i).ray(j)               = [];
+                stf(i).ray(j) = [];
             end
                         
         end
@@ -307,7 +303,7 @@ for i = 1:length(pln.gantryAngles)
     elseif strcmp(stf(i).radiationMode,'photons')
         % set dummy values for photons
         for j = 1:stf(i).numOfRays
-            stf(i).ray(j).energy = energy;
+            stf(i).ray(j).energy = machine.data.energy;
             stf(i).numOfBixelsPerRay(j) = 1;
         end
     else
