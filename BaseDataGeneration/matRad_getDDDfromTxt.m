@@ -1,4 +1,4 @@
-function baseData = matRad_getDDDfromTxt(Identifier,basePath,focusIdx,offset,visBool)
+function machine = matRad_getDDDfromTxt(Identifier,basePath,focusIdx,offset,visBool)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad_getDDDfromTxt script
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -20,12 +20,15 @@ function baseData = matRad_getDDDfromTxt(Identifier,basePath,focusIdx,offset,vis
 
 switch Identifier
     case 'C'
-        relPath = [filesep 'DDD' filesep '12C' filesep 'RF3MM_NEU'];
+        relPath = [filesep 'DDD' filesep '12C' filesep 'RF3MM_double'];
         %relPath = [filesep 'DDD' filesep ' '12C' 'RF3MM'];
+        machine.meta.radiationMode = 'carbon';
     case {'p','H'}
         relPath = [filesep 'DDD' filesep' 'p' filesep 'RF0MM'];
+        machine.meta.radiationMode = 'protons';
     case 'O'
         relPath = [filesep 'DDD' filesep '16O' filesep 'RF3MM'];
+        machine.meta.radiationMode = 'oxygen';
     otherwise
         error('unkown particle type')
 end
@@ -55,7 +58,7 @@ for i = 1:length(Files)
 
     % read energy
     currentline = fgetl(fid);
-    baseData(i).energy = strread(currentline,'!energy %f');
+    machine.data(i).energy = strread(currentline,'!energy %f');
 
     %skip another 2 lines of meta info
     fgetl(fid);
@@ -90,68 +93,72 @@ for i = 1:length(Files)
     
     fclose(fid);    
     % convert depth from cm to mm;
-    baseData(i).depths = depth*10; 
+    machine.data(i).depths = depth*10; 
     % save Z in MeV cm2 / g
-    baseData(i).Z   = ionization;
+    machine.data(i).Z   = ionization;
     % extract peak position
     [~,idx]=max(ionization);
-    baseData(i).peakPos = baseData(i).depths(idx);
+    machine.data(i).peakPos = machine.data(i).depths(idx);
     
-    baseData(i).FWHM1 =FWHM1;
-    baseData(i).FWHM2 =FWHM2;
-    baseData(i).weight =weight;
+    machine.data(i).FWHM1 =FWHM1;
+    machine.data(i).FWHM2 =FWHM2;
+    machine.data(i).weight =weight;
    
 end   
 
 % sort content according to energy - in ascending order;
-[~,IdxEnergy] = sort([baseData.energy]);
-baseData=baseData(IdxEnergy);
+[~,IdxEnergy] = sort([machine.data.energy]);
+machine.data=machine.data(IdxEnergy);
 
 %add offset to each entry
-for i = 1:length(baseData)
-   baseData(i).offset = offset; 
+for i = 1:length(machine.data)
+   machine.data(i).offset = offset; 
 end
 
-if sum(abs([baseData.energy]-vEnergySIS'))>0.05
+if sum(abs([machine.data.energy]-vEnergySIS'))>0.05
    disp('check if foki and ddd exist on the same energy levels');
 end
 
 % calculate sigmas and weights used to model lateral profile
 FWHM2SIGMA = 2*sqrt(2*log(2));
+machine.meta.dataType = '';
 
-for i = 1:length(baseData)
+for i = 1:length(machine.data)
     
     if ~isempty(FWHM1)
         % convert full width half maximum to sigma
-        sigma1 = baseData(i).FWHM1/(FWHM2SIGMA);
-        sigma2 = baseData(i).FWHM2/(FWHM2SIGMA);
+        sigma1 = machine.data(i).FWHM1/(FWHM2SIGMA);
+        sigma2 = machine.data(i).FWHM2/(FWHM2SIGMA);
         % add inital beam width to sigmas
-        baseData(i).sigma1 = sqrt(Sigma_SIS(i,1).^2 + sigma1(:,1).^2);                                                                
-        baseData(i).sigma2 = sqrt(Sigma_SIS(i,1).^2 + sigma2(:,1).^2);
-        
+        machine.data(i).sigma1 = sqrt(Sigma_SIS(i,1).^2 + sigma1(:,1).^2);                                                                
+        machine.data(i).sigma2 = sqrt(Sigma_SIS(i,1).^2 + sigma2(:,1).^2);
+        machine.meta.dataType = 'doubleGauss';
     elseif ~isempty(FWHM)
         
         sigma = abs(FWHM)/(FWHM2SIGMA);
-        baseData(i).sigma = sqrt(Sigma_SIS(i,1).^2 + sigma(:,1).^2);   
-        
+        machine.data(i).sigma = sqrt(Sigma_SIS(i,1).^2 + sigma(:,1).^2);   
+        machine.meta.dataType = 'singleGauss';
     else           
         %% TODO: add analytical calculation of sigma according 
         % Hong or the Highland formula
-        baseData(i).sigma = ones(size(baseData(i).depths,1),1);
+        machine.data(i).sigma = ones(size(machine.data(i).depths,1),1);
     end
 end
 
 % remove FWHM fields
-baseData = rmfield(baseData,'FWHM1');
-baseData = rmfield(baseData,'FWHM2');
+machine.data = rmfield(machine.data,'FWHM1');
+machine.data = rmfield(machine.data,'FWHM2');
 
-
-
-
+% add meta information
+machine.meta.created_on = date;
+machine.meta.created_by = getenv('USERNAME');
+machine.meta.description = 'HIT carbon baseData from TRiP98 combined with KatjaP. lateral double gauss data';
+machine.meta.name = 'HIT';
+machine.meta.FocusIdx = focusIdx;
 %% plots linear spaced baseData 
 if visBool
     %copy baseData into baseDataNew
-    baseDataNew = baseData;
+    baseDataNew = machine.data;
     switch Identifier
         case 'C'
             load (['..' filesep 'carbonBaseData'])

@@ -1,4 +1,4 @@
-function [ baseData ] = matRad_interpLateralBaseData(baseData,pathTRiP,pathToSparseData,Identifier,visBool)
+function [ machine ] = matRad_interpLateralBaseData(machine,pathTRiP,pathToSparseData,Identifier,visBool)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad_interpLateralInfo script
@@ -73,14 +73,14 @@ for i = 1:length(SamplePoints)
     end
 end
 
-vEnergy = [baseData.energy];
+vEnergy = [machine.data.energy];
 if sum(abs(vEnergySIS-vEnergy')) > 1e-1
     warning('sis energies differ from baseData energies')
 end 
 
 h = waitbar(0,'initializing waitbar ...');
 
-for i = 1:length(baseData)
+for i = 1:length(machine.data)
      
 
      % interpolate if current entry is empty
@@ -88,7 +88,7 @@ for i = 1:length(baseData)
         
          % entry needs to be interpolated
          % find lower and upper Energy in SamplePoints for interpolation
-         E0 = baseData(i).energy;
+         E0 = machine.data(i).energy;
          Tmp = find(i>linIdx);
          vIdx(1) = Tmp(end);
          Tmp = find(i<linIdx);
@@ -99,7 +99,7 @@ for i = 1:length(baseData)
          vDepthPointsLower = SamplePoints(linIdx(vIdx(1))).depth;
          vDepthPointsUpper = SamplePoints(linIdx(vIdx(2))).depth;
          
-         AddIdx       = find(vDepthPointsUpper < max(vDepthPointsLower));
+         AddIdx       = vDepthPointsUpper < max(vDepthPointsLower);
          vDepthPoints = unique(sort([vDepthPointsLower; vDepthPointsUpper(AddIdx)]));
          NumPoints             = length(vDepthPoints);
          SamplePoints(i).depth = vDepthPoints;
@@ -171,43 +171,43 @@ for i = 1:length(baseData)
      
      if visBool
          figure,set(gcf,'Color',[1 1 1])
-         subplot(131),plot(baseData(i).depths,baseData(i).sigma1,'r','LineWidth',3),hold on
+         subplot(131),plot(machine.data(i).depths,machine.data(i).sigma1,'r','LineWidth',3),hold on
      end
      % interpoalte sigma 1
      sigma1 = interp1(SamplePoints(i).depth,SamplePoints(i).sigma1,...
-             baseData(i).depths./baseData(i).peakPos,'linear');
-     baseData(i).sigma1 = sqrt(Sigma_SIS(i,1).^2 + sigma1.^2);
+             machine.data(i).depths./machine.data(i).peakPos,'linear');
+     machine.data(i).sigma1 = sqrt(Sigma_SIS(i,1).^2 + sigma1.^2);
          
      if visBool    
-         subplot(131),plot(baseData(i).depths,baseData(i).sigma1,'b','LineWidth',3),hold on
+         subplot(131),plot(machine.data(i).depths,machine.data(i).sigma1,'b','LineWidth',3),hold on
          xlabel('depth in mm','FontSize',13),ylabel('sigma1 considering foki','FontSize',13)
          legend({'old sigma1','new sigma1'},'FontSize',13),hold on,grid on, grid minor
-         subplot(132),plot(baseData(i).depths,baseData(i).sigma2,'r','LineWidth',3),hold on
+         subplot(132),plot(machine.data(i).depths,machine.data(i).sigma2,'r','LineWidth',3),hold on
      end
      
      % interpoalte sigma 2
      sigma2 = interp1(SamplePoints(i).depth,SamplePoints(i).sigma2,...
-             baseData(i).depths./baseData(i).peakPos,'linear');
-      baseData(i).sigma2 = sqrt(Sigma_SIS(i,1).^2 + sigma2.^2);
+             machine.data(i).depths./machine.data(i).peakPos,'linear');
+      machine.data(i).sigma2 = sqrt(Sigma_SIS(i,1).^2 + sigma2.^2);
          
      if visBool
-         subplot(132),plot(baseData(i).depths,baseData(i).sigma1,'b','LineWidth',3),hold on
+         subplot(132),plot(machine.data(i).depths,machine.data(i).sigma1,'b','LineWidth',3),hold on
          xlabel('depth in mm','FontSize',13),ylabel('sigma2 considering foki','FontSize',13)
          legend({'old sigma2','new sigma2'},'FontSize',13),hold on,grid on, grid minor   
-         subplot(133),plot(baseData(i).depths,baseData(i).weight,'r','LineWidth',3),hold on    
+         subplot(133),plot(machine.data(i).depths,machine.data(i).weight,'r','LineWidth',3),hold on    
      end
      
-     % interpoalte sigma 3
-      baseData(i).weight = interp1(SamplePoints(i).depth,SamplePoints(i).weight,...
-            baseData(i).depths./baseData(i).peakPos,'linear');
+     % interpoalte weight
+      machine.data(i).weight = interp1(SamplePoints(i).depth,SamplePoints(i).weight,...
+            machine.data(i).depths./machine.data(i).peakPos,'linear');
      
      if visBool
-         subplot(133),plot(baseData(i).depths,baseData(i).weight,'b','LineWidth',3),hold on
+         subplot(133),plot(machine.data(i).depths,machine.data(i).weight,'b','LineWidth',3),hold on
          xlabel('depth in mm','FontSize',13),ylabel('weight','FontSize',13)
          legend({'old weight','new weight'},'FontSize',13),hold on,grid on, grid minor           
      end
      
- waitbar(i/length(baseData),h,'interpolating data ... ')    
+ waitbar(i/length(machine.data),h,'interpolating data ... ')    
 end
 
                

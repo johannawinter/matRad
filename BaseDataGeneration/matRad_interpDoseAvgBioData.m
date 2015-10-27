@@ -1,4 +1,4 @@
-function [ baseData ] = matRad_interpDoseAvgBioData( baseData, sData,CNAOisUsed, visBool )
+function [ machine ] = matRad_interpDoseAvgBioData( machine, sData,CNAOisUsed, visBool )
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad_interpDoseAvgBioData script
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -18,9 +18,10 @@ function [ baseData ] = matRad_interpDoseAvgBioData( baseData, sData,CNAOisUsed,
 % required when CNAO data is used, as they are stored as dEdxA and
 % dEdxsqrtBeta. 
 
+h = waitbar(0,'Initializing waitbar...');
+NumCellLines = 13; %length(sData);
 
-
-for CntCell = 1:length(sData)
+for CntCell = 1:NumCellLines
    
     % data need to be divided by the ddd in order to assess depth dose averaged 
     % alphas and betas
@@ -29,20 +30,20 @@ for CntCell = 1:length(sData)
         for i = 1:length(sData{1,CntCell})
             
             E0 = sData{1,CntCell}(i).energy;
-            [~,idx]=sort(abs([baseData.energy]-E0));
+            [~,idx]=sort(abs([machine.data.energy]-E0));
             idx=idx(1:2);
             % interpolate depth dose profile
             SamplePoints = [];
             for j=1:length(idx)
-                SamplePoints = vertcat(SamplePoints,baseData(idx(j)).depths./baseData(idx(j)).peakPos);
+                SamplePoints = vertcat(SamplePoints,machine.data(idx(j)).depths./machine.data(idx(j)).peakPos);
             end
             SamplePoints = unique(sort(SamplePoints));
             for j = 1:length(SamplePoints)             
                 for k=1:length(idx)
-                        Zrange(k) = interp1(baseData(idx(k)).depths,baseData(idx(k)).Z,...
+                        Zrange(k) = interp1(machine.data(idx(k)).depths,machine.data(idx(k)).Z,...
                             SamplePoints(j),'linear');
                 end
-                Zinterp(j)=interp1([baseData(idx).energy],Zrange,E0,'linear');
+                Zinterp(j)=interp1([machine.data(idx).energy],Zrange,E0,'linear');
             end
             
             Z = interp1(SamplePoints,Zinterp,sData{1,CntCell}(i).depths./sData{1,CntCell}(i).peakPos);
@@ -64,9 +65,9 @@ for CntCell = 1:length(sData)
        hold on, 
     end
     
-    for i = 1:length(baseData)
+    for i = 1:length(machine.data)
         
-       E0 = baseData(i).energy;
+       E0 = machine.data(i).energy;
        vE_SPC = [sData{1,CntCell}.energy];
        [~,IdxAll]= sort(abs(vE_SPC-E0));
        vIdx = sort(IdxAll(1:2));
@@ -76,10 +77,10 @@ for CntCell = 1:length(sData)
        vDepthUpper = [sData{1,CntCell}(vIdx(2)).depths]./sData{1,CntCell}(vIdx(2)).peakPos;
        
        if max(vDepthLower) > max(vDepthUpper)
-             AddIdx = find(vDepthLower < max(vDepthUpper));
+             AddIdx = vDepthLower < max(vDepthUpper);
              vDepth = unique(sort([vDepthLower(AddIdx) vDepthUpper]));
        else
-             AddIdx = find(vDepthUpper < max(vDepthLower));
+             AddIdx = vDepthUpper < max(vDepthLower);
              vDepth = unique(sort([vDepthLower vDepthUpper(AddIdx)]));
        end
      
@@ -147,18 +148,19 @@ for CntCell = 1:length(sData)
                   
         end
         
-        baseData(1,i).alpha(:,CntCell)= interp1(vDepth.*interpPeakPos,vA,baseData(1,i).depths,'linear');
-        baseData(1,i).beta(:,CntCell) = interp1(vDepth.*interpPeakPos,vB,baseData(1,i).depths,'linear');
-        baseData(1,i).alphaBetaRatio(:,CntCell) = unique([sData{1,CntCell}.alphaBetaRatio]);
+        machine.data(1,i).alpha(:,CntCell)= interp1(vDepth.*interpPeakPos,vA,machine.data(1,i).depths,'linear');
+        machine.data(1,i).beta(:,CntCell) = interp1(vDepth.*interpPeakPos,vB,machine.data(1,i).depths,'linear');
+        machine.data(1,i).alphaBetaRatio(:,CntCell) = unique([sData{1,CntCell}.alphaBetaRatio]);
         %plot final interpolated depth dose values
         if visBool
-            subplot(235),plot(baseData(1,i).depths,baseData(1,i).alpha(:,CntCell),'g','LineWidth',3); 
-            subplot(236),plot(baseData(1,i).depths,baseData(1,i).beta(:,CntCell),'g','LineWidth',3);
+            subplot(235),plot(machine.data(1,i).depths,machine.data(1,i).alpha(:,CntCell),'g','LineWidth',3); 
+            subplot(236),plot(machine.data(1,i).depths,machine.data(1,i).beta(:,CntCell),'g','LineWidth',3);
             waitforbuttonpress
         end      
-   end
+    end
 
+    waitbar(CntCell/NumCellLines,h,'interpolating ...');
 end
 
 
-
+close(h)

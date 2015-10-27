@@ -1,4 +1,4 @@
-function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,baseData,pln)
+function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,baseData)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad visualization of two-dimensional dose distributions on ct including
 % segmentation
@@ -49,7 +49,7 @@ depths = baseData.depths + baseData.offset;
 %convert units from MeV cm^2/g per primary to Gy mm^2 per 1e6 primaries
 ConversionFactor = 1.6021766208e-02;
 
-if pln.UseHIT
+if isfield(baseData,'sigma1') && isfield(baseData,'sigma2') && isfield(baseData,'weight')
     
     % interpolate sigmas and weights
     sigmaNarr = interp1(depths,baseData.sigma1,radDepths);
