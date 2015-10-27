@@ -54,8 +54,8 @@ dose = zeros(dij.dimensions);
 % helper function for energy selection
 round2 = @(a,b)round(a*10^b)/10^b;
 
-% Only take voxels inside patient.
-V = unique([cell2mat(cst(:,4))]);
+% take all voxels by default
+V = cst{1,4};
 
 % Convert CT subscripts to linear indices.
 [yCoordsV, xCoordsV, zCoordsV] = ind2sub(size(ct.cube),V);
@@ -78,31 +78,6 @@ elseif strcmp(pln.radiationMode,'carbon')
     else
         load carbonBaseData;
     end
-end
-
-% generates tissue class matrix for biological optimization
-if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ... 
-        && strcmp(pln.radiationMode,'carbon')
-    fprintf('matRad: loading biological base data... ');
-    mTissueClass = zeros(size(V,1),1);
-    for i = 1:size(cst,1)
-        % find indices of structures related to V
-        [~, row] = ismember(cst{i,4},V,'rows');  
-        if ~isempty(cst{i,5}) && isfield(cst{i,5},'TissueClass')
-            mTissueClass(row) = cst{i,5}.TissueClass;
-        else
-            mTissueClass(row) = 1;
-            fprintf(['matRad: tissue type of ' cst{i,2} ' was set to 1 \n']);
-        end
-        
-        % check consitency of biological baseData and cst settings
-        baseDataAlphaBetaRatios =  reshape([baseData(:).alphaBetaRatio],numel(baseData(1).alphaBetaRatio),size(baseData,2));
-        if norm(baseDataAlphaBetaRatios(cst{i,5}.TissueClass,:) - cst{i,5}.alphaX/cst{i,5}.betaX)>0
-            error('biological base data and cst inconsistent\n');
-        end
-        
-    end
-    fprintf('...done \n');
 end
 
 % source position in beam's eye view.
@@ -145,28 +120,9 @@ for i = 1:dij.numOfBeams; % loop over all beams
     for j = 1:stf(i).numOfRays % loop over all rays
         
         if ~isempty(stf(i).ray(j).energy)
-        
-            % find index of maximum used energy (round to keV for numerical
-            % reasons
-            energyIx = max(round2(stf(i).ray(j).energy,4)) == round2([baseData.energy],4);
             
-            % set lateral cutoff for calculation of geometric distances
-           if pln.UseHIT
-               
-               sigma = inf;%sqrt(baseData(energyIx).sigma1(end)^2 + ...
-                   %baseData(energyIx).sigma2(end)^2);
-               % sigma needs to be tuned
-                if strcmp(pln.radiationMode,'protons')
-                    lateralCutoff = 2*sigma;
-                else
-                    lateralCutoff = sigma/2;
-                end
-           else
-               lateralCutoff = 3*baseData(energyIx).sigma(end);
-           end
-           
             % Ray tracing for beam i and ray j
-            [ix,radDepths,~,latDistsX,latDistsZ] = matRad_calcRadGeoDists(ct.cube, ...
+            [~,radDepths,~,latDistsX,latDistsZ] = matRad_calcRadGeoDists(ct.cube, ...
                                                         V,...
                                                         pln.isoCenter, ...
                                                         rot_coordsV, ...
@@ -176,15 +132,9 @@ for i = 1:dij.numOfBeams; % loop over all beams
                                                         sourcePoint_bev,...
                                                         stf(i).ray(j).targetPoint_bev, ...
                                                         coordsV, ...
-                                                        lateralCutoff);
+                                                        inf);
             
             radialDist_sq = latDistsX.^2 + latDistsZ.^2;    
-            
-            % just use tissue classes of voxels found by ray tracer
-            if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ... 
-                 && strcmp(pln.radiationMode,'carbon')
-                    mTissueClass_j= mTissueClass(ix,:);
-            end
             
             for k = 1:stf(i).numOfBixelsPerRay(j) % loop over all bixels per ray
 
@@ -195,50 +145,20 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 if mod(counter,round(dij.totalNumOfBixels/100)) == 0
                     waitbar(counter/dij.totalNumOfBixels);
                 end
-                % remember beam and  bixel number
-                dij.beamNum(counter)  = i;
-                dij.rayNum(counter)   = j;
-                dij.bixelNum(counter) = k;
 
                 % find energy index in base data
-                energyIx = find(round2(stf(i).ray(j).energy(k),4) == round2([baseData.energy],4));
-
+                energyIx = find(round2(stf(i).ray(j).energy(k),4) == round2([baseData.energy],4));                
                 
-                % find indices
-               if pln.UseHIT
-                   if strcmp(pln.radiationMode,'protons')
-                       currIx = radDepths <= baseData(energyIx).depths(end) + baseData(energyIx).offset & ...
-                             radialDist_sq <= 2*sigma^2;
-                   else
-                        currIx = radDepths <= baseData(energyIx).depths(end) + baseData(energyIx).offset & ...
-                         radialDist_sq <= 6*sigma;
-                   end
-               else
-                        currIx = radDepths <= baseData(energyIx).depths(end) + baseData(energyIx).offset & ...
-                         radialDist_sq <= 9*baseData(energyIx).sigma(end)^2;
-               end
-                
+                % find energy index in base data
+                ix = radDepths <= baseData(energyIx).depths(end) + baseData(energyIx).offset;
                 
                 % calculate particle dose for bixel k on ray j of beam i
                 bixelDose = matRad_calcParticleDoseBixel(...
-                    radDepths(currIx),...
-                    radialDist_sq(currIx),...
+                    radDepths(ix),...
+                    radialDist_sq(ix),...
                     baseData(energyIx),pln);
-                
-                if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ... 
-                    && strcmp(pln.radiationMode,'carbon')
-                    % calculate alpha and beta values for bixel k on ray j of
-                    % beam i - call duration 0.0020s                    
-                    [bixelAlpha, bixelBeta] = matRad_calcLQParameter(...
-                        radDepths(currIx),...
-                        mTissueClass_j(currIx,:),...
-                        baseData(energyIx));
-                
-                else
-                    
-                    dose(V(ix(currIx))) = dose(V(ix(currIx))) + w(counter) * bixelDose';
-                    
-                end
+
+                dose(ix) = dose(ix) + w(counter) * bixelDose;
                 
             end
             

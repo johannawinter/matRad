@@ -47,35 +47,26 @@ function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,baseData,pl
 % range shift
 depths = baseData.depths + baseData.offset;
 %convert units from MeV cm^2/g per primary to Gy mm^2 per 1e6 primaries
-ConversionFactor = 1.6021766208e-02;
+conversionFactor = 1.6021766208e-02;
 
 if pln.UseHIT
-    
-    % interpolate sigmas and weights
-    sigmaNarr = interp1(depths,baseData.sigma1,radDepths);
-    sigmaBro  = interp1(depths,baseData.sigma2,radDepths);
-    w = interp1(depths,baseData.weight,radDepths);
-
-    % interpolate depth dose
-    Z = interp1(depths,baseData.Z,radDepths).*ConversionFactor;   
+    % interpolate depth dose, sigmas, and weights    
+    X = interp1(depths,[conversionFactor*baseData.Z baseData.sigma1 baseData.weight baseData.sigma2],radDepths,'linear');
     
     % calculate lateral dose from narrow and broad gaussian
-    L_Narr = exp( -radialDist_sq ./ (2*sigmaNarr.^2))./(2*pi*sigmaNarr.^2);
-    L_Bro  = exp( -radialDist_sq ./ (2*sigmaBro.^2))./(2*pi*sigmaBro.^2);
+    L_Narr = exp( -radialDist_sq ./ (2*X(:,2).^2))./(2*pi*X(:,2).^2);
+    L_Bro  = exp( -radialDist_sq ./ (2*X(:,4).^2))./(2*pi*X(:,4).^2);
     
     % calculate lateral dose
-    L = ((1-w).*L_Narr) + (w.*L_Bro);
+    L = ((1-X(:,3)).*L_Narr) + (X(:,3).*L_Bro);
     
-    dose = Z.*L;
+    dose = X(:,2).*L;
 else
-    % interpolate sigma
-    sigma = interp1(depths,baseData.sigma,radDepths);
-
-    % interpolate depth dose
-    Z = interp1(depths,baseData.Z,radDepths) .* ConversionFactor;
-
+    % interpolate depth dose and sigma
+    X = interp1(depths,[conversionFactor*baseData.Z baseData.sigma],radDepths,'linear');
+    
     % calculate dose
-    dose = exp( -radialDist_sq ./ (2*sigma.^2)) .* Z ./(2*pi*sigma.^2);
+    dose = exp( -radialDist_sq ./ (2*X(:,2).^2)) .* X(:,1) ./(2*pi*X(:,2).^2);
 end
 
 
