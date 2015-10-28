@@ -96,6 +96,25 @@ set(f, 'AlphaData', alpha);
 handles.maxDoseVal     = 0;
 handles.IsoDose.RefVal = 0;
 handles.IsoDose.Levels = 0;
+%seach for availabes machines
+handles.Modalities = {'photons','protons','carbon'};
+for i = 1:length(handles.Modalities)
+    pattern = [handles.Modalities{1,i} '_*'];
+    Files = dir(pattern);
+    for j = 1:length(Files)
+        if ~isempty(Files)
+            C = strsplit(Files(j).name,{'_','.'});
+            if isfield(handles,'Machines')
+                handles.Machines{size(handles.Machines,1)+1} = C{1,2};
+            else
+                handles.Machines = cell(1);
+                handles.Machines{1} = C{1,2};
+            end
+        end
+    end
+end
+set(handles.popUpMachine,'String',handles.Machines);
+
 
 vChar = get(handles.editGantryAngle,'String');
 if strcmp(vChar(1,1),'0') && length(vChar)==6
@@ -431,7 +450,7 @@ function popupRadMode_Callback(hObject, eventdata, handles)
 % hObject    handle to popupRadMode (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
+checkRadiationComposition(handles);
 contents = cellstr(get(hObject,'String')); 
 RadIdentifier = contents{get(hObject,'Value')};
 
@@ -461,14 +480,17 @@ switch RadIdentifier
         set(handles.btnRunDAO,'Enable','off');
 end
 
-
-pln = evalin('base','pln');
-if handles.State>0 && ~strcmp(contents(get(hObject,'Value')),pln.radiationMode)
-    handles.State=1;
-    UpdateState(handles);
-    guidata(hObject,handles);
+if handles.State>0
+    pln = evalin('base','pln');
+    if handles.State>0 && ~strcmp(contents(get(hObject,'Value')),pln.radiationMode)
+        handles.State=1;
+        UpdateState(handles);
+        guidata(hObject,handles);
+    end
+   getPln(handles);
 end
-getPln(handles);
+
+
 
 % --- Executes during object creation, after setting all properties.
 function popupRadMode_CreateFcn(hObject, eventdata, handles)
@@ -559,7 +581,12 @@ pln = evalin('base','pln');
 if length(pln.gantryAngles) ~= length(pln.couchAngles) 
   warndlg('number of gantryAngles != number of couchAngles'); 
 end
-
+%%
+if ~checkRadiationComposition(handles);
+    fileName = [pln.radiationMode '_' pln.machine];
+    errordlg(['Could not find the following machine file: ' fileName ]);
+    return;
+end
 %% security check if isocenter is not existing so far
 if ~isfield(pln,'isoCenter')
     warning('no iso center set - using center of gravity of all targets');
@@ -1871,6 +1898,7 @@ end
 set(handles.editGantryAngle,'String',num2str((pln.gantryAngles)));
 set(handles.editCouchAngle,'String',num2str((pln.couchAngles)));
 set(handles.popupRadMode,'Value',find(strcmp(get(handles.popupRadMode,'String'),pln.radiationMode)));
+set(handles.popUpMachine,'Value',find(strcmp(get(handles.popUpMachine,'String'),pln.machine)));
 
 if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ... 
                             && strcmp(pln.radiationMode,'carbon')  
@@ -1921,8 +1949,10 @@ try
 catch
 end
 pln.numOfFractions  = parseStringAsNum(get(handles.editFraction,'String'),false);
-contents                    = get(handles.popupRadMode,'String'); 
-pln.radiationMode   =  contents{get(handles.popupRadMode,'Value')}; % either photons / protons / carbon
+contents            = get(handles.popupRadMode,'String'); 
+pln.radiationMode   = contents{get(handles.popupRadMode,'Value')}; % either photons / protons / carbon
+contents            = get(handles.popUpMachine,'String'); 
+pln.machine         = contents{get(handles.popUpMachine,'Value')}; 
 
 if (logical(get(handles.radbtnBioOpt,'Value')) && strcmp(pln.radiationMode,'carbon'))
     pln.bioOptimization =get(handles.btnTypBioOpt,'String');
@@ -2332,3 +2362,51 @@ UpdatePlot(handles);
 guidata(hObject,handles);
 
 
+
+
+% --- Executes on selection change in popUpMachine.
+function popUpMachine_Callback(hObject, eventdata, handles)
+% hObject    handle to popUpMachine (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popUpMachine contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popUpMachine
+contents = cellstr(get(hObject,'String'));
+checkRadiationComposition(handles);
+if handles.State>0
+    pln = evalin('base','pln');
+    if handles.State>0 && ~strcmp(contents(get(hObject,'Value')),pln.machine)
+        handles.State=1;
+        UpdateState(handles);
+        guidata(hObject,handles);
+    end
+   getPln(handles);
+end
+
+
+function Valid = checkRadiationComposition(handles)
+Valid = true;
+contents = cellstr(get(handles.popUpMachine,'String'));
+Machine = contents{get(handles.popUpMachine,'Value')};
+contents = cellstr(get(handles.popupRadMode,'String'));
+radMod = contents{get(handles.popupRadMode,'Value')};
+
+FoundFile = dir([radMod '_' Machine '.mat']);
+
+if isempty(FoundFile)
+    warndlg(['No base available for machine: ' Machine]);
+    Valid = false;
+end
+
+% --- Executes during object creation, after setting all properties.
+function popUpMachine_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popUpMachine (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
