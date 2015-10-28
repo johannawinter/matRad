@@ -33,31 +33,20 @@ if numel(pln.gantryAngles) ~= numel(pln.couchAngles) || numel(pln.couchAngles) >
     error('Inconsistent number of gantry and couch angles.');
 end
 
+% load machine file
+fileName = [pln.radiationMode '_' pln.machine];
+try
+   load(fileName);
+catch
+   error(['Could not find the following machine file: ' fileName ]); 
+end
+
 % prepare structures necessary for particles
 if strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     
-    % load base data    
-    if strcmp(pln.radiationMode,'protons')
-        if pln.UseHIT
-            load protonBaseDataHIT;
-        else
-            load protonBaseData;
-        end
-    elseif  strcmp(pln.radiationMode,'carbon')
-       if pln.UseHIT
-           load carbonBaseDataHITBio
-       else
-           load carbonBaseData;
-       end
-    end
-    
-    availableEnergies = [baseData.energy];
+    availableEnergies = [machine.data.energy];
 
-    clear baseData;
-    
-elseif strcmp(pln.radiationMode,'photons')
-    
-    load photonPencilBeamKernels_6MV;
+    clear machine;
 
 end
 

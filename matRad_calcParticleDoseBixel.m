@@ -51,26 +51,24 @@ depths = baseData.depths + baseData.offset;
 conversionFactor = 1.6021766208e-02;
 
 if ~isfield(baseData,'sigma')
+    
     % interpolate depth dose, sigmas, and weights    
     X = interp1(depths,[conversionFactor*baseData.Z baseData.sigma1 baseData.weight baseData.sigma2],radDepths,'linear');
-   
-    % calculate lateral dose from narrow and broad gaussian
+
+    % calculate lateral profile
     L_Narr = exp( -radialDist_sq ./ (2*X(:,2).^2))./(2*pi*X(:,2).^2);
     L_Bro  = exp( -radialDist_sq ./ (2*X(:,4).^2))./(2*pi*X(:,4).^2);
-    
-    % calculate lateral dose
-    L = ((1-X(:,3)).*L_Narr) + (X(:,3).*L_Bro);
-    
-    dose = X(:,2).*L;
+    L = ((1-(X(:,3))).*L_Narr) + (X(:,3).*L_Bro);
+   
+    dose = X(:,1).*L;
 else
+    
     % interpolate depth dose and sigma
     X = interp1(depths,[conversionFactor*baseData.Z baseData.sigma],radDepths,'linear');
-    
+
     % calculate dose
     dose = exp( -radialDist_sq ./ (2*X(:,2).^2)) .* X(:,1) ./(2*pi*X(:,2).^2);
-end
-
-
+    
+ end
  
-
-
+ 

@@ -65,19 +65,12 @@ yCoordsV = yCoordsV(:)*ct.resolution.y-pln.isoCenter(2);
 zCoordsV = zCoordsV(:)*ct.resolution.z-pln.isoCenter(3);
 coordsV  = [xCoordsV yCoordsV zCoordsV];
 
-% load protonBaseData
-if strcmp(pln.radiationMode,'protons')
-    if pln.UseHIT
-        load protonBaseDataHIT;
-    else
-        load protonBaseData;
-    end
-elseif strcmp(pln.radiationMode,'carbon')
-    if pln.UseHIT
-        load carbonBaseDataHITBio;
-    else
-        load carbonBaseData;
-    end
+% load machine file
+fileName = [pln.radiationMode '_' pln.machine];
+try
+   load(fileName);
+catch
+   error(['Could not find the following machine file: ' fileName ]); 
 end
 
 % source position in beam's eye view.
@@ -147,16 +140,16 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 end
 
                 % find energy index in base data
-                energyIx = find(round2(stf(i).ray(j).energy(k),4) == round2([baseData.energy],4));                
+                energyIx = find(round2(stf(i).ray(j).energy(k),4) == round2([machine.data.energy],4));                
                 
                 % find energy index in base data
-                ix = radDepths <= baseData(energyIx).depths(end) + baseData(energyIx).offset;
+                ix = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset;
                 
                 % calculate particle dose for bixel k on ray j of beam i
                 bixelDose = matRad_calcParticleDoseBixel(...
                     radDepths(ix),...
                     radialDist_sq(ix),...
-                    baseData(energyIx),pln);
+                    machine.data(energyIx));
 
                 dose(ix) = dose(ix) + w(counter) * bixelDose;
                 
