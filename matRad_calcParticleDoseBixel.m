@@ -54,12 +54,12 @@ if ~isfield(baseData,'sigma')
     
     % interpolate depth dose, sigmas, and weights    
     X = interp1(depths,[conversionFactor*baseData.Z baseData.sigma1 baseData.weight baseData.sigma2],radDepths,'linear');
-
+    
     % calculate lateral profile
-    L_Narr = exp( -radialDist_sq ./ (2*X(:,2).^2))./(2*pi*X(:,2).^2);
-    L_Bro  = exp( -radialDist_sq ./ (2*X(:,4).^2))./(2*pi*X(:,4).^2);
-    L = ((1-(X(:,3))).*L_Narr) + (X(:,3).*L_Bro);
-   
+    L_Narr =  exp( -radialDist_sq ./ (2*X(:,2).^2))./(2*pi*X(:,2).^2);
+    L_Bro  =  exp( -radialDist_sq ./ (2*X(:,4).^2))./(2*pi*X(:,4).^2);
+    L = baseData.LatCutOff.CompFac * ((1-(X(:,3))).*L_Narr) + (X(:,3).*L_Bro);
+
     dose = X(:,1).*L;
 else
     

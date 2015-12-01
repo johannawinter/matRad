@@ -131,6 +131,10 @@ sourcePoint_bev = [0 -pln.SAD 0];
 
 counter = 0;
 
+CutOffLevel = 0.95;
+visBoolLateralCutOff = 0;
+[ machine ] = matRad_calcLateralParticleCutOff(machine,CutOffLevel,visBoolLateralCutOff);
+
 fprintf('matRad: Particle dose calculation... ');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -172,17 +176,10 @@ for i = 1:dij.numOfBeams; % loop over all beams
             energyIx = max(round2(stf(i).ray(j).energy,4)) == round2([machine.data.energy],4);
             
             % set lateral cutoff for calculation of geometric distances
-           if strcmp(machine.meta.dataType,'doubleGauss')
-               sigma = sqrt(machine.data(energyIx).sigma1(end)^2 + ...
-                   machine.data(energyIx).sigma2(end)^2);
-               % sigma needs to be tuned
-                if strcmp(pln.radiationMode,'protons')
-                    lateralCutoff = 2*sigma;
-                else
-                    lateralCutoff = sigma/2;
-                end
-           elseif strcmp(machine.meta.dataType,'singleGauss')
-               lateralCutoff = 3*machine.data(energyIx).sigma(end);
+           if strcmp(machine.meta.dataType,'singleGauss')
+                lateralCutoff = 3*machine.data(energyIx).sigma(end);
+           elseif strcmp(machine.meta.dataType,'doubleGauss')
+                lateralCutoff = max(machine.data(energyIx).LatCutOff.Value);
            end
            
             % Ray tracing for beam i and ray j
@@ -223,28 +220,32 @@ for i = 1:dij.numOfBeams; % loop over all beams
 
                 % find energy index in base data
                 energyIx = find(round2(stf(i).ray(j).energy(k),4) == round2([machine.data.energy],4));
+                
+                % find depth depended lateral cut off
+                if CutOffLevel >= 1
+                    currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset;
+                elseif CutOffLevel < 1 && CutOffLevel > 0
+                  %perform rough 2D clipping
+                  currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
+                         radialDist_sq <= max(machine.data(energyIx).LatCutOff.Value.^2);
 
-                
-                % find indices
-               if strcmp(pln.machine,'HIT');
-                   if strcmp(pln.radiationMode,'protons')
-                       currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
-                             radialDist_sq <= 2*sigma^2;
-                   else
-                        currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
-                         radialDist_sq <= 6*sigma;
+                     %peform fine 2D clipping  
+                   if length(machine.data(energyIx).LatCutOff.Value)>1
+                        ixx = interp1(machine.data(energyIx).LatCutOff.depths + machine.data(energyIx).offset,...
+                            machine.data(energyIx).LatCutOff.Value.^2, radDepths(currIx)) >= radialDist_sq(currIx);
+
+                        linIdx = find(currIx);   
+                        currIx = (linIdx(ixx)); 
                    end
-               else
-                        currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
-                         radialDist_sq <= 9*machine.data(energyIx).sigma(end)^2;
-               end
-                
-                
+                else
+                  error('cutoff must have a value between 0 and 1')
+                end
+                 
                 % calculate particle dose for bixel k on ray j of beam i
                 bixelDose = matRad_calcParticleDoseBixel(...
                     radDepths(currIx),...
                     radialDist_sq(currIx),...
-                    machine.data(energyIx));
+                    machine.data(energyIx)); 
                 
                 % Save dose for every bixel in cell array
                 doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix(currIx)),1,bixelDose,numel(ct.cube),1);
