@@ -43,6 +43,7 @@ function stf = matRad_generateStf(ct,cst,pln,visMode)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 fprintf('matRad: Generating stf struct... ');
 
 if nargin < 4
@@ -159,7 +160,7 @@ for i = 1:length(pln.gantryAngles)
                                           zeros(size(coordsAtIsoCenterPlane,1),1) ...
                                                       coordsAtIsoCenterPlane(:,2)]/pln.bixelWidth),'rows');
                                                   
-	 % pad ray position array if resolution of target voxel grid not sufficient
+% pad ray position array if resolution of target voxel grid not sufficient
      if pln.bixelWidth<max([ct.resolution.x ct.resolution.y ct.resolution.z])
         origRayPos = rayPos;
         maxRes = max(structfun(@(x)max(x(:)),ct.resolution));
