@@ -1,4 +1,4 @@
-function matRad_compareDoseCubes(cube1,cube2,resolution,filename)
+function matRad_compareDoseCubes(cube1,cube2,resolution,cellName,filename)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % comparison of 3D cubes
 % 
@@ -29,6 +29,8 @@ function matRad_compareDoseCubes(cube1,cube2,resolution,filename)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+defaultLineWidth = 1.5;
+
 if ~isequal(size(cube1),size(cube2))
     error('cube dimensions inconsistent');
 end
@@ -39,27 +41,28 @@ relIntDoseDif = (1-sum(cube1(:))/sum(cube2(:)))*100;
 fprintf(['Relative difference in integral dose: ' num2str(relIntDoseDif) '%%\n']);
 
 figure
-
+set(gcf,'Color',[1 1 1]);
 %% transversal slices
 slice = 100;
 subplot(3,2,1)
 imagesc(cube1(:,:,slice))
 colorbar
-title(['cube 1: slice ' num2str(slice)])
+title([ cellName{1,1} ': slice ' num2str(slice)])
 
 subplot(3,2,2)
 imagesc(cube2(:,:,slice))
 colorbar
-title(['cube 2: slice ' num2str(slice)])
+title([ cellName{1,2} ': slice ' num2str(slice)])
 
 norm = max(max(cube1(:,:,slice)));
 
 subplot(3,2,3)
 imagesc(100*(cube1(:,:,slice)-cube2(:,:,slice))./norm)
 colorbar
-title(['rel diff [%] cube 1 - cube 2: slice ' num2str(slice)])
+title(['rel diff [%] ' cellName{1,1} ' - ' cellName{1,2} ' : slice ' num2str(slice)])
 
 %% idds
+
 x = resolution.x*[1/2:1:size(cube1,2)-1/2];
 
 cube1IDD = sum(sum(cube1,3),1);
@@ -67,12 +70,12 @@ cube2IDD = sum(sum(cube2,3),1);
 
 subplot(3,2,4)
 hold on
-plot(x,cube1IDD,'r')
-plot(x,cube2IDD,'b--')
-title('IDD')
+plot(x,cube1IDD,'r','LineWidth',defaultLineWidth)
+plot(x,cube2IDD,'b--','LineWidth',defaultLineWidth)
+title(['IDD - rel diff int. dose ' num2str(relIntDoseDif)])
 box on
 grid on
-legend({'cube 1','cube 2'})
+legend(cellName)
 
 %% profile along depth
 
@@ -81,12 +84,12 @@ cube2CentralRayProf = squeeze(cube2(slice,:,slice));
 
 subplot(3,2,5)
 hold on
-plot(x,cube1CentralRayProf,'r')
-plot(x,cube2CentralRayProf,'b--')
+plot(x,cube1CentralRayProf,'r','LineWidth',defaultLineWidth)
+plot(x,cube2CentralRayProf,'b--','LineWidth',defaultLineWidth)
 box on
 grid on
 title('depth profile')
-legend({'cube 1','cube 2'})
+legend(cellName)
 
 %% profile along lateral direction entrance
 
@@ -97,14 +100,14 @@ cube2LatProfileEnt = squeeze(cube2(:,end,slice));
 
 subplot(3,2,6)
 hold on
-plot(y,cube1LatProfileEnt,'r')
-plot(y,cube2LatProfileEnt,'b--')
+plot(y,cube1LatProfileEnt,'r','LineWidth',defaultLineWidth)
+plot(y,cube2LatProfileEnt,'b--','LineWidth',defaultLineWidth)
 box on
 grid on
 title('lateral entrance profile')
-legend({'cube 1','cube 2'})
+legend(cellName)
 
-if nargin > 3
+if nargin > 4
     annotation('textbox', [0 0.9 1 0.1],'String', filename, ...
     'EdgeColor', 'none','HorizontalAlignment', 'center')
     set(gcf,'PaperOrientation','landscape','PaperUnits','normalized','PaperPosition', [0 0 1 1]);
@@ -112,7 +115,7 @@ if nargin > 3
 end
     
 %% relative differences
-figure
+figure,set(gcf,'Color',[1 1 1]);
 subplot(3,2,1)
 plot(x,100*(cube1IDD-cube2IDD)/max(cube2IDD),'r')
 box on
@@ -142,7 +145,7 @@ box on
 grid on
 title('rel diff [%] lateral profile before peak')
 
-if nargin > 3
+if nargin > 4
     annotation('textbox', [0 0.9 1 0.1],'String', filename, ...
     'EdgeColor', 'none','HorizontalAlignment', 'center')
     set(gcf,'PaperOrientation','landscape','PaperUnits','normalized','PaperPosition', [0 0 1 1]);

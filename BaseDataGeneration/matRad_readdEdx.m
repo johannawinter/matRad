@@ -1,7 +1,7 @@
 function [Meta, dEdx ] = matRad_readdEdx(path)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% getSigmaSISsq script to parse TRiP's dEdx file
+% parse TRiP's dEdx file
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Copyright 2015, Hans-Peter Wieser
@@ -13,13 +13,23 @@ function [Meta, dEdx ] = matRad_readdEdx(path)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% This script can be used to parse the first foci of a sis file. Please
-% note that it returns the sigma squared
+% This script can be used to parse the stopping power ratios from dEdx
+% files
 
+path = [path filesep 'DEDX' filesep];
+folderInfo = dir([path '*.dedx']);
 
-fileID = fopen(path);
+if isempty(folderInfo)
+    error(' cant find a dedx file');
+elseif length(folderInfo)>1
+    warning('more than one dedx exists');
+    fileID = fopen(folderInfo(1).name);
+else
+    fileID = fopen([path folderInfo(1).name]);
+end
 
 currentline = fgetl(fileID);
+
 % parse Meta
 while ischar(currentline)
 
@@ -70,22 +80,9 @@ while ischar(currentline)
     Cnt = Cnt+1;
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
 data = textscan(fileID,'%s');
 
 data = data{1,1};
-%skip RBE info
 data = data(28:end,:);
 Cnt = 1;
 InnerCnt=1;

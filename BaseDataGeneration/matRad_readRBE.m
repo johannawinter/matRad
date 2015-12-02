@@ -1,4 +1,4 @@
-function [RBE] = matRad_readdEdx(path)
+function [RBE] = matRad_readRBE(path)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad_readdEdx script to parse RBE files from TRiP
@@ -13,9 +13,8 @@ function [RBE] = matRad_readdEdx(path)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% This script can be used to parse the first foci of a sis file. Please
-% note that it returns the sigma squared
-
+% This script can be used to parse the *.rbe files
+path = [path filesep 'RBE'];
 folderInfo = dir([path filesep '*.rbe']);
 
 for i = 1:length(folderInfo)

@@ -129,14 +129,15 @@ end
 % source position in beam's eye view.
 sourcePoint_bev = [0 -pln.SAD 0];
 
-counter = 0;
-
-CutOffLevel = 0.95;
-visBoolLateralCutOff = 0;
+% determine lateral cutoff
+fprintf('matRad: determing lateral cutoff... ');
+CutOffLevel = 0.99;
+visBoolLateralCutOff = 1;
 [ machine ] = matRad_calcLateralParticleCutOff(machine,CutOffLevel,visBoolLateralCutOff);
+fprintf('...done \n');
 
 fprintf('matRad: Particle dose calculation... ');
-
+counter = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for i = 1:dij.numOfBeams; % loop over all beams
     
@@ -227,12 +228,12 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 elseif CutOffLevel < 1 && CutOffLevel > 0
                   %perform rough 2D clipping
                   currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
-                         radialDist_sq <= max(machine.data(energyIx).LatCutOff.Value.^2);
+                         radialDist_sq <= max(machine.data(energyIx).LatCutOff.CutOff.^2);
 
                      %peform fine 2D clipping  
-                   if length(machine.data(energyIx).LatCutOff.Value)>1
+                   if length(machine.data(energyIx).LatCutOff.CutOff)>1
                         ixx = interp1(machine.data(energyIx).LatCutOff.depths + machine.data(energyIx).offset,...
-                            machine.data(energyIx).LatCutOff.Value.^2, radDepths(currIx)) >= radialDist_sq(currIx);
+                            machine.data(energyIx).LatCutOff.CutOff.^2, radDepths(currIx)) >= radialDist_sq(currIx);
 
                         linIdx = find(currIx);   
                         currIx = (linIdx(ixx)); 
