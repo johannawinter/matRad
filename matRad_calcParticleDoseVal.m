@@ -80,8 +80,8 @@ sourcePoint_bev = [0 -pln.SAD 0];
 
 % determine lateral cutoff
 fprintf('matRad: determing lateral cutoff... ');
-CutOffLevel = 0.90;
-visBoolLateralCutOff = 1;
+CutOffLevel = 1;
+visBoolLateralCutOff = 0;
 [ machine ] = matRad_calcLateralParticleCutOff(machine,CutOffLevel,visBoolLateralCutOff);
 fprintf('...done \n');
 
