@@ -13,9 +13,12 @@ close all
 clc
 
 % load MC cube
-for energyIx     = 90;%[30 90 150 200 240];
+for energyIx     = 30;%[30 90 150 200 240];
 MCfilename   = ['C:\Users\admbangertm\Documents\data\matRad validation\protons\E' num2str(energyIx) '\E' num2str(energyIx) '.txt'];
 %MCfilename   = 'C:\Users\admbangertm\Documents\data\matRad validation\protons\SOBP\p_SOBP.txt';
+
+MCfilename   = ['C:\Users\wieserh\Documents\matRad validation\carbons\E' num2str(energyIx) '\C_E' num2str(energyIx) '.txt'];
+
 MCcube       = matRad_readMCdata(MCfilename);
 [ct,cst,pln] = matRad_setup4MCValidation(MCcube);
 
@@ -48,7 +51,7 @@ toc
 
 %%
 %matRad_compareDoseCubes(matRadDoseCube/sum(w),MCcube.cube/10,MCcube.resolution,['pristinePeak_E' num2str(energyIx) '.ps'])
-matRad_compareDoseCubes(matRadDoseCube/sum(w),MCcube.cube/10,MCcube.resolution)
+matRad_compareDoseCubes(matRadDoseCube/sum(w),MCcube.cube/10,MCcube.resolution,{'matRadCube','MCCube'})
 % dose in matRad's cube is recorded for sum(w) million particles, the dose
 % in the MC cube corresponds to 10 million particles
 end
