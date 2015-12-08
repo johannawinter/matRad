@@ -103,12 +103,12 @@ for i = 1:length(handles.Modalities)
     Files = dir(pattern);
     for j = 1:length(Files)
         if ~isempty(Files)
-            C = strsplit(Files(j).name,{'_','.'});
+            MachineName = Files(j).name(numel(handles.Modalities{1,i})+2:end-4);
             if isfield(handles,'Machines')
-                handles.Machines{size(handles.Machines,1)+1} = C{1,2};
+                handles.Machines{size(handles.Machines,1)+1} = MachineName;
             else
                 handles.Machines = cell(1);
-                handles.Machines{1} = C{1,2};
+                handles.Machines{1} = MachineName;
             end
         end
     end
@@ -129,7 +129,7 @@ end
 % handles.State=1   ct cst and pln available; ready for dose calculation
 % handles.State=2   ct cst and pln available and dij matric(s) are calculated;
 %                   ready for optimization
-% handles.Sate=3    plan is optimized
+% handles.State=3   plan is optimized
 
 
 % if plan is changed go back to state 1
@@ -144,29 +144,26 @@ try
         ct = evalin('base','ct');
         setCstTable(handles,evalin('base','cst'));
         handles.State = 1;
-    else
-        error('ct or cst variable is not existing in base workspace')
     end
-   
-catch
-    
+catch    
 end
-%set plan
+
+%set plan if available - if not create one
 try 
      if ~isempty(evalin('base','pln'))
-          pln=evalin('base','pln');
           setPln(handles); 
-     else
-          handles.State = 0;
-    end
+     end
 catch
+    % code goes here if GUI was started with cst and ct but without pln
+     if handles.State == 1
+         getPln(handles);
+     end
 end
 
 % parse dij structure
 try
     if ~isempty(evalin('base','dij'))
         handles.State = 2;
-
     end
 catch 
 end
@@ -199,19 +196,18 @@ handles.DijCalcWarning = false;
 
 if handles.State > 0
     % set slice slider
+    pln = evalin('base','pln');
     if exist('pln','var')
         set(handles.sliderSlice,'Min',1,'Max',size(ct.cube,handles.plane),...
             'Value',ceil(size(ct.cube,handles.plane)/2),...
             'SliderStep',[1/(size(ct.cube,handles.plane)-1) 1/(size(ct.cube,handles.plane)-1)]);
-        
     else
             error(' !! inconsistent state - pln struct should be part of state 1 !!')
     end        
 end
 
-handles.profileOffset = 0;
-
 % Update handles structure
+handles.profileOffset = 0;
 guidata(hObject, handles);
 UpdateState(handles)
 UpdatePlot(handles)
@@ -240,11 +236,6 @@ function btnLoadMat_Callback(hObject, eventdata, handles)
 % delete existing workspace
 try
     evalin('base',['clear ', 'resultGUI'])
-catch 
-end
-
-try
-    evalin('base',['clear ', 'doseVis'])
 catch 
 end
 
@@ -287,20 +278,20 @@ handles.State = 1;
 set(handles.popupTypeOfPlot,'Value',1);
 
 try
-assignin('base','ct',ct);
-assignin('base','cst',cst);
+    assignin('base','ct',ct);
+    assignin('base','cst',cst);
 catch
     error('Could not load selected data');
 end
 % assess plan variable from GUI
 getPln(handles);
 setPln(handles);
-pln=evalin('base','pln');
+pln = evalin('base','pln');
 
 if isempty(pln)
- handles.State = 0;
+     handles.State = 0;
 else
- handles.State = 1;
+     handles.State = 1;
 end
 
 % check if a optimized plan was loaded
@@ -2090,25 +2081,47 @@ function btnRefresh_Callback(hObject, eventdata, handles)
 % hObject    handle to btnRefresh (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-setPln(handles);
-setCstTable(handles,evalin('base','cst'));
-% set state
 
-VarNames = evalin('base','who');
-Flag = (ismember({'ct','cst','pln','stf','dij','resultGUI'},VarNames));
 
-if sum(Flag(:))== 0
-    handles.State = 0;
+
+%% parse variables from base workspace
+try
+    if ~isempty(evalin('base','ct')) && ~isempty(evalin('base','cst'))
+        ct = evalin('base','ct');
+        setCstTable(handles,evalin('base','cst'));
+        handles.State = 1;
+    end
+catch    
 end
-if sum(Flag(1:4))==4
-    handles.State = 1;
+
+%set plan if available - if not create one
+try 
+     if ~isempty(evalin('base','pln'))
+          setPln(handles); 
+     end
+catch
+    % code goes here if GUI was started with cst and ct but without pln
+     if handles.State == 1
+         getPln(handles);
+     end
 end
-if sum(Flag(1:5))==5
-    handles.State = 2;
+
+% parse dij structure
+try
+    if ~isempty(evalin('base','dij'))
+        handles.State = 2;
+    end
+catch 
 end
-if sum(Flag(1:6))==6
-    handles.State = 3;  
+
+% parse optimized results
+try
+    if ~isempty(evalin('base','resultGUI'))
+        handles.State = 3;
+    end
+catch
 end
+
 guidata(hObject,handles);
 UpdatePlot(handles);
 
