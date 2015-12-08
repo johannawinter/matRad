@@ -30,7 +30,8 @@ function [stf, pln, w] = matRad_readRst(pln,filename)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % read RST into cell array
-RST = strsplit(fileread(filename),'\n')';
+RST = strsplit(char(10),fileread(filename))';
+%RST = strsplit(fileread(filename),'\n')';
 
 % Parser only applicable to single gantry angles! The expected gantry
 % angles have to specified in the pln sturct, abort of more than one angle
