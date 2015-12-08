@@ -43,6 +43,7 @@ function stf = matRad_generateStf(ct,cst,pln,visMode)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 fprintf('matRad: Generating stf struct... ');
 
 if nargin < 4
@@ -159,11 +160,12 @@ for i = 1:length(pln.gantryAngles)
                                           zeros(size(coordsAtIsoCenterPlane,1),1) ...
                                                       coordsAtIsoCenterPlane(:,2)]/pln.bixelWidth),'rows');
                                                   
-	 % pad ray position array if resolution of target voxel grid not sufficient
+% pad ray position array if resolution of target voxel grid not sufficient
      if pln.bixelWidth<max([ct.resolution.x ct.resolution.y ct.resolution.z])
         origRayPos = rayPos;
-        for j = -floor(max(ct.resolution)/pln.bixelWidth):floor(max(ct.resolution)/pln.bixelWidth)
-            for k = -floor(max(ct.resolution)/pln.bixelWidth):floor(max(ct.resolution)/pln.bixelWidth)
+        maxRes = max(structfun(@(x)max(x(:)),ct.resolution));
+        for j = -floor(maxRes/pln.bixelWidth):floor(maxRes/pln.bixelWidth)
+            for k = -floor(maxRes/pln.bixelWidth):floor(maxRes/pln.bixelWidth)
                 if abs(j)+abs(k)==0
                     continue;
                 end
@@ -313,6 +315,11 @@ for i = 1:length(pln.gantryAngles)
     
     % save total number of bixels
     stf(i).totalNumOfBixels = sum(stf(i).numOfBixelsPerRay);
+    
+%     figure,
+%     for jj = 1:length(stf.ray)
+%        plot(stf.ray(jj).rayPos_bev(1),stf.ray(jj).rayPos_bev(3),'rx'),hold on 
+%     end
     
     %% visualization
     if visMode > 0

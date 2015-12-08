@@ -462,6 +462,8 @@ switch RadIdentifier
         
         set(handles.btnRunSequencing,'Enable','on');
         set(handles.btnRunDAO,'Enable','on');
+        set(handles.txtSequencing,'Enable','on');
+        set(handles.editSequencingLevel,'Enable','on');
         
     case 'protons'
         set(handles.radbtnBioOpt,'Value',0);
@@ -470,6 +472,8 @@ switch RadIdentifier
         
         set(handles.btnRunSequencing,'Enable','off');
         set(handles.btnRunDAO,'Enable','off');
+        set(handles.txtSequencing,'Enable','off');
+        set(handles.editSequencingLevel,'Enable','off');
         
     case 'carbon'
         set(handles.radbtnBioOpt,'Value',1);
@@ -478,6 +482,8 @@ switch RadIdentifier
         
         set(handles.btnRunSequencing,'Enable','off');
         set(handles.btnRunDAO,'Enable','off');
+        set(handles.txtSequencing,'Enable','off');
+        set(handles.editSequencingLevel,'Enable','off');
 end
 
 if handles.State>0
@@ -1079,6 +1085,8 @@ function popupPlane_Callback(hObject, eventdata, handles)
 handles.plane = get(handles.popupPlane,'value');
 try
     ct = evalin('base', 'ct');
+    set(handles.sliderSlice,'Min',1,'Max',size(ct.cube,handles.plane),...
+            'SliderStep',[1/(size(ct.cube,handles.plane)-1) 1/(size(ct.cube,handles.plane)-1)]);
     if handles.State<3
         set(handles.sliderSlice,'Value',round(size(ct.cube,handles.plane)/2));
     else
@@ -1221,7 +1229,7 @@ if strcmp(pln.radiationMode,'photons') && (pln.runSequencing || pln.runDAO)
 %   resultGUI = matRad_xiaLeafSequencing(resultGUI,evalin('base','stf'),evalin('base','dij')...
 %       ,get(handles.editSequencingLevel,'Value'));
     resultGUI = matRad_engelLeafSequencing(resultGUI,evalin('base','stf'),evalin('base','dij')...
-        ,get(handles.editSequencingLevel,'String'));
+        ,str2num(get(handles.editSequencingLevel,'String')));
     assignin('base','resultGUI',resultGUI);
 end
 
@@ -1380,7 +1388,8 @@ function sliderBeamSelection_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-handles.SelectedBeam = get(hObject,'Value');
+handles.SelectedBeam = round(get(hObject,'Value'));
+set(hObject, 'Value', handles.SelectedBeam);
 UpdatePlot(handles);
 
 % --- Executes during object creation, after setting all properties.
@@ -1845,7 +1854,6 @@ function UpdateState(handles)
       set(handles.btnOptimize ,'Enable','off');
       set(handles.btnDVH,'Enable','off');
       set(handles.btnSequencing,'Enable','off');
-      set(handles.editSequencingLevel,'Enable','off');
       
      case 1
       pln = evalin('base','pln');   
@@ -1855,7 +1863,6 @@ function UpdateState(handles)
       set(handles.btnDVH,'Enable','off');
       if strcmp(pln.radiationMode,'photons')
           set(handles.btnSequencing,'Enable','off');
-          set(handles.editSequencingLevel,'Enable','on');
       end
      case 2
       pln = evalin('base','pln');
@@ -1865,7 +1872,6 @@ function UpdateState(handles)
       set(handles.btnDVH,'Enable','off');
       if strcmp(pln.radiationMode,'photons')
           set(handles.btnSequencing,'Enable','off');
-          set(handles.editSequencingLevel,'Enable','on');
       end
      
      case 3
@@ -1879,7 +1885,6 @@ function UpdateState(handles)
       
       if strcmp(pln.radiationMode,'photons')
           set(handles.btnSequencing,'Enable','on');
-          set(handles.editSequencingLevel,'Enable','on');
       end
  end
 
@@ -1931,7 +1936,14 @@ elseif strcmp(pln.radiationMode,'photons') && ~pln.runDAO
 else
     set(handles.btnRunDAO,'Enable','off');
 end
-
+%% enable stratification level input if radiation mode is set to photons
+if strcmp(pln.radiationMode,'photons')
+    set(handles.txtSequencing,'Enable','on');
+    set(handles.editSequencingLevel,'Enable','on');
+else
+    set(handles.txtSequencing,'Enable','off');
+    set(handles.editSequencingLevel,'Enable','off');
+end
 
  
 % get pln file form gui     
@@ -2193,17 +2205,17 @@ function btnSequencing_Callback(hObject, eventdata, handles)
 % hObject    handle to btnSequencing (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-StratificationLevel = parseStringAsNum(get(handles.editSequencingLevel,'String'));
+StratificationLevel = str2num(get(handles.editSequencingLevel,'String'));
 resultGUI=evalin('base','resultGUI');
 pln = evalin('base','pln');
 resultGUI.w = resultGUI.wUnsequenced;
 % perform sequencing and dao
 %% sequencing
 if strcmp(pln.radiationMode,'photons') && (pln.runSequencing || pln.runDAO)
-%   resultGUI = matRad_xiaLeafSequencing(resultGUI.w,evalin('base','stf'),evalin('base','dij')...
-%       ,StratificationLevel,resultGUI);
-    resultGUI = matRad_engelLeafSequencing(resultGUI.w,evalin('base','stf'),evalin('base','dij')...
-        ,StratificationLevel,resultGUI);
+%   resultGUI = matRad_xiaLeafSequencing(resultGUI,evalin('base','stf'),evalin('base','dij')...
+%       ,StratificationLevel,1);
+    resultGUI = matRad_engelLeafSequencing(resultGUI,evalin('base','stf'),evalin('base','dij')...
+        ,StratificationLevel,1);
     assignin('base','resultGUI',resultGUI);
 end
 

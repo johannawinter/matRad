@@ -1,5 +1,5 @@
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% matRad_BioDataGeneration script
+% matRad_BaseDataGeneration script
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Copyright 2015, Hans-Peter Wieser
@@ -11,12 +11,13 @@
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% This script can be used to generate baseData sets from files stemming from monte carlo
+% This script can be used to generate machine files from monte carlo
 % simulations stored as *.ddd. Each section in this file contains one specific step in the 
 % base data generation procedure. First, depth dose distributions for
 % protons or carbon ions can be extracted (including single and double laterals sigmas and weigths).
-% In addition the whole content of the TRiP planning folder can be parsed, plotted and saved as 
-% *.mat file for further processing.
+% In addition the content of the TRiP planning folder can be parsed,
+% plotted and saved. Biological base data can be generated from RBEinital
+% tables
 
 %% set global path which is valid for all subsections
 clc,
@@ -42,13 +43,13 @@ Name = [machine.meta.radiationMode  '_'  machine.meta.name];
 save(Name,'machine');
 
 
-%% interpolate double gaussian data froms sparse sigma1, sigma2 and weight matrix
+%% interpolate double gaussian data from sparse sigma1, sigma2 and weight matrix
 load('carbon_HIT.mat');
 %path to sampling points/Stützstellen provided by Katia P.
 pathToSparseData = [pathTRiP '\DDD\12C\HIT_2D_DB_Cwith_KatjaP'];
 Identifier = 'C';
 % if visBool is on then dont forget to press a key to step to the next plot
-machine = matRad_interpLateralBaseData(machine,pathTRiP,pathToSparseData,Identifier,0);
+machine = matRad_interpLateralBaseData(machine,pathTRiP,pathToSparseData,Identifier,FocusIdx,0);
 
 
 %% parse single spc files 
@@ -66,19 +67,15 @@ for i = 1:length(dirInfo)
 end
 
  %% parse dEdx file
-pathdEdx = [pathTRiP filesep '\DEDX\dEdxFLUKAxTRiP.dedx'];
-[Meta, dEdx ] = matRad_readdEdx(pathdEdx);
+[Meta, dEdx ] = matRad_readdEdx(pathTRiP);
 save('dEdx.mat','dEdx');
 
-
  %% parse RBEinitial data
-pathRBE = [pathTRiP filesep 'RBE'];
-[RBE] = matRad_readRBE(pathRBE);
+[RBE] = matRad_readRBE(pathTRiP);
 save('RBEinitial.mat','RBE');
 
-
-%% get dEdx* alpha from CNAO files or get them from the 37 spc files, for now the rapid 
-% Scholz algorithm is implemented
+%% get dEdx* alpha from CNAO files or get them from the 37 spc files,
+% for now the rapidScholz algorithm is implemented
 
 % get dose averaged alpha and beta depth curves from the 37spc files, RBE
 % inital file and dEdx file using the rapidScholz algorithm
@@ -107,22 +104,5 @@ if CNAOisUsed
 else
     [machine] = matRad_interpDoseAvgBioData(machine, sDataHIT ,CNAOisUsed, 0);
 end
-
-
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%% old code %%%%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% each *xls file in the provided folder will be converted to *.mat files to use
-% them further on for the bio base data generation.
-% clc,
-% clear 
-% close all
-% addpath([pwd filesep 'BioDataGeneration']);
-% % provide the folder of the *.xls spectra files and the destination path
-% matRad_XlsSpectra2Mat('E:\TRiP98DATA_HIT-20131120\SPC\12C\RF3MM',[pwd filesep 'baseDataHIT'])
-% 
 
 
