@@ -67,7 +67,7 @@ else
     X = interp1(depths,[conversionFactor*baseData.Z baseData.sigma],radDepths,'linear');
 
     % calculate dose
-    dose = exp( -radialDist_sq ./ (2*X(:,2).^2)) .* X(:,1) ./(2*pi*X(:,2).^2);
+    dose = baseData.LatCutOff.CompFac * exp( -radialDist_sq ./ (2*X(:,2).^2)) .* X(:,1) ./(2*pi*X(:,2).^2);
     
  end
  
