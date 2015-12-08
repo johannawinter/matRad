@@ -76,13 +76,11 @@ end
 % source position in beam's eye view.
 sourcePoint_bev = [0 -pln.SAD 0];
 
-
-
 % determine lateral cutoff
 fprintf('matRad: calculate lateral cutoff... ');
-CutOffLevel = 1;
+cutOffLevel = 1;
 visBoolLateralCutOff = 0;
-[ machine ] = matRad_calcLateralParticleCutOff(machine,CutOffLevel,visBoolLateralCutOff);
+machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,visBoolLateralCutOff);
 fprintf('...done \n');
 
 fprintf('matRad: Particle dose calculation... ');
@@ -149,23 +147,19 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 % find energy index in base data
                 energyIx = find(round2(stf(i).ray(j).energy(k),4) == round2([machine.data.energy],4));                
                 
-               
-                  if CutOffLevel >= 1
+                if cutOffLevel >= 1
                         ix = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset;
-                  else
-                      %perform rough 2D clipping
-                      ix = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
+                else
+                    % perform rough 2D clipping
+                    ix = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
                              radialDist_sq <= max(machine.data(energyIx).LatCutOff.CutOff.^2);
                        
-                         %peform fine 2D clipping  
-                       if length(machine.data(energyIx).LatCutOff.CutOff)>1
-                            ixx = interp1(machine.data(energyIx).LatCutOff.depths + machine.data(energyIx).offset,...
-                                machine.data(energyIx).LatCutOff.CutOff.^2, radDepths(ix)) >= radialDist_sq(ix);
-                            
-                            linIdx = find(ix);   
-                            ix = (linIdx(ixx)); 
-                       end
-                  end
+                    % peform fine 2D clipping  
+                    if length(machine.data(energyIx).LatCutOff.CutOff) > 1
+                        ix(ix) = interp1(machine.data(energyIx).LatCutOff.depths + machine.data(energyIx).offset,...
+                            machine.data(energyIx).LatCutOff.CutOff.^2, radDepths(ix)) >= radialDist_sq(ix);
+                    end
+                end
                 
                 % calculate particle dose for bixel k on ray j of beam i
                 bixelDose = matRad_calcParticleDoseBixel(...

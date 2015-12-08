@@ -1,4 +1,4 @@
-function [ machine ] = matRad_calcLateralParticleCutOff(machine,CutOffLevel,visBool)
+function [ machine ] = matRad_calcLateralParticleCutOff(machine,cutOffLevel,visBool)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad function to calculate a depth dependend lateral cutoff for each 
 % pristine particle beam
@@ -40,19 +40,17 @@ function [ machine ] = matRad_calcLateralParticleCutOff(machine,CutOffLevel,visB
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if (CutOffLevel < 0 || CutOffLevel > 0.9999) && (CutOffLevel ~= 1)
+if (cutOffLevel < 0 || cutOffLevel > 0.9999) && (cutOffLevel ~= 1)
    warning('lateral cutoff is out of range - using default cut off of 0.99') 
-   CutOffLevel = 0.99;
+   cutOffLevel = 0.99;
 end
 
-% set default depth cut off
-DepthDoseCutOff = 0.02; 
 % define some variables needed for the cutoff calculation
-maxVal = 200;      % [mm] integration limits
-dr  = 0.2;         % [mm] step size
-vX  = 0:dr:maxVal; % [mm]
+%vX     = [0 logspace(-1,4,1000)]; % [mm]
+vX     = linspace(0,1000,100000); % [mm]
 % integration steps
 r_mid   = 0.5*(vX(1:end-1) +  vX(2:end)); % [mm]
+dr      = vX(2:end) - vX(1:end-1);
 % number of depth points for which a lateral cutoff is determined
 NumDepthVal = 30; 
 
@@ -63,12 +61,16 @@ DG =  @(vR,Z,w,Sigma1,Sigma2) Z*(((1-w)*SG(vR,Sigma1)) + (w*SG(vR,Sigma2)));
 % loop over all entries in the machine.data struct
 for energyIx = 1:length(machine.data)
 
+    % set default depth cut off - finite value will be set during first
+    % iteration
+    depthDoseCutOff = inf;
+
     % get indices for which a lateral cutoff should be calculated - always include peak position 
     [~,peakIdx] = max(machine.data(energyIx).Z);
     Idx = round(linspace(1,length(machine.data(energyIx).depths),NumDepthVal-1));
     Idx = unique(sort([Idx peakIdx]));
 
-    for j = 1 : length(Idx)
+    for j = 1:length(Idx)
         
         % save depth value
         machine.data(energyIx).LatCutOff.depths(j) = machine.data(energyIx).depths(Idx(j));
@@ -90,7 +92,7 @@ for energyIx = 1:length(machine.data)
             error('unknown dataType');
         end
         
-        if CutOffLevel == 1
+        if cutOffLevel == 1
             machine.data(energyIx).LatCutOff.CompFac = 1;
             machine.data(energyIx).LatCutOff.CutOff  = Inf;
         else
@@ -99,36 +101,42 @@ for energyIx = 1:length(machine.data)
             
             % check if  -relative contribution in slice is smaller than cut off level
             %           -current depth is behind the peak
-            if relContrib < DepthDoseCutOff && ...
+            if relContrib < depthDoseCutOff && ...
                machine.data(energyIx).LatCutOff.depths(j) > machine.data(energyIx).peakPos
-                  Cut =  0.75;
+                  currCutOffLevel = 0;
             else
-                  Cut = CutOffLevel;
+                  currCutOffLevel = cutOffLevel;
             end
             
             % interpolate cut off
-            if cumArea(end)>Cut
-                 [cumArea,iA] = unique(cumArea); % ensure strictly monoton increasing values
-                 r_cut =  interp1(cumArea,r_mid(iA),Cut);
-            else
-                 r_cut = r_mid(end);
+            if cumArea(end) < currCutOffLevel
+                error('interpolation impossible. desired cutoff to large for considered area\n');
             end
+            
+            endIx = find(cumArea == 1,1,'first');
+            if isempty(endIx)
+                endIx = numel(cumArea);
+            end
+            
+            r_cut = interp1(cumArea(1:endIx),r_mid(1:endIx),currCutOffLevel);
             
             machine.data(energyIx).LatCutOff.CutOff(j) = r_cut;
             
             % set DepthDoseCutOff according to cutoff at entrance dose;
             if j == 1 && strcmp(machine.meta.dataType,'singleGauss')
-                DepthDoseCutOff = SG(r_cut,Sigma1); 
+                depthDoseCutOff = SG(r_cut,Sigma1); 
             elseif j == 1 && strcmp(machine.meta.dataType,'doubleGauss')
-                DepthDoseCutOff = DG(r_cut,1,w,Sigma1,Sigma2); 
+                depthDoseCutOff = DG(r_cut,1,w,Sigma1,Sigma2); 
             end
+            
             % ensure a monotone increasing lateral cutoff before the bragg peak
             if j > 1 &&  r_cut <  machine.data(energyIx).LatCutOff.CutOff(j-1)
                   machine.data(energyIx).LatCutOff.CutOff(j) =  machine.data(energyIx).LatCutOff.CutOff(j-1);
             end
 
             % Compenstaion factor to rescale the dose within the cut off in order not to lose integral dose
-            machine.data(energyIx).LatCutOff.CompFac = 1 + (1 - CutOffLevel);
+            machine.data(energyIx).LatCutOff.CompFac = 1/cutOffLevel;
+            
         end
    end
     
@@ -173,10 +181,10 @@ if visBool
     figure,set(gcf,'Color',[1 1 1]);
     subplot(221),surf(X,Y,vDose),xlabel('x'),ylabel('y'),zlabel('double lateral gauss'), hold on, axis tight
     contour3(X,Y,vDose,[(DoseLevel+0.001*DoseLevel) DoseLevel],'LineWidth',3,'color','r'),hold on;
-    title({['beam with energy ' num2str(machine.data(energyIx).energy) ' at depth index ' num2str(j)], ['cutoff = ' num2str(CutOffLevel)]}),set(gca,'FontSize',12);
+    title({['beam with energy ' num2str(machine.data(energyIx).energy) ' at depth index ' num2str(j)], ['cutoff = ' num2str(cutOffLevel)]}),set(gca,'FontSize',12);
     
     subplot(222),surf(X,Y,vDose),xlabel('x'),ylabel('y'),zlabel('double lateral gauss'), hold on, axis tight
-    contour3(X,Y,vDose,[(DoseLevel+0.001*DoseLevel) DoseLevel],'LineWidth',3,'color','r'),hold on; title(['intensity profile; cutoff = ' num2str(CutOffLevel)]),view(0,90)
+    contour3(X,Y,vDose,[(DoseLevel+0.001*DoseLevel) DoseLevel],'LineWidth',3,'color','r'),hold on; title(['intensity profile; cutoff = ' num2str(cutOffLevel)]),view(0,90)
     
     if strcmp(machine.meta.dataType,'singleGauss')
          vDoseLat =  machine.data(energyIx).Z(j)*SG(vLatX,machine.data(energyIx).sigma(j));
@@ -217,7 +225,7 @@ if visBool
     maxLateralCutOff = max(machine.data(energyIx).LatCutOff.CutOff);
     plot(machine.data(energyIx).LatCutOff.depths, machine.data(energyIx).LatCutOff.CutOff,'LineWidth',3),grid on, grid minor,
     ylabel('lateral cutoff in [mm]')
-    title(['desired CutOff is ' num2str(CutOffLevel*100) '%']),hold on
+    title(['desired CutOff is ' num2str(cutOffLevel*100) '%']),hold on
     plot([machine.data(energyIx).LatCutOff.depths(idx(1)),machine.data(energyIx).LatCutOff.depths(idx(1))],...
         [0 maxLateralCutOff],'r','LineWidth',2),hold on    
     plot([machine.data(energyIx).LatCutOff.depths(idx(2)),machine.data(energyIx).LatCutOff.depths(idx(2))],...
@@ -306,7 +314,7 @@ if visBool
         cellLegend{i} = [num2str(machine.data(ix(i)).energy) ' MeV'];
     end
     grid on, grid minor,xlabel('depth in [mm]'),ylabel('lateral cutoff in [mm]')
-    title(['cutoff level = ' num2str(CutOffLevel)])
+    title(['cutoff level = ' num2str(cutOffLevel)])
     legend(cellLegend)
 end
 

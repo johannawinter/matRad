@@ -131,9 +131,9 @@ sourcePoint_bev = [0 -pln.SAD 0];
 
 % determine lateral cutoff
 fprintf('matRad: calculate lateral cutoff... ');
-CutOffLevel = 0.99;
+cutOffLevel = 0.99;
 visBoolLateralCutOff = 0;
-[ machine ] = matRad_calcLateralParticleCutOff(machine,CutOffLevel,visBoolLateralCutOff);
+machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,visBoolLateralCutOff);
 fprintf('...done \n');
 
 fprintf('matRad: Particle dose calculation... ');
@@ -177,16 +177,9 @@ for i = 1:dij.numOfBeams; % loop over all beams
             energyIx = max(round2(stf(i).ray(j).energy,4)) == round2([machine.data.energy],4);
             
             
-            lateralCutoff = max(machine.data(energyIx).LatCutOff.CutOff);
+            maxLateralCutoff = max(machine.data(energyIx).LatCutOff.CutOff);
             
-            % set lateral cutoff for calculation of geometric distances
-           if isinf(lateralCutoff) && strcmp(machine.meta.dataType,'singleGauss')
-                lateralCutoff = 3*machine.data(energyIx).sigma(end);
-           elseif isinf(lateralCutoff) && strcmp(machine.meta.dataType,'doubleGauss')
-                lateralCutoff = 3* sqrt(machine.data(energyIx).sigma1(end)^2 + machine.data(energyIx).sigma2(end)^2);
-                warning('consider using a CutOffLevel smaller than 0.9999');
-           end
-           
+            
             % Ray tracing for beam i and ray j
             [ix,radDepths,~,latDistsX,latDistsZ] = matRad_calcRadGeoDists(ct.cube, ...
                                                         V,...
@@ -198,7 +191,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
                                                         sourcePoint_bev,...
                                                         stf(i).ray(j).targetPoint_bev, ...
                                                         coordsV, ...
-                                                        lateralCutoff, ...
+                                                        maxLateralCutoff, ...
                                                         visBool);
             
             radialDist_sq = latDistsX.^2 + latDistsZ.^2;    
@@ -227,24 +220,20 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 energyIx = find(round2(stf(i).ray(j).energy(k),4) == round2([machine.data.energy],4));
                 
                 % find depth depended lateral cut off
-                if CutOffLevel >= 1
+                if cutOffLevel >= 1
                     currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset;
-                elseif CutOffLevel < 1 && CutOffLevel > 0
-                    
-                  %perform rough 2D clipping
-                  currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
+                elseif cutOffLevel < 1 && cutOffLevel > 0
+                    % perform rough 2D clipping
+                    currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
                          radialDist_sq <= max(machine.data(energyIx).LatCutOff.CutOff.^2);
 
-                  %peform fine 2D clipping  
-                   if length(machine.data(energyIx).LatCutOff.CutOff) > 1
-                        ixx = interp1(machine.data(energyIx).LatCutOff.depths + machine.data(energyIx).offset,...
+                    % peform fine 2D clipping  
+                    if length(machine.data(energyIx).LatCutOff.CutOff) > 1
+                        currIx(currIx) = interp1(machine.data(energyIx).LatCutOff.depths + machine.data(energyIx).offset,...
                             machine.data(energyIx).LatCutOff.CutOff.^2, radDepths(currIx)) >= radialDist_sq(currIx);
-
-                        linIdx = find(currIx);   
-                        currIx = (linIdx(ixx)); 
-                   end
+                    end
                 else
-                  error('cutoff must be a value between 0 and 1')
+                    error('cutoff must be a value between 0 and 1')
                 end
                  
                 % calculate particle dose for bixel k on ray j of beam i
