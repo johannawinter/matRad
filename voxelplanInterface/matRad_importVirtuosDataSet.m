@@ -42,6 +42,7 @@ while ~feof(headerHandle)
         header.z_table.slice_no    = tmp(:,1);
         header.z_table.position    = tmp(:,2);
         header.z_table.thickness   = tmp(:,3);
+        header.z_table.gantry_tilt = tmp(:,4);
      end   
      
 end
