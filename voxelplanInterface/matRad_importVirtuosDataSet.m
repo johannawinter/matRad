@@ -69,9 +69,9 @@ else
 end  
 
 % interpolation
-resolution.x = 2.5;
-resolution.y = 2.5;
-resolution.z = 2.5;
+resolution.x = 3;
+resolution.y = 3;
+resolution.z = 3;
 
 info.ImagePositionPatient = [.5*header.pixel_size*ones(1,header.slice_number); ...
                              .5*header.pixel_size*ones(1,header.slice_number); ...
