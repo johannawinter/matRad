@@ -6,9 +6,9 @@ addpath(genpath(getenv('MATRADROOT')));
 [ct,cst] = matRad_importVirtuosDataSet([patFolder filesep patName],0);
 
 % set up matrad pln struct
-run(plnScriptName);
+pln = matRad_parsePlnScript(plnScriptName);
 
-pln.number          = plnNumber;
+pln.number          = str2num(plnNumber);
 pln.isoCenter       = matRad_getIsoCenter(cst,ct,0);
 pln.numOfBeams      = numel(pln.gantryAngles);
 pln.numOfVoxels     = numel(ct.cube);
@@ -22,7 +22,7 @@ dij = matRad_calcParticleDose(ct,stf,pln,cst);
 resultGUI = matRad_fluenceOptimization(dij,cst,pln);
 
 % write result
-matRad_writeVirtousDose(resultGUI,ct,patFolder,[patName num2str(pln.number)])
+matRad_writeVirtousDose(resultGUI,ct,patFolder,[patName plnNumber])
 
 % terminate
 exit;
