@@ -17,7 +17,7 @@ end
     
 % write data
 h = fopen([patFolder filesep filename '.dos'],'w');
-fwrite(h,d(:),'single');
+fwrite(h,d(:),'float');
 fclose(h);
 
 %% write corresponding header
