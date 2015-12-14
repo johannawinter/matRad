@@ -107,7 +107,11 @@ for i = 1:length(handles.Modalities)
         if ~isempty(Files)
             MachineName = Files(j).name(numel(handles.Modalities{1,i})+2:end-4);
             if isfield(handles,'Machines')
-                handles.Machines{size(handles.Machines,1)+1} = MachineName;
+
+                if sum(strcmp(handles.Machines,MachineName)) == 0
+                  handles.Machines{size(handles.Machines,1)+1} = MachineName;
+                end
+
             else
                 handles.Machines = cell(1);
                 handles.Machines{1} = MachineName;
@@ -623,6 +627,7 @@ catch
    return;
 end
 
+
 % carry out dose calculation
 try
     if strcmp(pln.radiationMode,'photons')
@@ -643,6 +648,7 @@ catch
     guidata(hObject,handles);
     return;
 end
+
 
 %% plots ct and distributions
 function UpdatePlot(handles)
