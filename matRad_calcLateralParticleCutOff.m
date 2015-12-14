@@ -46,8 +46,8 @@ if (cutOffLevel < 0 || cutOffLevel > 0.9999) && (cutOffLevel ~= 1)
 end
 
 % define some variables needed for the cutoff calculation
-%vX     = [0 logspace(-1,4,1000)]; % [mm]
-vX     = linspace(0,1000,100000); % [mm]
+vX     = [0 logspace(-1,4,1000)]; % [mm]
+%vX     = linspace(0,1000,1000); % [mm]
 % integration steps
 r_mid   = 0.5*(vX(1:end-1) +  vX(2:end)); % [mm]
 dr      = vX(2:end) - vX(1:end-1);
@@ -113,12 +113,22 @@ for energyIx = 1:length(machine.data)
                 error('interpolation impossible. desired cutoff to large for considered area\n');
             end
             
-            endIx = find(cumArea == 1,1,'first');
-            if isempty(endIx)
-                endIx = numel(cumArea);
+            [cumAreaUnique,IdxUnique] = unique(cumArea);
+            try
+                if currCutOffLevel == 0
+                    r_cut = 0;
+                else
+                    r_cut = interp1(cumAreaUnique,r_mid(IdxUnique),currCutOffLevel);
+                end
+            catch
+                error('code goes here');
             end
             
-            r_cut = interp1(cumArea(1:endIx),r_mid(1:endIx),currCutOffLevel);
+%             endIx = find(cumArea == 1,1,'first');
+%             if isempty(endIx)
+%                 endIx = numel(cumArea);
+%             end
+%             r_cut = interp1(cumArea(1:endIx),r_mid(1:endIx),currCutOffLevel);
             
             machine.data(energyIx).LatCutOff.CutOff(j) = r_cut;
             
