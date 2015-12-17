@@ -230,13 +230,12 @@ for i = 1:length(pln.gantryAngles)
     
     % Save ray and target position in lps system.
     for j = 1:stf(i).numOfRays
-
-        stf(i).ray(j).rayPos         = stf(i).ray(j).rayPos_bev*rotMx_XY_rotated*rotMx_XZ_rotated;
-        stf(i).ray(j).targetPoint    = stf(i).ray(j).targetPoint_bev*rotMx_XY_rotated*rotMx_XZ_rotated;
+        stf(i).ray(j).rayPos      = stf(i).ray(j).rayPos_bev*rotMx_XY_T*rotMx_XZ_T;
+        stf(i).ray(j).targetPoint = stf(i).ray(j).targetPoint_bev*rotMx_XY_T*rotMx_XZ_T;
         stf(i).ray(j).rayCorners_SCD = (repmat([0, pln.SCD - pln.SAD, 0],4,1)+ (pln.SCD/pln.SAD)*[rayPos(j,:) + [+stf(i).bixelWidth/2,0,+stf(i).bixelWidth/2];...
                                                                                                   rayPos(j,:) + [-stf(i).bixelWidth/2,0,+stf(i).bixelWidth/2];...
                                                                                                   rayPos(j,:) + [-stf(i).bixelWidth/2,0,-stf(i).bixelWidth/2];...
-                                                                                                  rayPos(j,:) + [+stf(i).bixelWidth/2,0,-stf(i).bixelWidth/2]])*rotMx_XY_rotated*rotMx_XZ_rotated;
+                                                                                                  rayPos(j,:) + [+stf(i).bixelWidth/2,0,-stf(i).bixelWidth/2]])*rotMx_XY_T*rotMx_XZ_T;
     end
     
     % find appropriate energies for particles
