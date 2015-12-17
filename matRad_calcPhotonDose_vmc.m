@@ -66,9 +66,9 @@ VMCPath     = fullfile(pwd , 'vmc++', '');
 runsPath    = fullfile(VMCPath, 'runs', '');
 phantomPath = fullfile(VMCPath, 'phantoms');
 
-dos(['"' fullfile(VMCPath, 'setx" ') 'vmc_home "' VMCPath]);
-dos(['"' fullfile(VMCPath, 'setx" ') 'vmc_dir "' runsPath]);
-dos(['"' fullfile(VMCPath, 'setx" ') 'xvmc_dir "' VMCPath]);
+setenv('vmc_home',VMCPath);
+setenv('vmc_dir',runsPath);
+setenv('xvmc_dir',VMCPath);
 
 % export CT cube as binary file for vmc++ and change units mm -> cm 
 matRad_export_CT_vmc(ct.cube,...
