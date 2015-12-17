@@ -308,7 +308,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
         % perform vmc++ simulation
         current = pwd;
         cd(VMCPath);
-        dos(['start /low /B /wait ' fullfile('.', 'bin', 'vmc_Windows.exe') ' ' outfile '']); % (D)
+        dos(['start /NORMAL /B /WAIT ' fullfile('.', 'bin', 'vmc_Windows.exe') ' ' outfile '']); % (D)
         cd(current);
         
         % import calculated dose
@@ -331,5 +331,13 @@ for i = 1:dij.numOfBeams; % loop over all beams
         
     end
 end
+
+%% (C)
+% delete phantom and run files
+delete(fullfile(phantomPath, 'matRad_CT.ct')); % phantom file
+delete(fullfile(runsPath, [outfile,'.vmc']));  % vmc input file
+delete(fullfile(runsPath, [outfile,'_',VMC_options.scoring_options.dose_options.score_in_geometries,'.dos'])); % vmc outputfile
+
+%% (C)
 
 close(figureWait);
