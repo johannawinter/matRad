@@ -117,7 +117,7 @@ while ~feof(vdxHandle)
     % if key word voi is found -> initialze new voi
     if strncmp(currentLine,'voi ',4)
         structCounter = structCounter + 1;
-        structures(structCounter).structName = cell2mat(strread(currentLine,'voi %s'));
+        structures(structCounter).structName = currentLine(5:end);
         itemCounter = 0;
     end
     
