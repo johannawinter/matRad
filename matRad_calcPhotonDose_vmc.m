@@ -70,10 +70,8 @@ setenv('vmc_home',VMCPath);
 setenv('vmc_dir',runsPath);
 setenv('xvmc_dir',VMCPath);
 
-% export CT cube as binary file for vmc++ and change units mm -> cm 
-matRad_export_CT_vmc(ct.cube,...
-                     ct.resolution.y/10, ct.resolution.x/10, ct.resolution.z/10,...
-                     fullfile(phantomPath, 'matRad_CT.ct'));
+% export CT cube as binary file for vmc++
+matRad_export_CT_vmc(ct, fullfile(phantomPath, 'matRad_CT.ct'));
 
 % set general vmc++ parameters
 % 1 source
@@ -96,15 +94,15 @@ VMC_options.quasi.base      = 2;                                                
 VMC_options.quasi.dimension = 60;                                               %
 VMC_options.quasi.skip      = 1;                                                %
 % 6 geometry
-VMC_options.geometry.XYZ_geometry.my_name         = 'phantom';                  % name of geometry
-VMC_options.geometry.XYZ_geometry.method_of_input = 'CT-PHANTOM';               % input method ('CT-PHANTOM', 'individual', 'groups') 
-VMC_options.geometry.XYZ_geometry.phantom_file    = './phantoms/matRad_CT.ct';  % path of density matrix (only needed if input method is 'CT-PHANTOM')
+VMC_options.geometry.XYZ_geometry.method_of_input = 'CT-PHANTOM';                 % input method ('CT-PHANTOM', 'individual', 'groups') 
+VMC_options.geometry.XYZ_geometry.CT              = 'CT';                         % name of geometry
+VMC_options.geometry.XYZ_geometry.CT_file         = './phantoms/matRad_CT.ct';    % path of density matrix (only needed if input method is 'CT-PHANTOM')
 % 7 scoring manager
-VMC_options.scoring_options.start_in_geometry                = 'phantom';       % geometry in which partciles start their transport
-VMC_options.scoring_options.dose_options.score_in_geometries = 'phantom';       % geometry in which dose is recorded
-VMC_options.scoring_options.dose_options.score_dose_to_water = 'yes';           % if yes output is dose to water
-VMC_options.scoring_options.output_options.name              = 'phantom';       % geometry for which dose output is created (geometry has to be scored)
-VMC_options.scoring_options.output_options.dump_dose         = 2;               % output format (1: format=float, Dose + deltaDose; 2: format=short int, Dose)
+VMC_options.scoring_options.start_in_geometry                = 'CT';    % geometry in which partciles start their transport
+VMC_options.scoring_options.dose_options.score_in_geometries = 'CT'; % geometry in which dose is recorded
+VMC_options.scoring_options.dose_options.score_dose_to_water = 'yes';   % if yes output is dose to water
+VMC_options.scoring_options.output_options.name              = 'CT'; % geometry for which dose output is created (geometry has to be scored)
+VMC_options.scoring_options.output_options.dump_dose         = 2;       % output format (1: format=float, Dose + deltaDose; 2: format=short int, Dose)
 %% (A)
 
 % set up arrays for book keeping
@@ -302,7 +300,6 @@ for i = 1:dij.numOfBeams; % loop over all beams
         
         % create inputfile with vmc++ parameters
         outfile = 'MCpencilbeam_temp';
-        %outfile = ['MCpencilbeam_',int2str(i),'_',int2str(j)];
         matRad_create_VMC_input(VMC_options,fullfile(runsPath, [outfile,'.vmc']));
         
         % perform vmc++ simulation
@@ -312,9 +309,8 @@ for i = 1:dij.numOfBeams; % loop over all beams
         cd(current);
         
         % import calculated dose
-        Dim           = size(ct.cube);
-        [bixelDose,~] = matRad_read_dose_vmc(fullfile(VMCPath, 'runs', [outfile, '_', VMC_options.scoring_options.dose_options.score_in_geometries, '.dos']),...
-                                         VMC_options.scoring_options.output_options.dump_dose,Dim(1),Dim(2),Dim(3));
+        [bixelDose,~] = matRad_read_dose_vmc(fullfile(VMCPath, 'runs',...
+                                             [outfile, '_', VMC_options.scoring_options.output_options.name, '.dos']));
         
         % Save dose for every bixel in cell array
         doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V,1,bixelDose(V),numel(ct.cube),1);
