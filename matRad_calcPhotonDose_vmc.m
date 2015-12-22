@@ -45,7 +45,7 @@ function dij = matRad_calcPhotonDose_vmc(ct,stf,pln,cst)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % initialize waitbar
-figureWait=waitbar(0,'photon dij-calculation..');
+figureWait = waitbar(0,'VMC++ photon dij-calculation..');
 % meta information for dij
 dij.numOfBeams         = pln.numOfBeams;
 dij.numOfVoxels        = pln.numOfVoxels;
@@ -55,10 +55,9 @@ dij.totalNumOfRays     = sum(dij.numOfRaysPerBeam);
 dij.totalNumOfBixels   = sum([stf(:).totalNumOfBixels]);
 dij.dimensions         = pln.voxelDimensions;
 
-%% (A)
 % set environment variables for vmc++
-VMCPath     = fullfile(pwd , 'vmc++', '');
-runsPath    = fullfile(VMCPath, 'runs', '');
+VMCPath     = fullfile(pwd , 'vmc++');
+runsPath    = fullfile(VMCPath, 'runs');
 phantomPath = fullfile(VMCPath, 'phantoms');
 
 setenv('vmc_home',VMCPath);
@@ -78,7 +77,7 @@ VMC_options.beamlet_source.charge        = 0;                                  %
 VMC_options.MC_parameter.automatic_parameter = 'yes';                          % if yes, automatic transport parameters are used
 % 3 MC control
 VMC_options.MC_control.ncase     = 5000;                                       % number of histories
-VMC_options.MC_control.nbatch    = 10;                                         % ?
+VMC_options.MC_control.nbatch    = 2;                                          % ?
 VMC_options.MC_control.rng_seeds = [9722,14369];                               % initialization of pseudo random number
 % 4 variance reduction
 VMC_options.variance_reduction.repeat_history      = 0.251;                    % 
@@ -98,7 +97,6 @@ VMC_options.scoring_options.dose_options.score_in_geometries = 'CT';           %
 VMC_options.scoring_options.dose_options.score_dose_to_water = 'yes';          % if yes output is dose to water
 VMC_options.scoring_options.output_options.name              = 'CT';           % geometry for which dose output is created (geometry has to be scored)
 VMC_options.scoring_options.output_options.dump_dose         = 2;              % output format (1: format=float, Dose + deltaDose; 2: format=short int, Dose)
-%% (A)
 
 % set up arrays for book keeping
 dij.bixelNum = NaN*ones(dij.totalNumOfRays,1);
@@ -117,7 +115,7 @@ V = unique([cell2mat(cst(:,4))]);
 
 counter = 0;
 
-fprintf('matRad: Photon dose calculation... ');
+fprintf('matRad: VMC++ photon dose calculation... ');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for i = 1:dij.numOfBeams; % loop over all beams
        
@@ -126,7 +124,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
         counter = counter + 1;
 
         % Display progress
-        matRad_progress(counter,dij.totalNumOfBixels);
+        fprintf(['finished ' num2str(counter/dij.totalNumOfBixels*100) '%% \m']);
         % update waitbar only 100 times
         if mod(counter,round(dij.totalNumOfBixels/100)) == 0
             waitbar(counter/dij.totalNumOfBixels);
@@ -137,7 +135,6 @@ for i = 1:dij.numOfBeams; % loop over all beams
         dij.rayNum(counter)   = j;
         dij.bixelNum(counter) = j;
         
-        %% (B)
         % set ray specific vmc++ parameters
         % a) change coordinate system (Isocenter cs-> physical cs) and units mm -> cm
         ray_corner_1 = (stf(i).ray(j).rayCorners_SCD(1,:) + pln.isoCenter)/10;              
@@ -172,7 +169,6 @@ for i = 1:dij.numOfBeams; % loop over all beams
         
         % Save dose for every bixel in cell array
         doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V,1,bixelDose(V),numel(ct.cube),1);
-        %% (B)
 
         if mod(counter,numOfBixelsContainer) == 0 || counter == dij.totalNumOfBixels
             dij.physicalDose(:,(ceil(counter/numOfBixelsContainer)-1)*numOfBixelsContainer+1:counter) = [doseTmpContainer{1:mod(counter-1,numOfBixelsContainer)+1,1}];
@@ -181,11 +177,9 @@ for i = 1:dij.numOfBeams; % loop over all beams
     end
 end
 
-%% (C)
 % delete phantom and run files
 delete(fullfile(phantomPath, 'matRad_CT.ct')); % phantom file
 delete(fullfile(runsPath, [outfile,'.vmc']));  % vmc input file
 delete(fullfile(runsPath, [outfile,'_',VMC_options.scoring_options.dose_options.score_in_geometries,'.dos'])); % vmc outputfile
-%% (C)
 
 close(figureWait);

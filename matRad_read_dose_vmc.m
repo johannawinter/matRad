@@ -1,4 +1,4 @@
-function [bixelDose,bixelDose_error] = matRad_read_dose_vmc(filepath)
+function [bixelDose,bixelDose_error] = matRad_read_dose_vmc(filename)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad binary dose import from vmc++
 % 
@@ -6,7 +6,7 @@ function [bixelDose,bixelDose_error] = matRad_read_dose_vmc(filepath)
 %   [bixelDose,bixelDose_error] = matRad_read_dose_vmc(filepath)
 %
 % input
-%   filepath:   path of input file
+%   filename:   path of input file
 %
 % output
 %   bixelDose       = vector of imported dose values, [D]      = 10^-(10) Gy cm^2
@@ -18,32 +18,7 @@ function [bixelDose,bixelDose_error] = matRad_read_dose_vmc(filepath)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% Copyright 2015, Mark Bangert, on behalf of the matRad development team
-%
-% m.bangert@dkfz.de
-%
-% This file is part of matRad.
-%
-% matrad is free software: you can redistribute it and/or modify it under
-% the terms of the GNU General Public License as published by the Free
-% Software Foundation, either version 3 of the License, or (at your option)
-% any later version.
-%
-% matRad is distributed in the hope that it will be useful, but WITHOUT ANY
-% WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-% FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-% details.
-%
-% You should have received a copy of the GNU General Public License in the
-% file license.txt along with matRad. If not, see
-% <http://www.gnu.org/licenses/>.
-%
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-fid = fopen(filepath,'r');
+fid = fopen(filename,'r');
 
 % read header (no regions, no histories, no batches, no beamlets, format specifier (dump_dose))
 Header     = fread(fid,5,'int32');
