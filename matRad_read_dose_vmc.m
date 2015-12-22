@@ -1,4 +1,4 @@
-function [bixelDose,bixelDose_error] = matRad_read_dose_vmc(filepath, precision, nr, nc, ns)
+function [bixelDose,bixelDose_error] = matRad_read_dose_vmc(filepath)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad binary dose import from vmc++
 % 
@@ -47,18 +47,19 @@ function [bixelDose,bixelDose_error] = matRad_read_dose_vmc(filepath, precision,
 fid = fopen(filepath,'r');
 
 % read header (no regions, no histories, no batches, no beamlets, format specifier (dump_dose))
-Header    = fread(fid,5,'int32');
-dump_dose = Header(5);
+Header     = fread(fid,5,'int32');
+no_regions = Header(1);
+dump_dose  = Header(5);
 
 % read dose array
 if dump_dose == 2
     dmax            = fread(fid, 1, 'double');
-    bixelDose       = fread(fid, nr*nc*ns, 'uint16');
+    bixelDose       = fread(fid, no_regions, 'uint16');
     bixelDose       = bixelDose/65534*dmax; % conversion short integers to floating numbers
     bixelDose_error = 0;
 elseif dump_dose == 1
-    bixelDose       = fread(fid, nr*nc*ns, 'float32');
-    bixelDose_error = fread(fid, nr*nc*ns, 'float32');
+    bixelDose       = fread(fid, no_regions, 'float32');
+    bixelDose_error = fread(fid, no_regions, 'float32');
 else
     fclose(fid);        
     error('Incorrect value for precision.');
