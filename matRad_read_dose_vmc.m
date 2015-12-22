@@ -3,15 +3,14 @@ function [bixelDose,bixelDose_error] = matRad_read_dose_vmc(filepath)
 % matRad binary dose import from vmc++
 % 
 % call
-%   [bixelDose,bixelDose_error] = matRad_read_dose_vmc(filepath, precision, nr, nc, ns)
+%   [bixelDose,bixelDose_error] = matRad_read_dose_vmc(filepath)
 %
 % input
 %   filepath:   path of input file
-%   nr,nc,ns:   dimensions of dose file
 %
 % output
-%   bixelDose       = vector of imported dose values [D]      = 10^-(10) Gy cm^2
-%   bixelDose_error = vector of imported dose errors [deltaD] = 10^-(10) Gy cm^2
+%   bixelDose       = vector of imported dose values, [D]      = 10^-(10) Gy cm^2
+%   bixelDose_error = vector of imported dose errors, [deltaD] = 10^-(10) Gy cm^2
 %
 %
 % References
@@ -60,9 +59,6 @@ if dump_dose == 2
 elseif dump_dose == 1
     bixelDose       = fread(fid, no_regions, 'float32');
     bixelDose_error = fread(fid, no_regions, 'float32');
-else
-    fclose(fid);        
-    error('Incorrect value for precision.');
 end
 
 fclose(fid);

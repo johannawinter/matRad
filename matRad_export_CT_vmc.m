@@ -6,7 +6,7 @@ function matRad_export_CT_vmc(ct, filepath)
 %   matRad_export_CT_vmc(ct, filepath)
 %
 % input
-%   ct:             matRad ct structure file
+%   ct:             matRad ct struct
 %   filepath:       path where CTfile is created
 %
 %
@@ -48,18 +48,10 @@ fwrite(fid,CT_size(1),'int32');
 fwrite(fid,CT_size(2),'int32');
 fwrite(fid,CT_size(3),'int32');
 
-% write voxel corner location in cm in physical cs
-if (isfield(ct, 'shift'))
-    % create ct cube with corner at [.5 .5 .5] + shift cube 
-    X = [.5:(CT_size(1)+.5)]*ct.resolution.x/10 + ct.shift(1)/10;
-    Y = [.5:(CT_size(2)+.5)]*ct.resolution.y/10 + ct.shift(2)/10;
-    Z = [.5:(CT_size(3)+.5)]*ct.resolution.z/10 + ct.shift(3)/10;
-else
-    % assume ct cube corner at [.5 .5 .5]
-    X = [.5:(CT_size(1)+.5)]*ct.resolution.x/10;
-    Y = [.5:(CT_size(2)+.5)]*ct.resolution.y/10;
-    Z = [.5:(CT_size(3)+.5)]*ct.resolution.z/10;
-end
+% write voxel corner location in cm in physical cs with ct cube corner at [.5 .5 .5]
+X = [.5:(CT_size(1)+.5)]*ct.resolution.x/10;
+Y = [.5:(CT_size(2)+.5)]*ct.resolution.y/10;
+Z = [.5:(CT_size(3)+.5)]*ct.resolution.z/10;
 
 fwrite(fid,X,'float32');
 fwrite(fid,Y,'float32');
