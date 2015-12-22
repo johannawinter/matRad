@@ -69,10 +69,10 @@ matRad_export_CT_vmc(ct, fullfile(phantomPath, 'matRad_CT.ct'));
 
 % set general vmc++ parameters
 % 1 source
-VMC_options.beamlet_source.my_name       = 'source 1';                         % name of source
-VMC_options.beamlet_source.monitor_units = 1;                                  % ?
-VMC_options.beamlet_source.spectrum      = 'var_6MV.spectrum';                 % energy spectrum source (only used if no mono-Energy given)
-VMC_options.beamlet_source.charge        = 0;                                  % charge (-1,0,1)
+VMC_options.beamlet_source.my_name       = 'source 1';                                               % name of source
+VMC_options.beamlet_source.monitor_units = 1;                                                        % ?
+VMC_options.beamlet_source.spectrum      = './spectra/Artiste_Geant4_8mm_phsp_tacke.spectrum';       % energy spectrum source (only used if no mono-Energy given)
+VMC_options.beamlet_source.charge        = 0;                                                        % charge (-1,0,1)
 % 2 transport parameter
 VMC_options.MC_parameter.automatic_parameter = 'yes';                          % if yes, automatic transport parameters are used
 % 3 MC control
@@ -149,7 +149,8 @@ for i = 1:dij.numOfBeams; % loop over all beams
         beam_source  = beam_source([2,1,3]);
         
         % c) set vmc++ parameters
-        VMC_options.beamlet_source.mono_energy                   = stf(i).ray(j).energy;                        % photon energy
+        %VMC_options.beamlet_source.mono_energy                   = stf(i).ray(j).energy;                       % photon energy
+        VMC_options.beamlet_source.mono_energy                   = []                  ;                        % use photon spectrum
         VMC_options.beamlet_source.beamlet_edges                 = [ray_corner_1,ray_corner_2,ray_corner_3];    % counter-clockwise beamlet edges
         VMC_options.beamlet_source.virtual_point_source_position = beam_source;                                 % virtual beam source position
         
