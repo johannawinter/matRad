@@ -241,6 +241,9 @@ for i = 1:dij.numOfBeams; % loop over all beams
                                                geoDists,...
                                                latDistsX,...
                                                latDistsZ);
+                                           
+        % apply conversion factor (enables comparability of dose calculations)
+        bixelDose = bixelDose*0.016046333443549;
        
         % Save dose for every bixel in cell array
         doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix),1,bixelDose,numel(ct.cube),1);

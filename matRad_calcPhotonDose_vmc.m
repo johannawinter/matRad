@@ -19,31 +19,6 @@ function dij = matRad_calcPhotonDose_vmc(ct,stf,pln,cst)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% Copyright 2015, Mark Bangert, on behalf of the matRad development team
-%
-% m.bangert@dkfz.de
-%
-% This file is part of matRad.
-%
-% matrad is free software: you can redistribute it and/or modify it under
-% the terms of the GNU General Public License as published by the Free
-% Software Foundation, either version 3 of the License, or (at your option)
-% any later version.
-%
-% matRad is distributed in the hope that it will be useful, but WITHOUT ANY
-% WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-% FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-% details.
-%
-% You should have received a copy of the GNU General Public License in the
-% file license.txt along with matRad. If not, see
-% <http://www.gnu.org/licenses/>.
-%
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 % initialize waitbar
 figureWait = waitbar(0,'VMC++ photon dij-calculation..');
 % meta information for dij
@@ -76,7 +51,7 @@ VMC_options.beamlet_source.charge        = 0;                                   
 % 2 transport parameter
 VMC_options.MC_parameter.automatic_parameter = 'yes';                          % if yes, automatic transport parameters are used
 % 3 MC control
-VMC_options.MC_control.ncase     = 5000;                                       % number of histories
+VMC_options.MC_control.ncase     = 500000;                                       % number of histories
 VMC_options.MC_control.nbatch    = 10;                                          % ?
 VMC_options.MC_control.rng_seeds = [9722,14369];                               % initialization of pseudo random number
 % 4 variance reduction
@@ -161,13 +136,16 @@ for i = 1:dij.numOfBeams; % loop over all beams
         % perform vmc++ simulation
         current = pwd;
         cd(VMCPath);
-        dos(['start /NORMAL /B /WAIT ' fullfile('.', 'bin', 'vmc_Windows.exe') ' ' outfile '']); % (D)
+        dos(['start /NORMAL /B /WAIT ' fullfile('.', 'bin', 'vmc_Windows.exe') ' ' outfile '']);
         cd(current);
         
         % import calculated dose
         [bixelDose,~] = matRad_read_dose_vmc(fullfile(VMCPath, 'runs',...
                                              [outfile, '_', VMC_options.scoring_options.output_options.name, '.dos']));
         
+        % apply conversion factor (enables comparability of dose calculations)
+        bixelDose = bixelDose*91.876665940287400;
+                                         
         % Save dose for every bixel in cell array
         doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V,1,bixelDose(V),numel(ct.cube),1);
 
