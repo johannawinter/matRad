@@ -142,6 +142,10 @@ for i = 1:dij.numOfBeams; % loop over all beams
         % import calculated dose
         [bixelDose,~] = matRad_read_dose_vmc(fullfile(VMCPath, 'runs',...
                                              [outfile, '_', VMC_options.scoring_options.output_options.name, '.dos']));
+                                         
+        % apply relative dose cutoff
+        rel_cutoff                                  = 10^(-3);
+        bixelDose(bixelDose < bixelDose*rel_cutoff) = 0;
         
         % apply conversion factor (enables comparability of dose calculations)
         bixelDose = bixelDose*91.876665940287400;
