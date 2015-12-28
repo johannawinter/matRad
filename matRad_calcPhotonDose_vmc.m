@@ -51,8 +51,8 @@ VMC_options.beamlet_source.charge        = 0;                                   
 % 2 transport parameter
 VMC_options.MC_parameter.automatic_parameter = 'yes';                          % if yes, automatic transport parameters are used
 % 3 MC control
-VMC_options.MC_control.ncase     = 500000;                                       % number of histories
-VMC_options.MC_control.nbatch    = 10;                                          % ?
+VMC_options.MC_control.ncase     = 5000;                                       % number of histories
+VMC_options.MC_control.nbatch    = 10;                                         % ?
 VMC_options.MC_control.rng_seeds = [9722,14369];                               % initialization of pseudo random number
 % 4 variance reduction
 VMC_options.variance_reduction.repeat_history      = 0.251;                    % 
