@@ -183,8 +183,8 @@ end
 delete(fullfile(VMCPath, 'run_parallel_simulations.bat')); % batch file
 delete(fullfile(phantomPath, 'matRad_CT.ct')); % phantom file
 for j=1:max_parallel_simulations
-    delete(fullfile(runsPath, ['MCpencilbeam_temp_',num2str(mod(j-1,max_parallel_simulations)),'.vmc'])); % vmc input file
-    delete(fullfile(runsPath, ['MCpencilbeam_temp_',num2str(mod(j-1,max_parallel_simulations)),'_',VMC_options.scoring_options.dose_options.score_in_geometries,'.dos'])); % vmc outputfile
+    delete(fullfile(runsPath, ['MCpencilbeam_temp_',num2str(mod(j-1,max_parallel_simulations)+1),'.vmc'])); % vmc input file
+    delete(fullfile(runsPath, ['MCpencilbeam_temp_',num2str(mod(j-1,max_parallel_simulations)+1),'_',VMC_options.scoring_options.dose_options.score_in_geometries,'.dos'])); % vmc outputfile
 end
 
 close(figureWait);
