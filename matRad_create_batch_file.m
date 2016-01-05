@@ -2,7 +2,7 @@ function matRad_create_batch_file(parallel_simulations, filepath)
 
 parallel_processes = cell(1,parallel_simulations);
 for i=1:parallel_simulations
-    parallel_processes{1,i} = ['start "" 9>"%lock%',num2str(i),'" .\bin\vmc_Windows.exe MCpencilbeam_temp_',num2str(i-1)];
+    parallel_processes{1,i} = ['start "" 9>"%lock%',num2str(i),'" .\bin\vmc_Windows.exe MCpencilbeam_temp_',num2str(i)];
 end
 
 batch_file = {...

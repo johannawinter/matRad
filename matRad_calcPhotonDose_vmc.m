@@ -134,13 +134,13 @@ for i = 1:dij.numOfBeams; % loop over all beams
         VMC_options.beamlet_source.virtual_point_source_position = beam_source;                                 % virtual beam source position
         
         % create inputfile with vmc++ parameters
-        outfile = ['MCpencilbeam_temp_',num2str(mod(j-1,max_parallel_simulations))];
+        outfile = ['MCpencilbeam_temp_',num2str(mod(j-1,max_parallel_simulations)+1)];
         matRad_create_VMC_input(VMC_options,fullfile(runsPath, [outfile,'.vmc']));
         
-        if mod(j,max_parallel_simulations) == 0 || j == stf(i).numOfRays
+        if mod(counter,max_parallel_simulations) == 0 || counter == dij.totalNumOfBixels
             % create batch file (enables parallel processes)
-            if j == stf(i).numOfRays
-                parallel_simulations = mod(j,max_parallel_simulations);
+            if counter == dij.totalNumOfBixels
+                parallel_simulations = mod(counter,max_parallel_simulations);
             else
                 parallel_simulations = max_parallel_simulations;
             end
@@ -152,7 +152,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
             dos('run_parallel_simulations.bat')
             cd(current);
             
-            for k = 0:(parallel_simulations-1)
+            for k = 1:parallel_simulations
                 counter2 = counter2 + 1;
                 
                 % import calculated dose
