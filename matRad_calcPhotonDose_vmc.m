@@ -43,7 +43,7 @@ setenv('xvmc_dir',VMCPath);
 matRad_export_CT_vmc(ct, fullfile(phantomPath, 'matRad_CT.ct'));
 
 % set number of parallel simulations
-max_parallel_simulations = 10;
+max_parallel_simulations = 8;
 
 % set general vmc++ parameters
 % 1 source
