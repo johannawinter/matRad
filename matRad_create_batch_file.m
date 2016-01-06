@@ -1,4 +1,20 @@
 function matRad_create_batch_file(parallel_simulations, filepath)
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% matRad batchfile creation
+%
+% call
+%   matRad_create_batch_file(parallel_simulations, filepath)
+%
+% input
+%   parallel_simulations:   no of parallel simulations
+%   filepath:               path where batchfile is created (this has to be the 
+%                           path of the vmc++ folder)
+%
+%
+% References
+%   
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 parallel_processes = cell(1,parallel_simulations);
 for i=1:parallel_simulations

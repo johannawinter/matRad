@@ -21,6 +21,7 @@ function dij = matRad_calcPhotonDose_vmc(ct,stf,pln,cst)
 
 % initialize waitbar
 figureWait = waitbar(0,'VMC++ photon dij-calculation..');
+
 % meta information for dij
 dij.numOfBeams         = pln.numOfBeams;
 dij.numOfVoxels        = pln.numOfVoxels;
@@ -39,11 +40,17 @@ setenv('vmc_home',VMCPath);
 setenv('vmc_dir',runsPath);
 setenv('xvmc_dir',VMCPath);
 
-% export CT cube as binary file for vmc++
-matRad_export_CT_vmc(ct, fullfile(phantomPath, 'matRad_CT.ct'));
-
 % set number of parallel simulations
 max_parallel_simulations = 8;
+
+% set relative dose cutoff
+rel_Dose_cutoff = 10^(-4);
+
+% set absolute calibration factor
+% SETUP
+% SAD = 1000mm, SCD = 500mm, bixelWidth = 5mm, IC = [240mm,240mm,240mm]
+% fieldsize@IC = 75mm x 75mm, phantomsize = 81 x 81 x 81 = 243mm x 243mm x 243mm
+absolute_calibration_factor_vmc = 91.876665940287400;
 
 % set general vmc++ parameters
 % 1 source
@@ -75,6 +82,9 @@ VMC_options.scoring_options.dose_options.score_in_geometries = 'CT';           %
 VMC_options.scoring_options.dose_options.score_dose_to_water = 'yes';          % if yes output is dose to water
 VMC_options.scoring_options.output_options.name              = 'CT';           % geometry for which dose output is created (geometry has to be scored)
 VMC_options.scoring_options.output_options.dump_dose         = 2;              % output format (1: format=float, Dose + deltaDose; 2: format=short int, Dose)
+
+% export CT cube as binary file for vmc++
+matRad_export_CT_vmc(ct, fullfile(phantomPath, 'matRad_CT.ct'));
 
 % set up arrays for book keeping
 dij.bixelNum = NaN*ones(dij.totalNumOfRays,1);
@@ -161,11 +171,11 @@ for i = 1:dij.numOfBeams; % loop over all beams
                                                      [outfile(1:idx(2)),num2str(k), '_', VMC_options.scoring_options.output_options.name, '.dos']));
 
                 % apply relative dose cutoff
-                Dose_cutoff                        = 10^(-4)*max(bixelDose);
+                Dose_cutoff                        = rel_Dose_cutoff*max(bixelDose);
                 bixelDose(bixelDose < Dose_cutoff) = 0;
 
-                % apply conversion factor (enables comparability of dose calculations)
-                bixelDose = bixelDose*91.876665940287400;
+                % apply absolute calibration factor
+                bixelDose = bixelDose*absolute_calibration_factor_vmc;
 
                 % Save dose for every bixel in cell array
                 doseTmpContainer{mod(counter2-1,numOfBixelsContainer)+1,1} = sparse(V,1,bixelDose(V),numel(ct.cube),1);
