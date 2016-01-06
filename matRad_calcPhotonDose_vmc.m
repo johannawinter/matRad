@@ -134,7 +134,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
         VMC_options.beamlet_source.virtual_point_source_position = beam_source;                                 % virtual beam source position
         
         % create inputfile with vmc++ parameters
-        outfile = ['MCpencilbeam_temp_',num2str(mod(j-1,max_parallel_simulations)+1)];
+        outfile = ['MCpencilbeam_temp_',num2str(mod(counter-1,max_parallel_simulations)+1)];
         matRad_create_VMC_input(VMC_options,fullfile(runsPath, [outfile,'.vmc']));
         
         if mod(counter,max_parallel_simulations) == 0 || counter == dij.totalNumOfBixels
