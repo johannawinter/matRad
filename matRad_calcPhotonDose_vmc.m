@@ -40,13 +40,16 @@ setenv('vmc_home',VMCPath);
 setenv('vmc_dir',runsPath);
 setenv('xvmc_dir',VMCPath);
 
+% set random seed (enables reproducibility)
+rng(0);
+
 % set number of parallel simulations
 max_parallel_simulations = 8;
 
 % set relative dose cutoff
 rel_Dose_cutoff = 10^(-4);
 
-% set absolute calibration factor
+% set absolute calibration factor 
 % SETUP
 % SAD = 1000mm, SCD = 500mm, bixelWidth = 5mm, IC = [240mm,240mm,240mm]
 % fieldsize@IC = 75mm x 75mm, phantomsize = 81 x 81 x 81 = 243mm x 243mm x 243mm
@@ -63,7 +66,7 @@ VMC_options.MC_parameter.automatic_parameter = 'yes';                          %
 % 3 MC control
 VMC_options.MC_control.ncase     = 5000;                                       % number of histories
 VMC_options.MC_control.nbatch    = 10;                                         % ?
-VMC_options.MC_control.rng_seeds = [9722,14369];                               % initialization of pseudo random number
+
 % 4 variance reduction
 VMC_options.variance_reduction.repeat_history      = 0.251;                    % 
 VMC_options.variance_reduction.split_photons       = 'yes';                    % 
@@ -112,6 +115,9 @@ for i = 1:dij.numOfBeams; % loop over all beams
     for j = 1:stf(i).numOfRays % loop over all rays / for photons we only have one bixel per ray!
         
         counter = counter + 1;
+        
+        % create different seeds for every bixel
+        VMC_options.MC_control.rng_seeds = [randi(30000),randi(30000)];
 
         % Display progress
         fprintf(['finished ' num2str(counter/dij.totalNumOfBixels*100) '%% \n']);
