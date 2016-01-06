@@ -54,8 +54,9 @@ rel_Dose_cutoff = 10^(-3);
 % absolute_calibration_factor = 1/D(depth = 100,5mm) -> D(depth = 100,5mm) = 1Gy
 % SETUP
 % SAD = 1000mm, SCD = 500mm, bixelWidth = 5mm, IC = [240mm,240mm,240mm]
-% fieldsize@IC = 75mm x 75mm, phantomsize = 81 x 81 x 81 = 243mm x 243mm x 243mm
-absolute_calibration_factor_vmc = 91.876665940287400;
+% fieldsize@IC = 105mm x 105mm, phantomsize = 81 x 81 x 81 = 243mm x 243mm x 243mm
+% rel_Dose_cutoff = 10^(-3)
+absolute_calibration_factor_vmc = 99.818252282632300;
 
 % set general vmc++ parameters
 % 1 source
