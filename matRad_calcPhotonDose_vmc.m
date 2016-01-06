@@ -47,7 +47,7 @@ rng(0);
 max_parallel_simulations = 8;
 
 % set relative dose cutoff
-rel_Dose_cutoff = 10^(-4);
+rel_Dose_cutoff = 10^(-3);
 
 % set absolute calibration factor 
 % SETUP
