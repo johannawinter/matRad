@@ -101,8 +101,9 @@ doseTmpContainer = cell(numOfBixelsContainer,1);
 % take only voxels inside patient
 V = unique([cell2mat(cst(:,4))]);
 
-counter  = 0;
-counter2 = 0;
+counter                     = 0;
+counter2                    = 0;
+max_no_executed_simulations = 0;
 
 fprintf('matRad: VMC++ photon dose calculation... ');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -156,6 +157,11 @@ for i = 1:dij.numOfBeams; % loop over all beams
             end
             matRad_create_batch_file(parallel_simulations,fullfile(VMCPath,'run_parallel_simulations.bat'));
             
+            % save max number of executed parallel simulations
+            if parallel_simulations > max_no_executed_simulations 
+                max_no_executed_simulations = parallel_simulations;
+            end
+            
             % perform vmc++ simulation
             current = pwd;
             cd(VMCPath);
@@ -192,7 +198,7 @@ end
 % delete phantom and run files
 delete(fullfile(VMCPath, 'run_parallel_simulations.bat')); % batch file
 delete(fullfile(phantomPath, 'matRad_CT.ct')); % phantom file
-for j=1:max_parallel_simulations
+for j=1:max_no_executed_simulations
     delete(fullfile(runsPath, ['MCpencilbeam_temp_',num2str(mod(j-1,max_parallel_simulations)+1),'.vmc'])); % vmc input file
     delete(fullfile(runsPath, ['MCpencilbeam_temp_',num2str(mod(j-1,max_parallel_simulations)+1),'_',VMC_options.scoring_options.dose_options.score_in_geometries,'.dos'])); % vmc outputfile
 end
