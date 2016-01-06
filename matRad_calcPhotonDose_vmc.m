@@ -42,6 +42,9 @@ setenv('xvmc_dir',VMCPath);
 % export CT cube as binary file for vmc++
 matRad_export_CT_vmc(ct, fullfile(phantomPath, 'matRad_CT.ct'));
 
+% set number of parallel simulations
+max_parallel_simulations = 8;
+
 % set general vmc++ parameters
 % 1 source
 VMC_options.beamlet_source.my_name       = 'source 1';                                               % name of source
@@ -88,7 +91,8 @@ doseTmpContainer = cell(numOfBixelsContainer,1);
 % take only voxels inside patient
 V = unique([cell2mat(cst(:,4))]);
 
-counter = 0;
+counter  = 0;
+counter2 = 0;
 
 fprintf('matRad: VMC++ photon dose calculation... ');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -130,39 +134,57 @@ for i = 1:dij.numOfBeams; % loop over all beams
         VMC_options.beamlet_source.virtual_point_source_position = beam_source;                                 % virtual beam source position
         
         % create inputfile with vmc++ parameters
-        outfile = 'MCpencilbeam_temp';
+        outfile = ['MCpencilbeam_temp_',num2str(mod(counter-1,max_parallel_simulations)+1)];
         matRad_create_VMC_input(VMC_options,fullfile(runsPath, [outfile,'.vmc']));
         
-        % perform vmc++ simulation
-        current = pwd;
-        cd(VMCPath);
-        dos(['start /NORMAL /B /WAIT ' fullfile('.', 'bin', 'vmc_Windows.exe') ' ' outfile '']);
-        cd(current);
-        
-        % import calculated dose
-        [bixelDose,~] = matRad_read_dose_vmc(fullfile(VMCPath, 'runs',...
-                                             [outfile, '_', VMC_options.scoring_options.output_options.name, '.dos']));
-                                         
-        % apply relative dose cutoff
-        Dose_cutoff                        = 10^(-4)*max(bixelDose);
-        bixelDose(bixelDose < Dose_cutoff) = 0;
-        
-        % apply conversion factor (enables comparability of dose calculations)
-        bixelDose = bixelDose*91.876665940287400;
-                                         
-        % Save dose for every bixel in cell array
-        doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V,1,bixelDose(V),numel(ct.cube),1);
+        if mod(counter,max_parallel_simulations) == 0 || counter == dij.totalNumOfBixels
+            % create batch file (enables parallel processes)
+            if counter == dij.totalNumOfBixels
+                parallel_simulations = mod(counter,max_parallel_simulations);
+            else
+                parallel_simulations = max_parallel_simulations;
+            end
+            matRad_create_batch_file(parallel_simulations,fullfile(VMCPath,'run_parallel_simulations.bat'));
+            
+            % perform vmc++ simulation
+            current = pwd;
+            cd(VMCPath);
+            dos('run_parallel_simulations.bat')
+            cd(current);
+            
+            for k = 1:parallel_simulations
+                counter2 = counter2 + 1;
+                
+                % import calculated dose
+                idx = regexp(outfile,'_');
+                [bixelDose,~] = matRad_read_dose_vmc(fullfile(VMCPath, 'runs',...
+                                                     [outfile(1:idx(2)),num2str(k), '_', VMC_options.scoring_options.output_options.name, '.dos']));
 
-        if mod(counter,numOfBixelsContainer) == 0 || counter == dij.totalNumOfBixels
-            dij.physicalDose(:,(ceil(counter/numOfBixelsContainer)-1)*numOfBixelsContainer+1:counter) = [doseTmpContainer{1:mod(counter-1,numOfBixelsContainer)+1,1}];
+                % apply relative dose cutoff
+                Dose_cutoff                        = 10^(-4)*max(bixelDose);
+                bixelDose(bixelDose < Dose_cutoff) = 0;
+
+                % apply conversion factor (enables comparability of dose calculations)
+                bixelDose = bixelDose*91.876665940287400;
+
+                % Save dose for every bixel in cell array
+                doseTmpContainer{mod(counter2-1,numOfBixelsContainer)+1,1} = sparse(V,1,bixelDose(V),numel(ct.cube),1);
+
+                if mod(counter2,numOfBixelsContainer) == 0 || counter2 == dij.totalNumOfBixels
+                dij.physicalDose(:,(ceil(counter2/numOfBixelsContainer)-1)*numOfBixelsContainer+1:counter2) = [doseTmpContainer{1:mod(counter2-1,numOfBixelsContainer)+1,1}];
+                end
+            end
         end
         
     end
 end
 
 % delete phantom and run files
+delete(fullfile(VMCPath, 'run_parallel_simulations.bat')); % batch file
 delete(fullfile(phantomPath, 'matRad_CT.ct')); % phantom file
-delete(fullfile(runsPath, [outfile,'.vmc']));  % vmc input file
-delete(fullfile(runsPath, [outfile,'_',VMC_options.scoring_options.dose_options.score_in_geometries,'.dos'])); % vmc outputfile
+for j=1:max_parallel_simulations
+    delete(fullfile(runsPath, ['MCpencilbeam_temp_',num2str(mod(j-1,max_parallel_simulations)+1),'.vmc'])); % vmc input file
+    delete(fullfile(runsPath, ['MCpencilbeam_temp_',num2str(mod(j-1,max_parallel_simulations)+1),'_',VMC_options.scoring_options.dose_options.score_in_geometries,'.dos'])); % vmc outputfile
+end
 
 close(figureWait);
