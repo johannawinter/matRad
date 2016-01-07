@@ -63,8 +63,8 @@ stf = matRad_generateStf(ct,cst,pln);
 
 %% dose calculation
 if strcmp(pln.radiationMode,'photons')
-    dij     = matRad_calcPhotonDose(ct,stf,pln,cst);
-    %dij_vmc = matRad_calcPhotonDose_vmc(ct,stf,pln,cst);
+    dij = matRad_calcPhotonDose(ct,stf,pln,cst);
+    %dij = matRad_calcPhotonDose_vmc(ct,stf,pln,cst);
 elseif strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     dij = matRad_calcParticleDose(ct,stf,pln,cst);
 end
