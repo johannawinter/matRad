@@ -55,7 +55,7 @@ rel_Dose_cutoff = 10^(-3);
 % SETUP
 % SAD = 1000mm, SCD = 500mm, bixelWidth = 5mm, IC = [240mm,240mm,240mm]
 % fieldsize@IC = 105mm x 105mm, phantomsize = 81 x 81 x 81 = 243mm x 243mm x 243mm
-% rel_Dose_cutoff = 10^(-3)
+% rel_Dose_cutoff = 10^(-3), ncase = 500000/bixel
 absolute_calibration_factor_vmc = 99.818252282632300;
 
 % set general vmc++ parameters
