@@ -1,20 +1,32 @@
 function machine = matRad_getDDDfromTxt(Identifier,basePath,focusIdx,offset,visBool)
+
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% matRad_getDDDfromTxt script
+% matRad_interpLateralInfo script
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Copyright 2015, Hans-Peter Wieser
+% Copyright 2016, Hans-Peter Wieser
 %
 % h.wieser@dkfz.de
 %
+% call
+%  [ machine ] = matRad_getDDDfromTxt(Identifier,basePath,focusIdx,offset,visBool)
+%
+% input
+%   Identifier:        either 'p','C','O' for parsing the correct ddd files
+%   basePath:          path to TRiP folder for parsing the inital beam width
+%   focusIdx:          focus index (1-6) determines the initial beam width which will be added to the lateral
+%                      sigma(s). If focusIdx is set to 0 no initial beam width will be added
+%   offset:            offset of the ddd's in mm
+%   visBool:           boolean if plots should be displayed or not - if visBool
+%                      is 1, then press a key to continue with the next energy
+%
+% output
+%   machine:           matRads base data set
+%   
 % This file is NOT part of the official matRad release. 
 % This file has to be used only for internal purposes! 
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% This script can be used to parse depth dose distribution from ddd files.
-% The identifier is important to chose the correct relative path.
-
 
 
 
@@ -31,14 +43,6 @@ switch Identifier
         machine.meta.radiationMode = 'oxygen';
     otherwise
         error('unkown particle type')
-end
-
-%read inital beam width which is energy and and machine specific
-try
-    [Sigma_SIS,vEnergySIS] = matRad_getSigmaSIS(Identifier,basePath,focusIdx);
-catch
-    warning('Could not read sis files containing the inital beam widths');
-    Sigma_SIS = 0;
 end
 
 % check the content of the directory
@@ -115,8 +119,21 @@ for i = 1:length(machine.data)
    machine.data(i).offset = offset; 
 end
 
-if sum(abs([machine.data.energy]-vEnergySIS'))>0.05
-   disp('check if foki and ddd exist on the same energy levels');
+
+
+%read inital beam width which is energy and and machine specific
+if focusIdx > 0
+    try
+        [Sigma_SIS,vEnergySIS] = matRad_getSigmaSIS(Identifier,basePath,focusIdx);
+    catch
+        warning('Could not read sis files containing the inital beam widths');
+        Sigma_SIS = 0;
+    end
+    if sum(abs([machine.data.energy]-vEnergySIS'))>0.05
+        disp('check if foki and ddd exist on the same energy levels');
+    end
+else
+   Sigma_SIS  = zeros(size(IdxEnergy))';
 end
 
 % calculate sigmas and weights used to model lateral profile
@@ -152,9 +169,10 @@ machine.data = rmfield(machine.data,'FWHM2');
 % add meta information
 machine.meta.created_on = date;
 machine.meta.created_by = getenv('USERNAME');
-machine.meta.description = 'HIT carbon baseData from TRiP98 combined with KatjaP. lateral double gauss data';
+machine.meta.description = 'HIT carbon baseData from TRiP98 combined with KatjaP. lateral double gauss data considering beam widening in air';
 machine.meta.name = 'HIT';
 machine.meta.FocusIdx = focusIdx;
+machine.meta.SAD      = 10000;
 %% plots linear spaced baseData 
 if visBool
     %copy baseData into baseDataNew
