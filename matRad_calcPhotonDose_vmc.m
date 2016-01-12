@@ -159,7 +159,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
         
         if mod(counter,max_parallel_simulations) == 0 || counter == dij.totalNumOfBixels
             % create batch file (enables parallel processes)
-            if counter == dij.totalNumOfBixels
+            if counter == dij.totalNumOfBixels && mod(counter,max_parallel_simulations) ~= 0
                 parallel_simulations = mod(counter,max_parallel_simulations);
             else
                 parallel_simulations = max_parallel_simulations;
