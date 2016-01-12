@@ -17,7 +17,7 @@ function matRad_create_VMC_input(VMC_options, filepath)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-%check for monoenergy option
+% check for monoenergy option
 if ~isempty(VMC_options.beamlet_source.mono_energy) && VMC_options.beamlet_source.mono_energy>0
     monoEnergyLine = ['      mono energy = ' num2str(VMC_options.beamlet_source.mono_energy)];
 else
@@ -77,7 +77,7 @@ VMC_Input = {...
     ['  :stop scoring options:      '                                                                          ]
     };
 
-%write input file
+% write input file
 fid = fopen(filepath,'wt');
 for i = 1 : length(VMC_Input)
   fprintf(fid,'%s\n',VMC_Input{i});

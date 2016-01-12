@@ -39,7 +39,7 @@ batch_file = {...
     ['echo Done - ready to continue processing']
     };
 
-%write input file
+% write batch file
 fid = fopen(filepath,'wt');
 for i = 1 : length(batch_file)
   fprintf(fid,'%s\n',batch_file{i});
