@@ -1,15 +1,16 @@
-function dij = matRad_calcPhotonDose_vmc(ct,stf,pln,cst)
+function dij = matRad_calcPhotonDose_vmc(ct,stf,pln,cst,parallel_simulations)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad vmc++ photon dose calculation wrapper
 % 
 % call
-%   dij = matRad_calcPhotonDose(ct,stf,pln,cst)
+%   dij = matRad_calcPhotonDose(ct,stf,pln,cst,parallel_simulations)
 %
 % input
-%   ct:         matRad ct struct
-%   stf:        matRad steering information struct
-%   pln:        matRad plan meta information struct
-%   cst:        matRad cst struct
+%   ct:                    matRad ct struct
+%   stf:                   matRad steering information struct
+%   pln:                   matRad plan meta information struct
+%   cst:                   matRad cst struct
+%   parallel_simulations : number of simultaneously performed simulations (optional) 
 %
 % output
 %   dij:        matRad dij struct
@@ -44,8 +45,12 @@ setenv('xvmc_dir',VMCPath);
 rng(0);
 
 % set number of parallel simulations
-max_parallel_simulations = 8;
-
+if nargin > 4
+    max_parallel_simulations = parallel_simulations;
+else
+    max_parallel_simulations = 1;
+end
+    
 % set relative dose cutoff
 rel_Dose_cutoff = 10^(-3);
 
