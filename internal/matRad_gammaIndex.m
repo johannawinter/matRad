@@ -1,5 +1,34 @@
 function gammaCube = matRad_gammaIndex(cube1,cube2,resolution,slice)
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % gamma index calculation according to http://www.ncbi.nlm.nih.gov/pubmed/9608475
+% 
+% call
+%    gammaCube = matRad_gammaIndex(cube1,cube2,resolution,slice)
+%
+% input
+%   cube1:          dose cube as an M x N x O array
+%   cube2:          dose cube as an M x N x O array
+%   resolution:     resolution of the cubes [mm/voxel]
+%   slice:          optional parameter for plotting the gamma pass rate on
+%                   a specific slice
+%
+% output 
+%   gammaCube       relative distance between start and endpoint for the 
+%
+%   gamma index calculation represents a technique for 
+%   the quantitative evaluation of dose distributions.
+% References
+%   [1]  http://www.ncbi.nlm.nih.gov/pubmed/9608475
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Copyright 2015, Mark Bangert
+%
+% This file is NOT part of the official matRad release. 
+% This file has to be used only for internal purposes! 
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % check if cubes consistent
 if ~isequal(size(cube1),size(cube2))
