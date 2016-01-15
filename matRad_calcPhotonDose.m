@@ -51,7 +51,7 @@ if nargin < 5
 end
 
 % initialize waitbar
-figureWait=waitbar(0,'photon dij-calculation..');
+figureWait = waitbar(0,'photon dij-calculation..');
 % prevent closure of waitbar and show busy state
 set(figureWait,'CloseRequestFcn','');
 set(figureWait,'pointer','watch');
