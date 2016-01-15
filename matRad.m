@@ -39,8 +39,6 @@ load HEAD_AND_NECK
 %load BOXPHANTOM.mat
 
 % meta information for treatment plan
-pln.SAD             = 1000; %[mm]
-pln.SCD             = 500; %[mm]
 pln.isoCenter       = matRad_getIsoCenter(cst,ct,0);
 pln.bixelWidth      = 5; % [mm] / also corresponds to lateral spot spacing for particles
 pln.gantryAngles    = [0:72:359]; % [°]
@@ -81,7 +79,7 @@ end
 
 %% DAO
 if strcmp(pln.radiationMode,'photons') && pln.runDAO
-   resultGUI = matRad_directApertureOptimization(dij,cst,resultGUI.apertureInfo,resultGUI);
+   resultGUI = matRad_directApertureOptimization(dij,cst,resultGUI.apertureInfo,resultGUI,pln);
    matRad_visApertureInfo(resultGUI.apertureInfo);
 end
 

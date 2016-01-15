@@ -103,6 +103,9 @@ handles.Modalities = {'photons','protons','carbon'};
 for i = 1:length(handles.Modalities)
     pattern = [handles.Modalities{1,i} '_*'];
     Files = dir(pattern);
+    if isdeployed
+        Files = [Files, dir([ctfroot filesep 'matRad' filesep pattern])];
+    end
     for j = 1:length(Files)
         if ~isempty(Files)
             MachineName = Files(j).name(numel(handles.Modalities{1,i})+2:end-4);
@@ -337,33 +340,6 @@ catch
 end
 UpdateState(handles);
 guidata(hObject,handles);
-
-function editSAD_Callback(hObject, ~, handles)
-% hObject    handle to editSAD (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-getPln(handles);
-if handles.State > 0
-    handles.State = 1;
-    UpdateState(handles);
-    guidata(hObject,handles);
-end
-
-
-% --- Executes during object creation, after setting all properties.
-function editSAD_CreateFcn(hObject, ~, ~)
-% hObject    handle to editSAD (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
 
 function editBixelWidth_Callback(hObject, ~, handles)
 % hObject    handle to editBixelWidth (see GCBO)
@@ -958,9 +934,16 @@ elseif plane == 1 % Coronal plane
 end
 
 
-
 %% profile plot
 if get(handles.popupTypeOfPlot,'Value')==2 && exist('Result','var')
+    % set SAD
+    fileName = [pln.radiationMode '_' pln.machine];
+    try
+        load(fileName);
+        SAD = machine.meta.SAD;
+    catch
+        error(['Could not find the following machine file: ' fileName ]); 
+    end
      
     % clear view and initialize some values
     cla(handles.axesFig,'reset')
@@ -978,11 +961,11 @@ if get(handles.popupTypeOfPlot,'Value')==2 && exist('Result','var')
                       sind(pln.couchAngles(handles.SelectedBeam)) 0 cosd(pln.couchAngles(handles.SelectedBeam))];
     
     if strcmp(handles.ProfileType,'longitudinal')
-        sourcePointBEV = [handles.profileOffset -pln.SAD   0];
-        targetPointBEV = [handles.profileOffset  pln.SAD   0];
+        sourcePointBEV = [handles.profileOffset -SAD   0];
+        targetPointBEV = [handles.profileOffset  SAD   0];
     elseif strcmp(handles.ProfileType,'lateral')
-        sourcePointBEV = [-pln.SAD handles.profileOffset   0];
-        targetPointBEV = [ pln.SAD handles.profileOffset   0];
+        sourcePointBEV = [-SAD handles.profileOffset   0];
+        targetPointBEV = [ SAD handles.profileOffset   0];
     end
     
     rotSourcePointBEV = sourcePointBEV * inv_rotMx_XZ_T * inv_rotMx_XY_T;
@@ -1307,7 +1290,7 @@ try
     %% DAO
     if strcmp(pln.radiationMode,'photons') && pln.runDAO
        resultGUI = matRad_directApertureOptimization(evalin('base','dij'),evalin('base','cst')...
-           ,resultGUI.apertureInfo,resultGUI,1);
+           ,resultGUI.apertureInfo,resultGUI,pln,1);
        assignin('base','resultGUI',resultGUI);
     end
     
@@ -1975,7 +1958,6 @@ function UpdateState(handles)
 function setPln(handles)
 pln=evalin('base','pln');
 set(handles.editBixelWidth,'String',num2str(pln.bixelWidth));
-set(handles.editSAD,'String',num2str(pln.SAD));
 set(handles.editFraction,'String',num2str(pln.numOfFractions));
 
 if isfield(pln,'isoCenter')
@@ -2030,7 +2012,6 @@ end
 % get pln file form GUI     
 function getPln(handles)
 
-pln.SAD             = parseStringAsNum(get(handles.editSAD,'String'),false); %[mm]
 pln.bixelWidth      = parseStringAsNum(get(handles.editBixelWidth,'String'),false); % [mm] / also corresponds to lateral spot spacing for particles
 pln.gantryAngles    = parseStringAsNum(get(handles.editGantryAngle,'String'),true); % [°]
 pln.couchAngles     = parseStringAsNum(get(handles.editCouchAngle,'String'),true); % [°]
@@ -2161,7 +2142,7 @@ function About_Callback(~, ~, ~)
 % hObject    handle to About (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-msgbox({'https://github.com/e0404/matRad/' 'matrad@dkfz.de'},'About','custom',myicon);
+msgbox({'https://github.com/e0404/matRad/' 'email: matrad@dkfz.de'},'About');
 
 
 
@@ -2569,9 +2550,11 @@ contents = cellstr(get(handles.popupRadMode,'String'));
 radMod = contents{get(handles.popupRadMode,'Value')};
 
 FoundFile = dir([radMod '_' Machine '.mat']);
-
+if isdeployed
+   FoundFile = [FoundFile, dir([ctfroot filesep 'matRad' filesep radMod '_' Machine '.mat'])];
+end
 if isempty(FoundFile)
-    warndlg(['No base available for machine: ' Machine]);
+    warndlg(['No base data available for machine: ' Machine]);
     Valid = false;
 end
 
