@@ -232,7 +232,7 @@ delete(fullfile(phantomPath, 'matRad_CT.ct'));             % phantom file
 for j = 1:maxNumOfParallelMcSimulations
     delete(fullfile(runsPath, ['MCpencilbeam_temp_',num2str(mod(j-1,numOfParallelMCSimulations)+1),'.vmc'])); % vmc inputfile
     delete(fullfile(runsPath, ['MCpencilbeam_temp_',num2str(mod(j-1,numOfParallelMCSimulations)+1),'_',...
-                                    VmcOptions.scoring_options.dose_options.score_in_geometries,'.dos']));    % vmc outputfile
+                                    VmcOptions.scoringOptions.doseOptions.scoreInGeometries,'.dos']));    % vmc outputfile
 end
 
 close(figureWait);
