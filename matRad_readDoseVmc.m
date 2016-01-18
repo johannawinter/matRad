@@ -3,7 +3,7 @@ function [bixelDose,bixelDose_error] = matRad_readDoseVmc(filename)
 % matRad binary dose import from vmc++
 % 
 % call
-%   [bixelDose,bixelDose_error] = matRad_read_dose_vmc(filepath)
+%   [bixelDose,bixelDose_error] = matRad_readDoseVmc(filename)
 %
 % input
 %   filename:   path of input file

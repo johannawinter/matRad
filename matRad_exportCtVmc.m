@@ -3,7 +3,7 @@ function matRad_exportCtVmc(ct, filename)
 % matRad binary CT export for vmc++
 % 
 % call
-%   matRad_export_CT_vmc(ct, filepath)
+%   matRad_exportCtVmc(ct, filename)
 %
 % input
 %   ct:             matRad ct struct

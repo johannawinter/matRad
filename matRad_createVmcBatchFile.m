@@ -3,7 +3,7 @@ function matRad_createVmcBatchFile(parallelSimulations, filepath,verboseLevel)
 % matRad batchfile creation
 %
 % call
-%   matRad_create_batch_file(parallel_simulations, filepath)
+%   matRad_createVmcBatchFile(parallelSimulations, filepath,verboseLevel)
 %
 % input
 %   parallelSimulations: no of parallel simulations

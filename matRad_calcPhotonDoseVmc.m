@@ -3,7 +3,7 @@ function dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst,numOfParallelMCSimulation
 % matRad vmc++ photon dose calculation wrapper
 % 
 % call
-%   dij = matRad_calcPhotonDose(ct,stf,pln,cst,parallel_simulations)
+%   dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst,numOfParallelMCSimulations)
 %
 % input
 %   ct:                         matRad ct struct
@@ -73,11 +73,11 @@ VmcOptions.beamletSource.myName       = 'source 1';                        % nam
 VmcOptions.beamletSource.monitorUnits = 1;                                 
 VmcOptions.beamletSource.spectrum     = ['./spectra/Artiste_Geant4_' ...
                                             '8mm_phsp_tacke.spectrum'];    % energy spectrum source (only used if no mono-Energy given)
-VmcOptions.beamletSource.charge       = 0;                                                        % charge (-1,0,1)
+VmcOptions.beamletSource.charge       = 0;                                 % charge (-1,0,1)
 % 2 transport parameter
 VmcOptions.McParameter.automatic_parameter = 'yes';                        % if yes, automatic transport parameters are used
 % 3 MC control
-VmcOptions.McControl.ncase  = 50;                                        % number of histories
+VmcOptions.McControl.ncase  = 5000;                                        % number of histories
 VmcOptions.McControl.nbatch = 10;                                          % number of batcher
 % 4 variance reduction
 VmcOptions.varianceReduction.repeatHistory      = 0.251;
@@ -158,10 +158,10 @@ for i = 1:dij.numOfBeams; % loop over all beams
         beamSource  = beamSource([2,1,3]);
         
         % c) set vmc++ parameters
-        %VMC_options.beamletSource.monoEnergy                = stf(i).ray(j).energy;                       % photon energy
-        VmcOptions.beamletSource.monoEnergy                 = []                  ;                        % use photon spectrum
+        %VMC_options.beamletSource.monoEnergy                = stf(i).ray(j).energy;                 % photon energy
+        VmcOptions.beamletSource.monoEnergy                 = []                  ;                  % use photon spectrum
         VmcOptions.beamletSource.beamletEdges               = [rayCorner1,rayCorner2,rayCorner3];    % counter-clockwise beamlet edges
-        VmcOptions.beamletSource.virtualPointSourcePosition = beamSource;                                 % virtual beam source position
+        VmcOptions.beamletSource.virtualPointSourcePosition = beamSource;                            % virtual beam source position
         
         % create inputfile with vmc++ parameters
         outfile = ['MCpencilbeam_temp_',num2str(mod(writeCounter-1,numOfParallelMCSimulations)+1)];
@@ -232,7 +232,7 @@ delete(fullfile(phantomPath, 'matRad_CT.ct'));             % phantom file
 for j = 1:maxNumOfParallelMcSimulations
     delete(fullfile(runsPath, ['MCpencilbeam_temp_',num2str(mod(j-1,numOfParallelMCSimulations)+1),'.vmc'])); % vmc inputfile
     delete(fullfile(runsPath, ['MCpencilbeam_temp_',num2str(mod(j-1,numOfParallelMCSimulations)+1),'_',...
-                                    VmcOptions.scoring_options.dose_options.score_in_geometries,'.dos'])); % vmc outputfile
+                                    VmcOptions.scoring_options.dose_options.score_in_geometries,'.dos']));    % vmc outputfile
 end
 
 close(figureWait);
