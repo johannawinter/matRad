@@ -93,6 +93,7 @@ end
 fileName = [pln.radiationMode '_' pln.machine];
 try
    load(fileName);
+   SAD = machine.meta.SAD;
 catch
    error(['Could not find the following machine file: ' fileName ]); 
 end
@@ -152,8 +153,8 @@ for i = 1:length(pln.gantryAngles)
     rot_coords = [coordsX coordsY coordsZ]*inv_rotMx_XZ_T*inv_rotMx_XY_T;
     
     % project x and z coordinates to isocenter
-    coordsAtIsoCenterPlane(:,1) = (rot_coords(:,1)*pln.SAD)./(pln.SAD + rot_coords(:,2));
-    coordsAtIsoCenterPlane(:,2) = (rot_coords(:,3)*pln.SAD)./(pln.SAD + rot_coords(:,2));
+    coordsAtIsoCenterPlane(:,1) = (rot_coords(:,1)*SAD)./(SAD + rot_coords(:,2));
+    coordsAtIsoCenterPlane(:,2) = (rot_coords(:,3)*SAD)./(SAD + rot_coords(:,2));
     
     % Take unique rows values for beamlets positions. Calculate position of
     % central ray for every bixel    
@@ -161,22 +162,20 @@ for i = 1:length(pln.gantryAngles)
                                           zeros(size(coordsAtIsoCenterPlane,1),1) ...
                                                       coordsAtIsoCenterPlane(:,2)]/pln.bixelWidth),'rows');
                                                   
-% pad ray position array if resolution of target voxel grid not sufficient
-     if pln.bixelWidth<max([ct.resolution.x ct.resolution.y ct.resolution.z])
+    % pad ray position array if resolution of target voxel grid not sufficient
+    maxCtResolution = max([ct.resolution.x ct.resolution.y ct.resolution.z]);
+    if pln.bixelWidth < maxCtResolution
         origRayPos = rayPos;
-        maxRes = max(structfun(@(x)max(x(:)),ct.resolution));
-        for j = -floor(maxRes/pln.bixelWidth):floor(maxRes/pln.bixelWidth)
-            for k = -floor(maxRes/pln.bixelWidth):floor(maxRes/pln.bixelWidth)
+        for j = -floor(maxCtResolution/pln.bixelWidth):floor(maxCtResolution/pln.bixelWidth)
+            for k = -floor(maxCtResolution/pln.bixelWidth):floor(maxCtResolution/pln.bixelWidth)
                 if abs(j)+abs(k)==0
                     continue;
-                end
-                
+                end                
                 rayPos = [rayPos; origRayPos(:,1)+j*pln.bixelWidth origRayPos(:,2) origRayPos(:,3)+k*pln.bixelWidth];
-                                
             end
         end
      end
-     
+
      % remove spaces within rows of bixels for DAO
      if pln.runDAO
          % create single x,y,z vectors
@@ -206,12 +205,12 @@ for i = 1:length(pln.gantryAngles)
     for j = 1:stf(i).numOfRays
         stf(i).ray(j).rayPos_bev = rayPos(j,:);
         stf(i).ray(j).targetPoint_bev = [2*stf(i).ray(j).rayPos_bev(1) ...
-                                                               pln.SAD ...
+                                                               SAD ...
                                          2*stf(i).ray(j).rayPos_bev(3)];
     end
     
     % source position in bev
-    sourcePoint_bev = [0 -pln.SAD 0];
+    stf(i).sourcePoint_bev = [0 -SAD 0];
     
     % compute coordinates in lps coordinate system, i.e. rotate beam
     % geometry around fixed patient; use transpose matrices because we are
@@ -228,7 +227,7 @@ for i = 1:length(pln.gantryAngles)
                   sind(pln.couchAngles(i)) 0  cosd(pln.couchAngles(i))];
     
     % Rotated Source point (1st gantry, 2nd couch)
-    stf(i).sourcePoint = sourcePoint_bev*rotMx_XY_T*rotMx_XZ_T;
+    stf(i).sourcePoint = stf(i).sourcePoint_bev*rotMx_XY_T*rotMx_XZ_T;
     
     % Save ray and target position in lps system.
     for j = 1:stf(i).numOfRays
@@ -386,10 +385,10 @@ for i = 1:length(pln.gantryAngles)
             targetPoint_vox_Z_4 = stf(i).ray(j).targetPoint_bev(:,3) + pln.bixelWidth;
             
             % plot
-            plot3([sourcePoint_bev(1) targetPoint_vox_X_1],[sourcePoint_bev(2) targetPoint_vox_Y_1],[sourcePoint_bev(3) targetPoint_vox_Z_1],'g')
-            plot3([sourcePoint_bev(1) targetPoint_vox_X_2],[sourcePoint_bev(2) targetPoint_vox_Y_2],[sourcePoint_bev(3) targetPoint_vox_Z_2],'g')
-            plot3([sourcePoint_bev(1) targetPoint_vox_X_3],[sourcePoint_bev(2) targetPoint_vox_Y_3],[sourcePoint_bev(3) targetPoint_vox_Z_3],'g')
-            plot3([sourcePoint_bev(1) targetPoint_vox_X_4],[sourcePoint_bev(2) targetPoint_vox_Y_4],[sourcePoint_bev(3) targetPoint_vox_Z_4],'g')
+            plot3([stf(i).sourcePoint_bev(1) targetPoint_vox_X_1],[stf(i).sourcePoint_bev(2) targetPoint_vox_Y_1],[stf(i).sourcePoint_bev(3) targetPoint_vox_Z_1],'g')
+            plot3([stf(i).sourcePoint_bev(1) targetPoint_vox_X_2],[stf(i).sourcePoint_bev(2) targetPoint_vox_Y_2],[stf(i).sourcePoint_bev(3) targetPoint_vox_Z_2],'g')
+            plot3([stf(i).sourcePoint_bev(1) targetPoint_vox_X_3],[stf(i).sourcePoint_bev(2) targetPoint_vox_Y_3],[stf(i).sourcePoint_bev(3) targetPoint_vox_Z_3],'g')
+            plot3([stf(i).sourcePoint_bev(1) targetPoint_vox_X_4],[stf(i).sourcePoint_bev(2) targetPoint_vox_Y_4],[stf(i).sourcePoint_bev(3) targetPoint_vox_Z_4],'g')
             
         end
         

@@ -49,6 +49,16 @@ function varargout = matRadGUI(varargin)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Begin initialization code - DO NOT EDIT
+% set platform specific look and feel
+if ispc
+    lf = 'com.sun.java.swing.plaf.windows.WindowsLookAndFeel';
+elseif isunix
+    lf = 'com.jgoodies.looks.plastic.Plastic3DLookAndFeel';
+elseif ismac
+    lf = 'com.apple.laf.AquaLookAndFeel';
+end
+javax.swing.UIManager.setLookAndFeel(lf);
+
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
@@ -103,6 +113,9 @@ handles.Modalities = {'photons','protons','carbon'};
 for i = 1:length(handles.Modalities)
     pattern = [handles.Modalities{1,i} '_*'];
     Files = dir(pattern);
+    if isdeployed
+        Files = [Files, dir([ctfroot filesep 'matRad' filesep pattern])];
+    end
     for j = 1:length(Files)
         if ~isempty(Files)
             MachineName = Files(j).name(numel(handles.Modalities{1,i})+2:end-4);
@@ -327,7 +340,9 @@ try
         end
     end
     handles.State = 0;
-    addpath([pwd filesep 'dicomImport']);
+    if ~isdeployed
+        addpath([pwd filesep 'dicomImport']);
+    end
     matRad_importDicomGUI;
  
 catch
@@ -335,33 +350,6 @@ catch
 end
 UpdateState(handles);
 guidata(hObject,handles);
-
-function editSAD_Callback(hObject, ~, handles)
-% hObject    handle to editSAD (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-getPln(handles);
-if handles.State > 0
-    handles.State = 1;
-    UpdateState(handles);
-    guidata(hObject,handles);
-end
-
-
-% --- Executes during object creation, after setting all properties.
-function editSAD_CreateFcn(hObject, ~, ~)
-% hObject    handle to editSAD (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-
 
 function editBixelWidth_Callback(hObject, ~, handles)
 % hObject    handle to editBixelWidth (see GCBO)
@@ -571,6 +559,15 @@ function btnCalcDose_Callback(hObject, ~, handles)
 % wait some time until the CallEditCallback is finished 
 % Callback triggers the cst saving mechanism from GUI
 try
+    % indicate that matRad is busy
+    % change mouse pointer to hour glass 
+    Figures = findobj('type','figure');
+    set(Figures, 'pointer', 'watch'); 
+    drawnow;
+    % disable all active objects
+    InterfaceObj = findobj(Figures,'Enable','on');
+    set(InterfaceObj,'Enable','off');
+    
     pause(0.1);
     uiTable_CellEditCallback(hObject,[],handles);
     pause(0.3);
@@ -645,6 +642,14 @@ catch
     guidata(hObject,handles);
     return;
 end
+
+% change state from busy to normal
+set(Figures, 'pointer', 'arrow');
+set(InterfaceObj,'Enable','on');
+
+guidata(hObject,handles);  
+
+
 
 %% plots ct and distributions
 function UpdatePlot(handles)
@@ -939,9 +944,16 @@ elseif plane == 1 % Coronal plane
 end
 
 
-
 %% profile plot
 if get(handles.popupTypeOfPlot,'Value')==2 && exist('Result','var')
+    % set SAD
+    fileName = [pln.radiationMode '_' pln.machine];
+    try
+        load(fileName);
+        SAD = machine.meta.SAD;
+    catch
+        error(['Could not find the following machine file: ' fileName ]); 
+    end
      
     % clear view and initialize some values
     cla(handles.axesFig,'reset')
@@ -959,11 +971,11 @@ if get(handles.popupTypeOfPlot,'Value')==2 && exist('Result','var')
                       sind(pln.couchAngles(handles.SelectedBeam)) 0 cosd(pln.couchAngles(handles.SelectedBeam))];
     
     if strcmp(handles.ProfileType,'longitudinal')
-        sourcePointBEV = [handles.profileOffset -pln.SAD   0];
-        targetPointBEV = [handles.profileOffset  pln.SAD   0];
+        sourcePointBEV = [handles.profileOffset -SAD   0];
+        targetPointBEV = [handles.profileOffset  SAD   0];
     elseif strcmp(handles.ProfileType,'lateral')
-        sourcePointBEV = [-pln.SAD handles.profileOffset   0];
-        targetPointBEV = [ pln.SAD handles.profileOffset   0];
+        sourcePointBEV = [-SAD handles.profileOffset   0];
+        targetPointBEV = [ SAD handles.profileOffset   0];
     end
     
     rotSourcePointBEV = sourcePointBEV * inv_rotMx_XZ_T * inv_rotMx_XY_T;
@@ -1203,6 +1215,14 @@ function btnOptimize_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 try
+    % indicate that matRad is busy
+    % change mouse pointer to hour glass 
+    Figures = findobj('type','figure');
+    set(Figures, 'pointer', 'watch'); 
+    drawnow;
+    % disable all active objects
+    InterfaceObj = findobj(Figures,'Enable','on');
+    set(InterfaceObj,'Enable','off');
     % wait until the table is updated
     pause(0.1);
     uiTable_CellEditCallback(hObject,[],handles);
@@ -1280,16 +1300,24 @@ try
     %% DAO
     if strcmp(pln.radiationMode,'photons') && pln.runDAO
        resultGUI = matRad_directApertureOptimization(evalin('base','dij'),evalin('base','cst')...
-           ,resultGUI.apertureInfo,resultGUI,1);
-       matRad_visApertureInfo(resultGUI.apertureInfo);
+           ,resultGUI.apertureInfo,resultGUI,pln,1);
        assignin('base','resultGUI',resultGUI);
     end
+    
+    if strcmp(pln.radiationMode,'photons') && (pln.runSequencing || pln.runDAO)
+        matRad_visApertureInfo(resultGUI.apertureInfo);
+    end
+
 catch
    handles = showError(handles,'OptimizeCallback: Could not perform direct aperture optimization'); 
    guidata(hObject,handles);
    return;
 end
 
+% change state from busy to normal
+set(Figures, 'pointer', 'arrow');
+set(InterfaceObj,'Enable','on');
+    
 guidata(hObject,handles);
 
 
@@ -1940,7 +1968,6 @@ function UpdateState(handles)
 function setPln(handles)
 pln=evalin('base','pln');
 set(handles.editBixelWidth,'String',num2str(pln.bixelWidth));
-set(handles.editSAD,'String',num2str(pln.SAD));
 set(handles.editFraction,'String',num2str(pln.numOfFractions));
 
 if isfield(pln,'isoCenter')
@@ -1995,7 +2022,6 @@ end
 % get pln file form GUI     
 function getPln(handles)
 
-pln.SAD             = parseStringAsNum(get(handles.editSAD,'String'),false); %[mm]
 pln.bixelWidth      = parseStringAsNum(get(handles.editBixelWidth,'String'),false); % [mm] / also corresponds to lateral spot spacing for particles
 pln.gantryAngles    = parseStringAsNum(get(handles.editGantryAngle,'String'),true); % [°]
 pln.couchAngles     = parseStringAsNum(get(handles.editCouchAngle,'String'),true); % [°]
@@ -2126,7 +2152,7 @@ function About_Callback(~, ~, ~)
 % hObject    handle to About (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-msgbox({'https://github.com/e0404/matRad/' 'matrad@dkfz.de'},'About','custom',myicon);
+msgbox({'https://github.com/e0404/matRad/' 'email: matrad@dkfz.de'},'About');
 
 
 
@@ -2305,6 +2331,16 @@ function btnSequencing_Callback(hObject, ~, handles)
 % hObject    handle to btnSequencing (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% indicate that matRad is busy
+% change mouse pointer to hour glass 
+Figures = findobj('type','figure');
+set(Figures, 'pointer', 'watch'); 
+drawnow;
+% disable all active objects
+InterfaceObj = findobj(Figures,'Enable','on');
+set(InterfaceObj,'Enable','off');
+
 StratificationLevel = str2double(get(handles.editSequencingLevel,'String'));
 resultGUI   = evalin('base','resultGUI');
 pln         = evalin('base','pln');
@@ -2337,6 +2373,10 @@ catch
    handles = showError(handles,'BtnSequencingCallback: Could not perform direct aperture optimization');
    guidata(hObject,handles);
 end
+
+% change state from busy to normal
+set(Figures, 'pointer', 'arrow');
+set(InterfaceObj,'Enable','on');
 
 guidata(hObject,handles);
 UpdatePlot(handles);
@@ -2520,9 +2560,11 @@ contents = cellstr(get(handles.popupRadMode,'String'));
 radMod = contents{get(handles.popupRadMode,'Value')};
 
 FoundFile = dir([radMod '_' Machine '.mat']);
-
+if isdeployed
+   FoundFile = [FoundFile, dir([ctfroot filesep 'matRad' filesep radMod '_' Machine '.mat'])];
+end
 if isempty(FoundFile)
-    warndlg(['No base available for machine: ' Machine]);
+    warndlg(['No base data available for machine: ' Machine]);
     Valid = false;
 end
 
@@ -2562,3 +2604,19 @@ function toolbarLoad_ClickedCallback(hObject, eventdata, handles)
 btnLoadMat_Callback(hObject, eventdata, handles);
 
 
+% --- Executes when user attempts to close figure1.
+function figure1_CloseRequestFcn(hObject, ~, ~)
+% hObject    handle to figure1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: delete(hObject) closes the figure
+selection = questdlg('Do you really want to close matRad?',...
+                     'Close matRad',...
+                     'Yes','No','Yes');
+ switch selection,
+   case 'Yes',
+     delete(hObject);
+   case 'No'
+     return
+end
