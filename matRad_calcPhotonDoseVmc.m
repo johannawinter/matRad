@@ -130,11 +130,6 @@ for i = 1:dij.numOfBeams; % loop over all beams
     for j = 1:stf(i).numOfRays % loop over all rays / for photons we only have one bixel per ray!
         
         writeCounter = writeCounter + 1;
-        
-        % Display progress
-        if verbose == 0
-            matRad_progress(writeCounter,dij.totalNumOfBixels);
-        end
 
         % create different seeds for every bixel
         VmcOptions.McControl.rngSeeds = [randi(30000),randi(30000)];
@@ -170,9 +165,6 @@ for i = 1:dij.numOfBeams; % loop over all beams
         % parallelization: only run this block for every numOfParallelMCSimulations!!!
         if mod(writeCounter,numOfParallelMCSimulations) == 0 || writeCounter == dij.totalNumOfBixels
             
-            % update waitbar
-            waitbar(writeCounter/dij.totalNumOfBixels);
-            
             % create batch file (enables parallel processes)
             if writeCounter == dij.totalNumOfBixels && mod(writeCounter,numOfParallelMCSimulations) ~= 0
                 currNumOfParallelMcSimulations = mod(writeCounter,numOfParallelMCSimulations);
@@ -199,6 +191,14 @@ for i = 1:dij.numOfBeams; % loop over all beams
             
             for k = 1:currNumOfParallelMcSimulations
                 readCounter = readCounter + 1;
+                
+                % Display progress
+                if verbose == 0
+                    matRad_progress(readCounter,dij.totalNumOfBixels);
+                end
+                
+                % update waitbar
+                waitbar(writeCounter/dij.totalNumOfBixels);
                 
                 % import calculated dose
                 idx = regexp(outfile,'_');
