@@ -131,6 +131,7 @@ for i = 1:length(pln.gantryAngles)
     stf(i).couchAngle    = pln.couchAngles(i);
     stf(i).bixelWidth    = pln.bixelWidth;
     stf(i).radiationMode = pln.radiationMode;
+    stf(i).isoCenter     = pln.isoCenter;
     
     % gantry and couch roation matrices according to IEC 61217 standard
     % instead of moving the beam around the patient, we perform an inverse
@@ -241,7 +242,7 @@ for i = 1:length(pln.gantryAngles)
         for j = stf(i).numOfRays:-1:1
             
             % ray tracing necessary to determine depth of the target
-            [~,l,rho,~] = matRad_siddonRayTracer(pln.isoCenter, ...
+            [~,l,rho,~] = matRad_siddonRayTracer(stf(i).isoCenter, ...
                             ct.resolution, ...
                             stf(i).sourcePoint, ...
                             stf(i).ray(j).targetPoint, ...
@@ -337,9 +338,9 @@ for i = 1:length(pln.gantryAngles)
             
             % generate a 3D rectangular grid centered at isocenter in
             % voxel coordinates
-            [X,Y,Z] = meshgrid((1:size(ct.cube,2))-pln.isoCenter(1)/ct.resolution.x, ...
-                               (1:size(ct.cube,1))-pln.isoCenter(2)/ct.resolution.y, ...
-                               (1:size(ct.cube,3))-pln.isoCenter(3)/ct.resolution.z);
+            [X,Y,Z] = meshgrid((1:size(ct.cube,2))-stf(i).isoCenter(1)/ct.resolution.x, ...
+                               (1:size(ct.cube,1))-stf(i).isoCenter(2)/ct.resolution.y, ...
+                               (1:size(ct.cube,3))-stf(i).isoCenter(3)/ct.resolution.z);
             
             % computes surface
             patSurfCube = 0*ct.cube;
