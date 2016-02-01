@@ -155,6 +155,7 @@ if nargin > 3
                     1.0000    0.0323         0
                     1.0000         0         0];
 
+        figure,set(gcf,'Color',[1 1 1]);        
         imagesc(gammaCube(:,:,slice),[0 2])
         
         doseIx          = cube1 > absDoseThreshold;
