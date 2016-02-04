@@ -30,6 +30,8 @@ pathTRiP = 'E:\TRiP98DATA_HIT-20131120';
 FocusIdx = 0;
 Offset   = -2.89; % in mm
 visBool  = 0;
+
+
 Identifier = 'p'; % either p for protons, C for carbons
 % parse and save proton ddd's
 machine = matRad_getDDDfromTxt(Identifier,pathTRiP,FocusIdx,Offset,visBool);
@@ -51,12 +53,16 @@ load('protons_HIT.mat');
 PathToXMLFile = [pwd filesep 'ProtonLPD.xml'];
 machine = matRad_readBeamWidthHIT(machine,PathToXMLFile);
 
+load('carbon_HIT.mat');
+PathToXMLFile = [pwd filesep 'CarbonLPD_Rifi3mm.xml'];
+machine = matRad_readBeamWidthHIT(machine,PathToXMLFile);
+
 %% interpolate double gaussian data from sparse sigma1, sigma2 and weight matrix
 % lateral data from katja only describes scattering within the patient
 load('protons_HIT.mat');
 %path to sampling points/Stützstellen provided by Katia P.
-pathToSparseData = [pathTRiP '\DDD\p\HIT_2D_DB_p_KatjaP'];
-Identifier = 'p';
+pathToSparseData = [pathTRiP '\DDD\12C\HIT_2D_DB_Cwith_KatjaP'];
+Identifier = 'C';
 % if visBool is on then dont forget to press a key to step to the next plot
 machine = matRad_interpLateralBaseData(machine,pathTRiP,pathToSparseData,Identifier,FocusIdx,0);
 

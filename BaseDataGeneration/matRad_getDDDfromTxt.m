@@ -171,8 +171,10 @@ machine.meta.created_on = date;
 machine.meta.created_by = getenv('USERNAME');
 machine.meta.description = 'HIT carbon baseData from TRiP98 combined with KatjaP. lateral double gauss data considering beam widening in air';
 machine.meta.name = 'HIT';
-machine.meta.FocusIdx = focusIdx;
-machine.meta.SAD      = 10000;
+machine.meta.SAD      = 6509;           %[mm]
+machine.meta.BAMStoIsoDist = 1226;      %[mm]
+machine.meta.minIniBeamSigma = 6;       %[mm]
+
 %% plots linear spaced baseData 
 if visBool
     %copy baseData into baseDataNew
