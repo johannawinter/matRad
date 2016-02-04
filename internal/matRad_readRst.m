@@ -1,4 +1,4 @@
-function [stf, pln, w] = matRad_readRst(pln,filename)
+function [stf, pln, w] = matRad_readRst(ct,pln,cst,filename)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad read RST file and generates stearing file
 %
@@ -49,11 +49,22 @@ w   = [];
 machineStartIx = [find(strncmp('machine#',RST,7)) numel(RST)];
 numOfMachinesInRST = numel(machineStartIx)-1;
 
+load([pln.radiationMode '_' pln.machine])
+
+% generate voi surface cube for SSD calculation
+stf.SAD = pln.SAD;
+voiSSD = ct.cube;
+%voiSSD(unique([cell2mat(cst(~strcmp(cst(:,2),'SKIN'),4))])) = 1;
+%voiSSD = double(ct.cube>0.7);
+%voiSSD(:,round(pln.isoCenter(1)):end,:) = 1;
+
+
 % loop over all machines
 for i = 1:numOfMachinesInRST
     
     RSTi = RST(machineStartIx(i):machineStartIx(i+1));
-   
+    stf(i).isoCenter     = pln.isoCenter;
+
     % check if couch and gantry angles are consitent
     gantryAngleIx = find(strncmp('gantryangle',RSTi,10));
     couchAngleIx = find(strncmp('couchangle',RSTi,9));
@@ -69,7 +80,7 @@ for i = 1:numOfMachinesInRST
     if couchAngleRST == pln.couchAngles(i)
         stf(i).couchAngle  = pln.couchAngles(i);
     else
-        warning(['Gantry angle mismatch. A Gantry angle of ' num2str(couchAngleRST) ' degrees used from the RST file.']);
+        warning(['Couch angle mismatch. A Couch angle of ' num2str(couchAngleRST) ' degrees used from the RST file.']);
         stf(i).couchAngle  = couchAngleRST;
         pln.couchAngles(i) = couchAngleRST;
     end
@@ -147,6 +158,7 @@ for i = 1:numOfMachinesInRST
         stf(i).ray(k).energy = [stf(i).ray(k).energy vector(j,3)];
         stf(i).ray(k).weight = [stf(i).ray(k).weight vector(j,4)];
     end
+   
     
     % save the number of rays
     stf(i).numOfRays = numel(stf.ray);
@@ -159,8 +171,8 @@ for i = 1:numOfMachinesInRST
     end
     
     % source position in bev
-    sourcePoint_bev = [0 -pln.SAD 0];
-    
+    stf.sourcePoint_bev = [0 -pln.SAD 0];
+  
     % compute coordinates in lps coordinate system, i.e. rotate beam
     % geometry around fixed patient
     
@@ -176,12 +188,63 @@ for i = 1:numOfMachinesInRST
     
     % Rotated Source point, first needs to be rotated around gantry, and then
     % couch.
-    stf(i).sourcePoint = sourcePoint_bev*rotMx_XY_rotated*rotMx_XZ_rotated;
+    stf(i).sourcePoint =  stf.sourcePoint_bev*rotMx_XY_rotated*rotMx_XZ_rotated;
     
+
+    stf(i).SSD   = zeros(stf.numOfRays,1);
+    stf(i).ixSSD = zeros(stf.numOfRays,1);
+
+
     % Save ray and target position in lps system.
     for j = 1:stf(i).numOfRays
         stf(i).ray(j).rayPos      = stf(i).ray(j).rayPos_bev*rotMx_XY_rotated*rotMx_XZ_rotated;
         stf(i).ray(j).targetPoint = stf(i).ray(j).targetPoint_bev*rotMx_XY_rotated*rotMx_XZ_rotated;
+        
+        % ray tracing necessary to determine SSD   
+        [~,~,rhoSSD,~,ix] = matRad_siddonRayTracer(pln.isoCenter, ...
+                                ct.resolution, ...
+                                stf(i).sourcePoint, ...
+                                stf(i).ray(j).targetPoint, ...
+                                {voiSSD});
+                            
+        DensityThreshold = 0.05;              
+        rhoSSD{1} = rhoSSD{1} > DensityThreshold;
+                           
+        ixSSD = find(rhoSSD{1} > 0,1,'first');
+       
+        if ixSSD == 1
+            warning('Surface for SSD calculation starts directly in first voxel of CT\n');
+        end
+
+        if isempty(ixSSD)
+            stf(i).SSD(j) = 0;
+        else
+            % save index of surface pixels
+            stf(i).ixSSD(j) = ix(ixSSD);
+        end
+
+        focusIx = [];
+        DefaultFoci = 1;        % integer value
+        MinimumBeamWidth = 6;   % [mm]
+        vEnergy = stf(i).ray(j).energy;
+        
+        [~, idxEnergy] = min(abs(bsxfun(@minus,[machine.data.energy]',...
+            repmat(vEnergy,length([machine.data]),1))));
+        
+        for m = idxEnergy
+            for CurrFoci = DefaultFoci:size( machine.data(m).initFocus,2)
+                
+                 SigmaIniAtIsoCenter = interp1(machine.data(m).initFocus(CurrFoci).dist,...
+                               machine.data(m).initFocus(CurrFoci).sigma,...
+                               pln.DistBAMStoIso);
+                           
+                 if SigmaIniAtIsoCenter > MinimumBeamWidth 
+                    focusIx = [focusIx CurrFoci];
+                    break;
+                 end
+            end
+        end
+        stf(i).ray(j).focusIx = focusIx;
         
     end
         
@@ -197,3 +260,4 @@ for i = 1:numOfMachinesInRST
     
 end
 
+    

@@ -14,11 +14,11 @@ clc
 
 % load MC cube
 for energyIx     = 30;%[30 90 150 200 240];
-MCfilename   = ['C:\Users\admbangertm\Documents\data\matRad validation\protons\E' num2str(energyIx) '\E' num2str(energyIx) '.txt'];
+%MCfilename   = ['C:\Users\admbangertm\Documents\data\matRad validation\protons\E' num2str(energyIx) '\E' num2str(energyIx) '.txt'];
 %MCfilename   = 'C:\Users\admbangertm\Documents\data\matRad validation\protons\SOBP\p_SOBP.txt';
 
-MCfilename   = ['C:\Users\wieserh\Documents\matRad validation\carbons\E' num2str(energyIx) '\C_E' num2str(energyIx) '.txt'];
-
+%MCfilename   = ['C:\Users\wieserh\Documents\matRad validation\carbons\E' num2str(energyIx) '\C_E' num2str(energyIx) '.txt'];
+MCfilename    = ['C:\Users\wieserh\Documents\matRad validation\protons\SOBP\p_SOBP_highStats.txt'];
 MCcube       = matRad_readMCdata(MCfilename);
 [ct,cst,pln] = matRad_setup4MCValidation(MCcube);
 
@@ -39,14 +39,15 @@ pln.runDAO          = true; % 1/true: run DAO, 0/false: don't / will be ignored 
 pln.UseHIT          = true;
 
 %% read rst to generate stf
-%RSTfilename = ('C:\Users\admbangertm\Documents\data\matRad validation\protons\SOBP\SOBP.hit');
-%[stf, pln, w] = matRad_readRst(pln,RSTfilename);
+RSTfilename = ('C:\Users\admbangertm\Documents\data\matRad validation\protons\SOBP\SOBP.hit');
+[stf, pln, w] = matRad_readRst(pln,RSTfilename);
 
-stf = matRad_generateStfPristinePeak(pln,energyIx);
-w = 10;
+%stf = matRad_generateStfPristinePeak(pln,energyIx);
+%w = 10;
 %% dose calculation
 tic
 matRadDoseCube = matRad_calcParticleDoseVal(w,ct,stf,pln,cst);
+load('C:\Users\wieserh\Documents\matRad validation\protons\SOBP\matRadDoseCube.mat');
 toc
 
 %%

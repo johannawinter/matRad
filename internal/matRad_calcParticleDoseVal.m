@@ -55,7 +55,8 @@ dose = zeros(dij.dimensions);
 round2 = @(a,b)round(a*10^b)/10^b;
 
 % take all voxels by default
-V = cst{1,4};
+
+V = unique([cell2mat(cst(:,4))]);
 
 % Convert CT subscripts to linear indices.
 [yCoordsV, xCoordsV, zCoordsV] = ind2sub(size(ct.cube),V);
@@ -67,7 +68,7 @@ coordsV  = [xCoordsV yCoordsV zCoordsV];
 
 % load machine file
 fileName = [pln.radiationMode '_' pln.machine];
-try
+try  
    load(fileName);
 catch
    error(['Could not find the following machine file: ' fileName ]); 
@@ -83,8 +84,9 @@ visBoolLateralCutOff = 0;
 machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,visBoolLateralCutOff);
 fprintf('...done \n');
 
-fprintf('matRad: Particle dose calculation... ');
+fprintf('matRad: Particle dose calculation... \n ');
 counter = 0;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for i = 1:dij.numOfBeams; % loop over all beams
     
@@ -115,23 +117,27 @@ for i = 1:dij.numOfBeams; % loop over all beams
     rot_coordsV(:,2) = rot_coordsV(:,2)-sourcePoint_bev(2);
     rot_coordsV(:,3) = rot_coordsV(:,3)-sourcePoint_bev(3);
     
+    lateralCutoff = 60;
+    fprintf(['matRad: Calculating radiological depth cube for beam ' num2str(i) ' ... \n']);
+    
+    [radDepthCube,geoDistCube] = matRad_rayTracing(stf,ct,V,lateralCutoff);
+
+    geoDistBAMSCube = pln.DistBAMStoIso - (pln.SAD - reshape(geoDistCube,size(ct.cube)));
+    stf.SSD = geoDistBAMSCube(stf.ixSSD);
+    fprintf('...done \n');
+                              
+    
     for j = 1:stf(i).numOfRays % loop over all rays
         
         if ~isempty(stf(i).ray(j).energy)
             
-            % Ray tracing for beam i and ray j
-            [~,radDepths,~,latDistsX,latDistsZ] = matRad_calcRadGeoDists(ct.cube, ...
-                                                        V,...
-                                                        pln.isoCenter, ...
-                                                        rot_coordsV, ...
-                                                        ct.resolution, ...
-                                                        stf(i).sourcePoint, ...
-                                                        stf(i).ray(j).targetPoint, ...
-                                                        sourcePoint_bev,...
-                                                        stf(i).ray(j).targetPoint_bev, ...
-                                                        coordsV, ...
-                                                        inf);
-            
+            % Ray tracing for beam i and ray j                          
+             [ix,latDistsX,latDistsZ] = matRad_calcGeoDists(rot_coordsV, ...
+                                                       stf(i).sourcePoint_bev, ...
+                                                       stf(i).ray(j).targetPoint_bev, ...
+                                                       inf);
+            radDepths = radDepthCube(V(ix));                      
+            % perform raytracing for each voxel                                       
             radialDist_sq = latDistsX.^2 + latDistsZ.^2;    
             
             for k = 1:stf(i).numOfBixelsPerRay(j) % loop over all bixels per ray
@@ -165,6 +171,8 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 bixelDose = matRad_calcParticleDoseBixel(...
                     radDepths(ix),...
                     radialDist_sq(ix),...
+                    stf(i).SSD(j), ...
+                    stf(i).ray(j).focusIx(k), ...
                     machine.data(energyIx));
 
                 dose(ix) = dose(ix) + w(counter) * bixelDose;

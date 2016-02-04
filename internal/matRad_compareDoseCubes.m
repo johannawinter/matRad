@@ -1,4 +1,4 @@
-function matRad_compareDoseCubes(cube1,cube2,resolution,cellName,filename)
+function matRad_compareDoseCubes(cube1,cube2,resolution,cellName,slice,filename)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % comparison of 3D cubes
 % 
@@ -29,6 +29,10 @@ function matRad_compareDoseCubes(cube1,cube2,resolution,cellName,filename)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+if nargin < 5
+   slice = 100; 
+end
+    
 defaultLineWidth = 1.5;
 
 % necessary for sobp evaluation
@@ -50,7 +54,6 @@ fprintf(['Relative difference in integral dose: ' num2str(relIntDoseDif) '%%\n']
 figure
 set(gcf,'Color',[1 1 1]);
 %% transversal slices
-slice = 100;
 subplot(3,2,1)
 imagesc(cube1(:,:,slice))
 colorbar
@@ -184,25 +187,5 @@ function cubeOut = matRad_downsampleImageStack(cubeIn,Rate)
 
 end
 
-% generates a red-blue colormap for difference plots
-function costumMap = getCostumColorbarDiff(cube1,cube2,slice)
-    img = 100*(cube1(:,:,slice)-cube2(:,:,slice))./max(max(cube1(:,:,slice)));
-    imgMin = min(img(:));
-    imgMax = max(img(:));
-
-    imgRange = linspace(imgMin,imgMax,62);
-    [~,idx]  = min(abs(imgRange));
-    idx2 = 62-idx;
-
-    a = linspace(0,1,idx);
-    b = linspace(1,0,idx2);
-    d1 = ones(1,idx);
-    d2 = ones(1,idx2);
-
-    blueRow  = [d1 b];
-    greenRow = [a b];
-    redRow   = [a d2];
-    costumMap = [blueRow; greenRow; redRow]'; 
-end
 
 end
