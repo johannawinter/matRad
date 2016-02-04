@@ -66,9 +66,9 @@ title([ cellName{1,2} ': slice ' num2str(slice)])
 
 norm = max(max(cube1(:,:,slice)));
 
-ax3 = subplot(3,2,3)
+ax3 = subplot(3,2,3);
 imagesc(100*(cube1(:,:,slice)-cube2(:,:,slice))./norm)
-myMap = getCostumColorbarDiff(cube1,cube2,slice);
+myMap = matRad_getCostumColorbarDiff(cube1,cube2,slice,3);
 colormap(ax3,myMap); colorbar;
 title(['rel diff [%] ' cellName{1,1} ' - ' cellName{1,2} ' : slice ' num2str(slice)])
 
@@ -106,8 +106,8 @@ legend(cellName)
 
 y = resolution.y*[1/2:1:size(cube1,1)-1/2];
 
-cube1LatProfileEnt = squeeze(cube1(:,160,slice));
-cube2LatProfileEnt = squeeze(cube2(:,160,slice));
+cube1LatProfileEnt = squeeze(cube1(:,300,slice));
+cube2LatProfileEnt = squeeze(cube2(:,300,slice));
 
 NormFac = max(cube1LatProfileEnt);
 cube1LatProfileEnt = cube1LatProfileEnt/NormFac;
@@ -130,7 +130,7 @@ if nargin > 4
 end
     
 %% calculate gamma pass rate
-gammaCube = matRad_gammaIndex(cube1,cube2,resolution,slice);
+%gammaCube = matRad_gammaIndex(cube1,cube2,resolution,slice);
 
 %% relative differences
 figure,set(gcf,'Color',[1 1 1]);
@@ -171,21 +171,6 @@ if nargin > 4
 end
 
 
-
-
-
-function cubeOut = matRad_downsampleImageStack(cubeIn,Rate)
-
-    dim = round(size(cubeIn)*Rate);
-    ny = dim(1);
-    nx = dim(1);
-    nz = dim(1);
-    [yq, xq, zq]=ndgrid(linspace(1,size(cubeIn,1),ny),...
-              linspace(1,size(cubeIn,2),nx),...
-              linspace(1,size(cubeIn,3),nz));
-    cubeOut=interp3(cubeIn,xq,yq,zq);
-
-end
 
 
 end

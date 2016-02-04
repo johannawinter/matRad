@@ -46,8 +46,6 @@ if strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     
     availableEnergies = [machine.data.energy];
 
-    clear machine;
-
 end
 
 % Define steering file like struct. Prellocating for speed.
@@ -72,12 +70,12 @@ for i = 1:length(pln.gantryAngles)
     for j = 1:stf(i).numOfRays
         stf(i).ray(j).rayPos_bev = rayPos(j,:);
         stf(i).ray(j).targetPoint_bev = [2*stf(i).ray(j).rayPos_bev(1) ...
-                                                               pln.SAD ...
+                                                               machine.meta.SAD ...
                                          2*stf(i).ray(j).rayPos_bev(3)];
     end
     
     % source position in bev
-    sourcePoint_bev = [0 -pln.SAD 0];
+    sourcePoint_bev = [0 -machine.meta.SAD 0];
     
     % gantry and couch roation matrices according to IEC 61217 standard
     % use transpose matrices because we are working with row vectors
@@ -129,3 +127,9 @@ for i = 1:length(pln.gantryAngles)
     stf(i).totalNumOfBixels = sum(stf(i).numOfBixelsPerRay);
     
 end
+
+stf.SSD = machine.meta.BAMStoIsoDist;
+stf.ray.focusIx = 1;
+stf.isoCenter = pln.isoCenter;
+stf.sourcePoint_bev = [0 -machine.meta.SAD 0];
+stf.ixSSD = 100;

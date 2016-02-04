@@ -68,14 +68,14 @@ coordsV  = [xCoordsV yCoordsV zCoordsV];
 
 % load machine file
 fileName = [pln.radiationMode '_' pln.machine];
-try  
+try
    load(fileName);
 catch
    error(['Could not find the following machine file: ' fileName ]); 
 end
 
 % source position in beam's eye view.
-sourcePoint_bev = [0 -pln.SAD 0];
+sourcePoint_bev = [0 -machine.meta.SAD 0];
 
 % determine lateral cutoff
 fprintf('matRad: calculate lateral cutoff... ');
@@ -120,10 +120,11 @@ for i = 1:dij.numOfBeams; % loop over all beams
     lateralCutoff = 60;
     fprintf(['matRad: Calculating radiological depth cube for beam ' num2str(i) ' ... \n']);
     
-    [radDepthCube,geoDistCube] = matRad_rayTracing(stf,ct,V,lateralCutoff);
+    [radDepths,geoDistCube] = matRad_rayTracing(stf,ct,V,lateralCutoff);
 
-    geoDistBAMSCube = pln.DistBAMStoIso - (pln.SAD - reshape(geoDistCube,size(ct.cube)));
+    geoDistBAMSCube = machine.meta.BAMStoIsoDist - (machine.meta.SAD - reshape(geoDistCube,size(ct.cube)));
     stf.SSD = geoDistBAMSCube(stf.ixSSD);
+    
     fprintf('...done \n');
                               
     
@@ -132,11 +133,11 @@ for i = 1:dij.numOfBeams; % loop over all beams
         if ~isempty(stf(i).ray(j).energy)
             
             % Ray tracing for beam i and ray j                          
-             [ix,latDistsX,latDistsZ] = matRad_calcGeoDists(rot_coordsV, ...
+             [~,latDistsX,latDistsZ] = matRad_calcGeoDists(rot_coordsV, ...
                                                        stf(i).sourcePoint_bev, ...
                                                        stf(i).ray(j).targetPoint_bev, ...
                                                        inf);
-            radDepths = radDepthCube(V(ix));                      
+                                       
             % perform raytracing for each voxel                                       
             radialDist_sq = latDistsX.^2 + latDistsZ.^2;    
             
