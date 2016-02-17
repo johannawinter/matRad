@@ -27,9 +27,11 @@ pathTRiP = 'E:\TRiP98DATA_HIT-20131120';
 
 %% extract carbon and proton depth dose profiles
 
-FocusIdx = 1;
+FocusIdx = 0;
 Offset   = -2.89; % in mm
 visBool  = 0;
+
+
 Identifier = 'p'; % either p for protons, C for carbons
 % parse and save proton ddd's
 machine = matRad_getDDDfromTxt(Identifier,pathTRiP,FocusIdx,Offset,visBool);
@@ -42,9 +44,22 @@ machine = matRad_getDDDfromTxt(Identifier,pathTRiP,FocusIdx,Offset,visBool);
 Name = [machine.meta.radiationMode  '_'  machine.meta.name];
 save(Name,'machine');
 
+%% parse beam widening and inital foki size from LPD.xml files stemming from HIT
+% an additional field named iniFocus will be added to the base data set
+% which holds for each energy, 4 a lookup tables which correspond to four
+% different foki. Please note that the initial beam width is already
+% included in those values
+load('protons_HIT.mat');
+PathToXMLFile = [pwd filesep 'ProtonLPD.xml'];
+machine = matRad_readBeamWidthHIT(machine,PathToXMLFile);
+
+load('carbon_HIT.mat');
+PathToXMLFile = [pwd filesep 'CarbonLPD_Rifi3mm.xml'];
+machine = matRad_readBeamWidthHIT(machine,PathToXMLFile);
 
 %% interpolate double gaussian data from sparse sigma1, sigma2 and weight matrix
-load('carbon_HIT.mat');
+% lateral data from katja only describes scattering within the patient
+load('protons_HIT.mat');
 %path to sampling points/Stützstellen provided by Katia P.
 pathToSparseData = [pathTRiP '\DDD\12C\HIT_2D_DB_Cwith_KatjaP'];
 Identifier = 'C';

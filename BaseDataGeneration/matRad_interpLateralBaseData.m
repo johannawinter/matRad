@@ -1,22 +1,23 @@
-function [ machine ] = matRad_interpLateralBaseData(machine,pathTRiP,pathToSparseData,Identifier,FocusIdx,visBool)
-
+function [ machine ] = matRad_interpLateralBaseData(machine,pathTRiP,pathToSparseData,Identifier,focusIdx,visBool)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad_interpLateralInfo script
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Copyright 2015, Hans-Peter Wieser
+% Copyright 2016, Hans-Peter Wieser
 %
 % h.wieser@dkfz.de
 %
 % call
-%  [ baseData ] = matRad_interpLateralBaseData(pathTRiP,baseData,SamplePoints,visBool)
+%  [ machine ] = matRad_interpLateralBaseData(machine,pathTRiP,pathToSparseData,Identifier,FocusIdx,visBool)
 %
 % input
 %   machine:           base data
 %   pathTRiP:          path to TRiP folder for parsing the inital beam width
 %   pathToSparseData:  path to sparse lateral double gauss data
-%   Identifier:        Either 'p','C','O' for parsing the correct beam
+%   Identifier:        either 'p','C','O' for parsing the correct beam
 %                      width
+%   focusIdx:          focus index (1-6) determines the initial beam width which will be added to the lateral
+%                      sigma(s). If focusIdx is set to 0 no initial beam width will be added
 %   visBool:           boolean if plots should be displayed or not - if visBool
 %                      is 1, then press a key to continue with the next energy
 %
@@ -30,8 +31,12 @@ function [ machine ] = matRad_interpLateralBaseData(machine,pathTRiP,pathToSpars
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % parse inital beam width as sigma in [mm]
-[Sigma_SIS,vEnergySIS] = matRad_getSigmaSIS(Identifier,pathTRiP,FocusIdx);
-
+if focusIdx > 0
+    [Sigma_SIS,vEnergySIS] = matRad_getSigmaSIS(Identifier,pathTRiP,focusIdx);
+else
+    Sigma_SIS  = 0;
+    vEnergySIS = 0;
+end
 %parse sparse lateral double gaussian information
 Files = dir([pathToSparseData filesep '*.txt']);
 
@@ -71,7 +76,7 @@ for i = 1:length(SamplePoints)
 end
 
 vEnergy = [machine.data.energy];
-if sum(abs(vEnergySIS-vEnergy')) > 1e-1
+if sum(abs(vEnergySIS-vEnergy')) > 1e-1 && focusIdx > 0
     warning('sis energies differ from baseData energies')
 end 
 
@@ -156,7 +161,9 @@ for i = 1:length(machine.data)
      end
       
      %% interpolate sigma1, sigma2 and weight based on depths given in baseData
-     
+     if focusIdx == 0
+         Sigma_SIS = zeros(numel(Idx),1);
+     end
      % interpoalte sigma 1
      sigma1_scat = interp1(SamplePoints(i).depth,SamplePoints(i).sigma1,...
              machine.data(i).depths./machine.data(i).peakPos,'linear');
