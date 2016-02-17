@@ -1,4 +1,4 @@
-function [ix,x_latDists,z_latDists] = ...
+function [ix,rad_distancesSq,x_latDists,z_latDists] = ...
           matRad_calcGeoDists(rot_coords_bev, ...
                               sourcePoint_bev, ...
                               targetPoint_bev, ...
@@ -9,7 +9,7 @@ function [ix,x_latDists,z_latDists] = ...
 % 
 % call
 %   [ix,x_latDists,z_latDists] = ...
-%           matRad_calcRadGeoDists(rot_coords_bev, ...
+%           matRad_calcGeoDists(rot_coords_bev, ...
 %                                  sourcePoint_bev, ...
 %                                  targetPoint_bev, ...
 %                                  lateralCutOff)
@@ -28,6 +28,8 @@ function [ix,x_latDists,z_latDists] = ...
 %   x_latDists:         lateral x-distance to the central ray (where the
 %                       actual computation of the radiological depth takes place)
 %   z_latDists:         lateral z-distance to the central ray (where the
+%                       actual computation of the radiological depth takes place)
+%   radialDist_sq:      squared radial distance to the central ray (where the
 %                       actual computation of the radiological depth takes place)
 %
 % References
@@ -77,20 +79,16 @@ b = (targetPoint_bev - sourcePoint_bev)';
 b = b/norm(b);
 
 % Define function for obtain rotation matrix.
-if sum(a==b)==3 % rotation matrix corresponds to eye matrix if the vectors are the same
-    RU = @(a,b) eye(3);
+if all(a==b) % rotation matrix corresponds to eye matrix if the vectors are the same
+    rot_coords_temp = rot_coords_bev;
 else
-    % Define fuction to obtain skew symmetric cross-product matrix of vector v
+    % Define rotation matrix
     ssc = @(v) [0 -v(3) v(2); v(3) 0 -v(1); -v(2) v(1) 0];
-    RU = @(a,b) eye(3) + ssc(cross(a,b)) + ssc(cross(a,b))^2*(1-dot(a,b))/(norm(cross(a,b))^2);
+    R   = eye(3) + ssc(cross(a,b)) + ssc(cross(a,b))^2*(1-dot(a,b))/(norm(cross(a,b))^2);
+    
+    % Rotate every CT voxel 
+    rot_coords_temp = rot_coords_bev*R;
 end
-
-% Calculate rotation matrix for rotate a single beamlet to be aligned to
-% beamlet who passes through isocenter.
-R = RU(a,b);
-
-% Rotate every CT voxel 
-rot_coords_temp = rot_coords_bev*R;
 
 % Put [0 0 0] position CT in center of the beamlet.
 x_latDists = rot_coords_temp(:,1) + sourcePoint_bev(1);
@@ -99,5 +97,13 @@ z_latDists = rot_coords_temp(:,3) + sourcePoint_bev(3);
 rad_distancesSq = x_latDists.^2 + z_latDists.^2;
 ix = find(rad_distancesSq <= lateralCutOff^2);
 
-x_latDists = x_latDists(ix);
-z_latDists = z_latDists(ix);
+if nargout > 1
+    rad_distancesSq = rad_distancesSq(ix);
+end
+
+if nargout > 2
+   x_latDists = x_latDists(ix);
+   z_latDists = z_latDists(ix); 
+end
+
+

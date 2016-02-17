@@ -138,10 +138,14 @@ end
 
 counter = 0;
 
-fprintf('matRad: Photon dose calculation... ');
+fprintf('matRad: Photon dose calculation...\n');
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for i = 1:dij.numOfBeams; % loop over all beams
     
+    fprintf(['Beam ' num2str(i) ' of ' num2str(dij.numOfBeams) ': \n']);
+
+    bixelsPerBeam = 0;
+
     % convert voxel indices to real coordinates using iso center of beam i
     xCoordsV = xCoordsV_vox(:)*ct.resolution.x-stf(i).isoCenter(1);
     yCoordsV = yCoordsV_vox(:)*ct.resolution.y-stf(i).isoCenter(2);
@@ -169,11 +173,14 @@ for i = 1:dij.numOfBeams; % loop over all beams
     rot_coordsV(:,3) = rot_coordsV(:,3)-stf(i).sourcePoint_bev(3);
     
     % ray tracing
+    fprintf(['matRad: calculate radiological depth cube...']);
     [radDepthCube,geoDistCube] = matRad_rayTracing(stf(i),ct,V,lateralCutoff);
-        
+    fprintf('done \n');
+
     for j = 1:stf(i).numOfRays % loop over all rays / for photons we only have one bixel per ray!
         
         counter = counter + 1;
+        bixelsPerBeam = bixelsPerBeam + 1;
         
         if useCustomPrimFluenceBool % use custom primary fluence if specifried
             
@@ -200,9 +207,9 @@ for i = 1:dij.numOfBeams; % loop over all beams
         end
 
         % Display progress
-        matRad_progress(counter,dij.totalNumOfBixels);
+        matRad_progress(bixelsPerBeam,stf(i).totalNumOfBixels);
         % update waitbar only 100 times
-        if mod(counter,round(dij.totalNumOfBixels/100)) == 0
+        if mod(counter,round(dij.totalNumOfBixels/100)) == 0 && figureWait.isvalid
             waitbar(counter/dij.totalNumOfBixels);
         end
         
@@ -212,7 +219,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
         dij.bixelNum(counter) = j;
         
         % Ray tracing for beam i and bixel j
-        [ix,latDistsX,latDistsZ] = matRad_calcGeoDists(rot_coordsV, ...
+        [ix,~,latDistsX,latDistsZ] = matRad_calcGeoDists(rot_coordsV, ...
                                                        stf(i).sourcePoint_bev, ...
                                                        stf(i).ray(j).targetPoint_bev, ...
                                                        lateralCutoff);
@@ -240,5 +247,12 @@ for i = 1:dij.numOfBeams; % loop over all beams
     end
 end
 
-delete(figureWait);
+try
+  % wait 0.1s for closing all waitbars
+  allWaitBarFigures = findall(0,'type','figure','tag','TMWWaitbar'); 
+  delete(allWaitBarFigures);
+  pause(0.1);
+catch
+end
+
 

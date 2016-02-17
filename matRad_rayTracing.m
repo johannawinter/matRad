@@ -1,4 +1,47 @@
 function [radDepthCube,geoDistCube] = matRad_rayTracing(stf,ct,V,lateralCutoff)
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% matRad visualization of two-dimensional dose distributions on ct including
+% segmentation
+% 
+% call
+%   [radDepthCube,geoDistCube] = matRad_rayTracing(stf,ct,V,lateralCutoff)
+%
+% input
+%   stf:           matRad steering information struct of one beam
+%   ct:            ct cube
+%   V:             linear voxel indices e.g. of voxels inside patient.
+%   lateralCutoff: lateral cut off used for ray tracing
+
+%
+% output
+%   radDepthCube:  radiological depth cube in the ct.cube dimensions
+%   geoDistCube:   geometrical distance cube in the ct.cube dimensions
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Copyright 2015, Mark Bangert, on behalf of the matRad development team
+%
+% m.bangert@dkfz.de
+%
+% This file is part of matRad.
+%
+% matrad is free software: you can redistribute it and/or modify it under
+% the terms of the GNU General Public License as published by the Free
+% Software Foundation, either version 3 of the License, or (at your option)
+% any later version.
+%
+% matRad is distributed in the hope that it will be useful, but WITHOUT ANY
+% WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+% FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+% details.
+%
+% You should have received a copy of the GNU General Public License in the
+% file license.txt along with matRad. If not, see
+% <http://www.gnu.org/licenses/>.
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % set up rad depth cube for results
 radDepthCube = inf*ones(size(ct.cube));
@@ -24,7 +67,7 @@ inv_rotMx_XZ_T = [cosd(-stf.couchAngle) 0 -sind(-stf.couchAngle);
 coords_bev = [xCoords yCoords zCoords]*inv_rotMx_XZ_T*inv_rotMx_XY_T;             
               
 % set up ray matrix direct behind last voxel
-rayMx_bev_z = max(coords_bev(V,2));
+rayMx_bev_z = max(coords_bev(V,2)) + 1;
 
 
 xCoords = xCoords-stf.sourcePoint(1);
@@ -33,8 +76,9 @@ zCoords = zCoords-stf.sourcePoint(3);
 coords  = [xCoords yCoords zCoords];
     
 % calculate geometric distances
-geoDistCube = sqrt(sum(coords.^2,2));
-
+if nargout > 1
+    geoDistCube = sqrt(sum(coords.^2,2));
+end
 % set up ray matrix
 rayMxSpacing = min([ct.resolution.x ct.resolution.y ct.resolution.z]);
 
@@ -53,6 +97,11 @@ for j = 1:stf.numOfRays
 
 end
 
+%     figure,
+%     for jj = 1:length(rayMx_bev)
+%        plot(rayMx_bev(jj,1),rayMx_bev(jj,3),'rx'),hold on 
+%     end
+    
 % Rotation around Z axis (gantry)
 rotMx_XY_T = [ cosd(stf.gantryAngle) sind(stf.gantryAngle) 0;
               -sind(stf.gantryAngle) cosd(stf.gantryAngle) 0;
@@ -101,12 +150,10 @@ for j = 1:size(rayMx_world,1)
         % Calculate accumulated d sum.
         dCum = cumsum(d);
 
-        % This is necessary for numerical stability.
-        dCumIx = min([find(dCum==0,1,'last') numel(dCum)-1]);
-
         % Calculate the radiological path
-        radDepthCube(ixHitVoxel(ixRememberFromCurrTracing)) = ...
-            interp1(alphas(dCumIx:end),dCum(dCumIx:end),dotProdHitVoxels(ixRememberFromCurrTracing)/d12,'linear',0);
+        vRadDepth = interp1(alphas,dCum,dotProdHitVoxels(ixRememberFromCurrTracing)/d12,'linear',0);
+             
+        radDepthCube(ixHitVoxel(ixRememberFromCurrTracing)) = vRadDepth;
     end
     
 end
