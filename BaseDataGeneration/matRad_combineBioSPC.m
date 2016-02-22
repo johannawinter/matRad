@@ -31,7 +31,7 @@ function [ sData ] = matRad_combineBioSPC(PathToSPC,visBool)
 %% load data
 load('dEdx.mat');
 load('RBEinitial.mat');
-load('../carbonBaseDataHIT.mat');
+load('carbon_HIT.mat');
 h = waitbar(0,'generating depth dose alpha and beta curves ...');
 
 %% get alphas and betas

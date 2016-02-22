@@ -1,4 +1,4 @@
-function machine = matRad_getDDDfromTxt(Identifier,basePath,focusIdx,offset,visBool)
+function machine = matRad_getDDDfromTxt(Identifier,basePath,focusIdx,offset,metaInformation,visBool)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad_interpLateralInfo script
@@ -167,13 +167,14 @@ machine.data = rmfield(machine.data,'FWHM1');
 machine.data = rmfield(machine.data,'FWHM2');
 
 % add meta information
-machine.meta.created_on = date;
-machine.meta.created_by = getenv('USERNAME');
-machine.meta.description = 'HIT carbon baseData from TRiP98 combined with KatjaP. lateral double gauss data considering beam widening in air';
-machine.meta.name = 'HIT';
-machine.meta.SAD      = 6509;           %[mm]
-machine.meta.BAMStoIsoDist = 1226;      %[mm]
-machine.meta.minIniBeamSigma = 6;       %[mm]
+machine.meta.created_on       = date;
+machine.meta.created_by       = getenv('USERNAME');
+machine.meta.description      =  metaInformation.description;
+machine.meta.name             = metaInformation.machineName;
+machine.meta.SAD              = metaInformation.SAD;            %[mm]
+metaInformation.BAMStoIsoDist = metaInformation.BAMStoIsoDist;  %[mm]
+machine.meta.minIniBeamSigma  = metaInformation.minIniBeamSigma;%[mm]
+
 
 %% plots linear spaced baseData 
 if visBool

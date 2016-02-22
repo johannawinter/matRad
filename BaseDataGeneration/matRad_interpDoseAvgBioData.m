@@ -19,7 +19,7 @@ function [ machine ] = matRad_interpDoseAvgBioData( machine, sData,CNAOisUsed, v
 % dEdxsqrtBeta. 
 
 h = waitbar(0,'Initializing waitbar...');
-NumCellLines = 13; %length(sData);
+NumCellLines = 11; %length(sData);
 
 for CntCell = 1:NumCellLines
    
