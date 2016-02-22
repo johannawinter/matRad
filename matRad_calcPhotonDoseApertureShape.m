@@ -63,7 +63,7 @@ rayMxDistBehindIsocenterPlane = max(distToCornerPoints);
 if strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     error('aperture based dose calculation only possible for photons\n');
 elseif strcmp(pln.radiationMode,'photons')
-    load photonPencilBeamKernels_6MV;
+    load photonPencilBeamKernels_6MV_newPp;
 end
 
 % find all target voxels from cst cell array
@@ -139,22 +139,21 @@ for i = 1:length(pln.gantryAngles)
     % gantry and couch roation matrices according to IEC 61217 standard
     % instead of moving the beam around the patient, we perform an inverse
     % rotation of the patient, i.e. we consider a beam's eye view
-    % coordinate system; use transpose rotation matrices because we are
-    % working with row vectors
+    % coordinate system
     
-    % rotation around Z axis (gantry)
-    inv_rotMx_XY_T = [ cosd(-pln.gantryAngles(i)) sind(-pln.gantryAngles(i)) 0;
-                      -sind(-pln.gantryAngles(i)) cosd(-pln.gantryAngles(i)) 0;
-                                                0                          0 1];
+    % Rotation around Z axis (gantry)
+    rotMx_XY = [cosd(pln.gantryAngles(i)) -sind(pln.gantryAngles(i)) 0;
+                sind(pln.gantryAngles(i))  cosd(pln.gantryAngles(i)) 0;
+                                        0                          0 1];
     
-    % rotation around Y axis (couch)
-    inv_rotMx_XZ_T = [cosd(-pln.couchAngles(i)) 0 -sind(-pln.couchAngles(i));
-                                              0 1                         0;
-                      sind(-pln.couchAngles(i)) 0  cosd(-pln.couchAngles(i))];
-                  
+    % Rotation around Y axis (Couch movement)
+    rotMx_XZ = [ cosd(pln.couchAngles(i)) 0 sind(pln.couchAngles(i));
+                                        0 1                         0;
+                -sind(pln.couchAngles(i)) 0  cosd(pln.couchAngles(i))];
+    
     % rotate target coordinates around Y axis and then around Z axis
     % i.e. 1st couch, 2nd gantry; matrix multiplication not cummutative
-    rot_coords_targetVoxels = coords_targetVoxels*inv_rotMx_XZ_T*inv_rotMx_XY_T;
+    rot_coords_targetVoxels = coords_targetVoxels*rotMx_XZ*rotMx_XY;
     
     % project x and z coordinates to isocenter
     coordsAtIsoCenterPlane_targetVoxels(:,1) = (rot_coords_targetVoxels(:,1)*pln.SAD)./(pln.SAD + rot_coords_targetVoxels(:,2));
@@ -298,28 +297,28 @@ for i = 1:length(pln.gantryAngles)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % actual dose calculation
        
-    % Make a 2D grid extending +/-100mm with 0.1 mm resolution
-    convLimits = 100; % [mm]
+    % Make a 2D grid extending +/-100mm with 0.5 mm resolution
+    convLimits = 180; % [mm]
     convResolution = .5; % [mm]
-    [X,Z] = meshgrid(-convLimits:convResolution:convLimits);
+    [X,Z] = meshgrid(-convLimits:convResolution:convLimits-convResolution);
 
     % Create zero matrix for the Fluence
     F = zeros(size(X));
 
     % set shape
     fieldSize = 50;
-    F(abs(X)<=fieldSize & abs(Z)<=fieldSize) = 1;
+    F(X>-fieldSize & Z>=-fieldSize & X<fieldSize & Z<fieldSize) = 1;
     
-    % gaussian convolution of field to model penumbra
-    sigmaGauss = 2.1/convResolution; % [mm] / see diploma thesis siggel 4.1.2
-    gaussFilter =  convResolution^2/(2*pi*sigmaGauss^2) * exp( -(X.^2+Z.^2)/(2*sigmaGauss^2) );
-    F = real(fftshift(ifft2(fft2( ifftshift(F) ).*fft2( ifftshift(gaussFilter) ))));
-
     % multiplication with primary fluence
     r     = sqrt( X.^2 + Z.^2 );
     Psi   = interp1(primaryFluence(:,1),primaryFluence(:,2),r);
     FxPsi = F .* Psi;
         
+    % gaussian convolution of field to model penumbra
+    sigmaGauss = 2.1/convResolution; % [mm] / see diploma thesis siggel 4.1.2
+    gaussFilter =  convResolution^2/(2*pi*sigmaGauss^2) * exp( -(X.^2+Z.^2)/(2*sigmaGauss^2) );
+    FxPsi = real(fftshift(ifft2(fft2( ifftshift(FxPsi) ).*fft2( ifftshift(gaussFilter) ))));
+
     % Evaluate piecewise polynomial kernels
     kernel1Mx = ppval(ppKernel1,sqrt(X.^2+Z.^2));
     kernel2Mx = ppval(ppKernel2,sqrt(X.^2+Z.^2));
