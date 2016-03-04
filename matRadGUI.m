@@ -98,7 +98,7 @@ axis equal off
 set(f, 'AlphaData', alpha);
 % show dkfz logo
 axes(handles.axesDKFZ)
-[im, ~, alpha] = imread(['dicomImport' filesep 'DKFZ_logo.png']);
+[im, ~, alpha] = imread(['dicomImport' filesep 'DKFZ_Logo.png']);
 f = image(im);
 axis equal off;
 set(f, 'AlphaData', alpha);
@@ -625,9 +625,9 @@ end
 % carry out dose calculation
 try
     if strcmp(pln.radiationMode,'photons')
-        dij = matRad_calcPhotonDose(evalin('base','ct'),stf,pln,evalin('base','cst'),0);
+        dij = matRad_calcPhotonDose(evalin('base','ct'),stf,pln,evalin('base','cst'));
     elseif strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
-        dij = matRad_calcParticleDose(evalin('base','ct'),stf,pln,evalin('base','cst'),0);
+        dij = matRad_calcParticleDose(evalin('base','ct'),stf,pln,evalin('base','cst'));
     end
 
     % assign results to base worksapce
@@ -1090,8 +1090,8 @@ if get(handles.popupTypeOfPlot,'Value')==2 && exist('Result','var')
     if ~isempty(WEPL_Target_Entry) && ~isempty(WEPL_Target_Exit)
         hold on
         PlotHandles{Cnt,1} = ...
-        plot([WEPL_Target_Entry WEPL_Target_Entry],handles.axesFig.YLim,'--','Linewidth',3,'color','k');hold on
-        plot([WEPL_Target_Exit WEPL_Target_Exit], handles.axesFig.YLim,'--','Linewidth',3,'color','k');hold on
+        plot([WEPL_Target_Entry WEPL_Target_Entry],get(handles.axesFig,'YLim'),'--','Linewidth',3,'color','k');hold on
+        plot([WEPL_Target_Exit WEPL_Target_Exit],get(handles.axesFig,'YLim'),'--','Linewidth',3,'color','k');hold on
       
     else
         PlotHandles{Cnt,1} =[];
