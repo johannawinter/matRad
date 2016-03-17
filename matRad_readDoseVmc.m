@@ -1,16 +1,16 @@
-function [bixelDose,bixelDose_error] = matRad_readDoseVmc(filename)
+function [bixelDose,bixelDoseError] = matRad_readDoseVmc(filename)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad binary dose import from vmc++
 % 
 % call
-%   [bixelDose,bixelDose_error] = matRad_readDoseVmc(filename)
+%   [bixelDose,bixelDoseError] = matRad_readDoseVmc(filename)
 %
 % input
 %   filename:   path of input file
 %
 % output
 %   bixelDose       = vector of imported dose values, [D]      = 10^-(10) Gy cm^2
-%   bixelDose_error = vector of imported dose errors, [deltaD] = 10^-(10) Gy cm^2
+%   bixelDoseError  = vector of imported dose errors, [deltaD] = 10^-(10) Gy cm^2
 %
 %
 % References
@@ -30,10 +30,10 @@ if dump_dose == 2
     dmax            = fread(fid, 1, 'double');
     bixelDose       = fread(fid, no_regions, 'uint16');
     bixelDose       = bixelDose/65534*dmax; % conversion short integers to floating numbers
-    bixelDose_error = 0;
+    bixelDoseError  = 0;
 elseif dump_dose == 1
     bixelDose       = fread(fid, no_regions, 'float32');
-    bixelDose_error = fread(fid, no_regions, 'float32');
+    bixelDoseError  = fread(fid, no_regions, 'float32');
 end
 
 fclose(fid);
