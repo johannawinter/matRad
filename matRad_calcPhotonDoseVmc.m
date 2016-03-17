@@ -3,7 +3,7 @@ function dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst,nCasePerBixel,numOfParall
 % matRad vmc++ photon dose calculation wrapper
 % 
 % call
-%   dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst,numOfParallelMCSimulations)
+%   dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst,nCasePerBixel,numOfParallelMCSimulations)
 %
 % input
 %   ct:                         matRad ct struct
