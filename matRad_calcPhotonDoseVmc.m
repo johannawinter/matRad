@@ -1,4 +1,4 @@
-function dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst,numOfParallelMCSimulations)
+function dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst,nCasePerBixel,numOfParallelMCSimulations)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad vmc++ photon dose calculation wrapper
 % 
@@ -10,6 +10,7 @@ function dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst,numOfParallelMCSimulation
 %   stf:                        matRad steering information struct
 %   pln:                        matRad plan meta information struct
 %   cst:                        matRad cst struct
+%   nCasePerBixel:              number of photons simulated per bixel
 %   numOfParallelMCSimulations: number of simultaneously performed simulations (optional) 
 %
 % output
@@ -51,7 +52,7 @@ end
 rng(0);
 
 % set number of parallel MC simulations if not specified by user
-if nargin < 5
+if nargin < 6
     numOfParallelMCSimulations = 1;
 end
     
@@ -77,7 +78,7 @@ VmcOptions.beamletSource.charge       = 0;                                 % cha
 % 2 transport parameter
 VmcOptions.McParameter.automatic_parameter = 'yes';                        % if yes, automatic transport parameters are used
 % 3 MC control
-VmcOptions.McControl.ncase  = 5000;                                        % number of histories
+VmcOptions.McControl.ncase  = nCasePerBixel;                               % number of histories
 VmcOptions.McControl.nbatch = 10;                                          % number of batcher
 % 4 variance reduction
 VmcOptions.varianceReduction.repeatHistory      = 0.251;

@@ -32,8 +32,8 @@ clc
 
 % load patient data, i.e. ct, voi, cst
 
-load HEAD_AND_NECK
-%load TG119.mat
+%load HEAD_AND_NECK
+load TG119.mat
 %load PROSTATE.mat
 %load LIVER.mat
 %load BOXPHANTOM.mat
@@ -62,14 +62,13 @@ stf = matRad_generateStf(ct,cst,pln);
 %% dose calculation
 if strcmp(pln.radiationMode,'photons')
     dij = matRad_calcPhotonDose(ct,stf,pln,cst);
-    %dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst);
+    %dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst,5000);
 elseif strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     dij = matRad_calcParticleDose(ct,stf,pln,cst);
 end
 
 %% inverse planning for imrt
 resultGUI = matRad_fluenceOptimization(dij,cst,pln);
-%resultGUI = matRad_fluenceOptimization(dij_vmc,cst,pln);
 
 %% sequencing
 if strcmp(pln.radiationMode,'photons') && (pln.runSequencing || pln.runDAO)
