@@ -1,0 +1,8 @@
+#!/bin/bash
+# replace path_for_vmc++ with the path you want
+vmc_home=$1
+vmc_dir=$2
+xvmc_dir=$3
+export   xvmc_dir vmc_dir vmc_home
+nice -n 19 $4 $5
+

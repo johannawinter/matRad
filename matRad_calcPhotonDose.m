@@ -47,6 +47,7 @@ function dij = matRad_calcPhotonDose(ct,stf,pln,cst)
 % initialize waitbar
 figureWait = waitbar(0,'photon dij-calculation..');
 % show busy state
+
 set(figureWait,'pointer','watch');
 
 % meta information for dij
@@ -57,6 +58,14 @@ dij.numOfRaysPerBeam   = [stf(:).numOfRays];
 dij.totalNumOfRays     = sum(dij.numOfRaysPerBeam);
 dij.totalNumOfBixels   = sum([stf(:).totalNumOfBixels]);
 dij.dimensions         = pln.voxelDimensions;
+
+% set absolute calibration factor
+% CALCULATION
+% absolute_calibration_factor = 1/D(depth = 100,5mm) -> D(depth = 100,5mm) = 1Gy
+% SETUP
+% SAD = 1000mm, SCD = 500mm, bixelWidth = 5mm, IC = [240mm,240mm,240mm]
+% fieldsize@IC = 105mm x 105mm, phantomsize = 81 x 81 x 81 = 243mm x 243mm x 243mm
+absolute_calibration_factor_pencilbeam = 0.016046333443549;
 
 % set up arrays for book keeping
 dij.bixelNum = NaN*ones(dij.totalNumOfRays,1);
@@ -234,6 +243,9 @@ for i = 1:dij.numOfBeams; % loop over all beams
                                                geoDistCube(V(ix)),...
                                                latDistsX,...
                                                latDistsZ);
+                                           
+        % apply absolute calibration factor
+        bixelDose = bixelDose*absolute_calibration_factor_pencilbeam;
        
         % Save dose for every bixel in cell array
         doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix),1,bixelDose,numel(ct.cube),1);
