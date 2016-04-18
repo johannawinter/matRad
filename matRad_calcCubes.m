@@ -34,6 +34,10 @@ resultGUI.w = w;
 % calc dose and reshape from 1D vector to 2D array
 resultGUI.physicalDose = reshape(dij.physicalDose*resultGUI.w,dij.dimensions);
 
+if isfield(dij,'LET')
+    resultGUI.LET = reshape(dij.LET*resultGUI.w,dij.dimensions);
+end
+
 if isfield(dij,'mAlphaDose') && isfield(dij,'mSqrtBetaDose')
 
     a_x = zeros(size(resultGUI.physicalDose));

@@ -59,7 +59,7 @@ round2 = @(a,b)round(a*10^b)/10^b;
 
 % Allocate memory for dose_temp cell array
 numOfBixelsContainer = ceil(dij.totalNumOfBixels/10);
-doseTmpContainer = cell(numOfBixelsContainer,1);
+doseTmpContainer     = cell(numOfBixelsContainer,1);
 if ~strcmp(pln.bioOptimization,'none') 
     alphaDoseTmpContainer = cell(numOfBixelsContainer,1);
     betaDoseTmpContainer  = cell(numOfBixelsContainer,1);
@@ -79,6 +79,11 @@ try
    load(fileName);
 catch
    error(['Could not find the following machine file: ' fileName ]); 
+end
+
+if isfield(machine.data,'LET')
+  dij.LET         = spalloc(numel(ct.cube),dij.totalNumOfBixels,1);
+  LETTmpContainer = cell(numOfBixelsContainer,1);
 end
 
 % generates tissue class matrix for biological optimization
@@ -244,7 +249,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 end
                  
                 % calculate particle dose for bixel k on ray j of beam i
-                bixelDose = matRad_calcParticleDoseBixel(...
+                [bixelDose,LET] = matRad_calcParticleDoseBixel(...
                     radDepths(currIx), ...
                     radialDist_sq(currIx), ...
                     stf(i).ray(j).SSD, ...
@@ -253,7 +258,10 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 
                 % Save dose for every bixel in cell array
                 doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix(currIx)),1,bixelDose,numel(ct.cube),1);
-                            
+                if isfield(machine.data,'LET')
+                    LETTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix(currIx)),1,LET,numel(ct.cube),1);            
+                end
+                
                 if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ... 
                     && strcmp(pln.radiationMode,'carbon')
                     % calculate alpha and beta values for bixel k on ray j of                  
@@ -270,7 +278,9 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 % sparse matrix dose.dij from the cell array
                 if mod(counter,numOfBixelsContainer) == 0 || counter == dij.totalNumOfBixels
                     dij.physicalDose(:,(ceil(counter/numOfBixelsContainer)-1)*numOfBixelsContainer+1:counter) = [doseTmpContainer{1:mod(counter-1,numOfBixelsContainer)+1,1}];
-                    
+                    if isfield(machine.data,'LET')
+                      dij.LET(:,(ceil(counter/numOfBixelsContainer)-1)*numOfBixelsContainer+1:counter) = [LETTmpContainer{1:mod(counter-1,numOfBixelsContainer)+1,1}];   
+                    end
                     if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ... 
                             && strcmp(pln.radiationMode,'carbon')
                         dij.mAlphaDose(:,(ceil(counter/numOfBixelsContainer)-1)*numOfBixelsContainer+1:counter) = [alphaDoseTmpContainer{1:mod(counter-1,numOfBixelsContainer)+1,1}];
