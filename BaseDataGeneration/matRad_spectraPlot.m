@@ -4,38 +4,39 @@
 % and plotted. 
 
 %% read spc file
-clc
-clear
-close all
+% clc
+% clear
+% close all
+%%
 
-defaultFontSize = 14;
-vEnergy = 280;
+pathToTrip = 'E:\TRiP98DATA_HIT-20131120';
+
 if ~ismac
-    pathSpec = '\\Mac\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV28000.mat';
+    pathSpec = [pathToTrip filesep 'SPC' '\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV35000.mat'];
 else
     pathSpec = '\\Mac\Home\Documents\Heidelberg\TRiP98DATA\SPC\12C\RF3MM\FLUKA_NEW3_12C.H2O.MeV28000.xlsx';
 end
 
-
+defaultFontSize = 14;
 load(pathSpec);
-sParticles = MetaSPC.particles;
-vDepth = [SPC.depths];
+sParticles = SPC.meta.particles;
+vDepth = [SPC.data.depths];
+vEnergy =  SPC.meta.energy;
 
 %% plot fluence 
 sColor   = {'red','green','blue','red','green','blue','black','red','green','blue','red','green','blue','black'};
 sLineSpec= {'--' ,'--'   ,'--'  ,'-'  ,'-'    ,'-'   ,'-'    ,':'  ,':'    ,':'   ,'-.' ,'-.'   ,'-.'  ,'-.'};
 sLineSpec2= {'-.' ,'-.' ,'-.'  ,':'  ,':'   ,':' };
 
-
 figure,
 set(gcf,'Color',[1 1 1]); 
-for j = 1:SPC(1).numParticles
-    vY = zeros(length(vDepth),1);
-    for i = 1:length(vDepth)
-        vY(i) = sum(SPC(i).(sParticles{j}).N);
-        vY(i) = sum(SPC(i).(sParticles{j}).dNdE.*SPC(i).(sParticles{j}).dE);
+for idxPart = 1:length(sParticles)
+    vFlux = zeros(length(vDepth),1);
+    for idxDepth = 1:length(vDepth)
+        vFlux(idxDepth) = sum(SPC.data(idxDepth).(sParticles{idxPart}).N);
+        vFlux(idxDepth) = sum(SPC.data(idxDepth).(sParticles{idxPart}).dNdE.*SPC.data(idxDepth).(sParticles{idxPart}).dE);
     end
-    subplot(231),plot(vDepth,vY,[sLineSpec{j} sColor{j}],'Linewidth',3),hold on
+    subplot(231),plot(vDepth,vFlux,[sLineSpec{idxPart} sColor{idxPart}],'Linewidth',3),hold on
 end
 
 legend(sParticles),grid on, xlabel('depth in [cm]','Interpreter','Latex','FontSize',defaultFontSize),ylabel('rel. particle number (p.p.)','Interpreter','Latex','FontSize',defaultFontSize),
@@ -48,27 +49,19 @@ set(gca,'YLim',[1E-5,2]);
 
 %% plot energy spectra direct at peak
 
-[~,idx]= min(abs([SPC.depths]-SPC(1).peakPos));
+[~,idx]= min(abs([SPC.data.depths]-SPC.data(1).peakPos));
 
 for i = 1:length(sParticles)
- subplot(232),plot(SPC(idx).(sParticles{i}).Emid,SPC(idx).(sParticles{i}).dNdE,[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
+ subplot(232),plot(SPC.data(idx).(sParticles{i}).Emid,SPC.data(idx).(sParticles{i}).dNdE,[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
 end
 legend(sParticles),grid on, xlabel('Energy in [MeV/u]','Interpreter','Latex','FontSize',defaultFontSize),ylabel('rel. number of particles per energy','Interpreter','Latex','FontSize',defaultFontSize);
 title('energy spectra at peak','Interpreter','Latex','FontSize',defaultFontSize),
 grid minor
 set(gca,'FontSize',defaultFontSize');
 set(gca,'YScale','log');
-set(gca,'YLim',[.5E-5,0.1]);
-
 
 %% load and display stopping powers
-if ~ismac
-    path = '\\Mac\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
-else
-    path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\DEDX\dEdxFLUKAxTRiP.dedx';
-end
-
-[ MetadEdx, dEdx ] = matRad_readdEdx( path );
+[ MetadEdx, dEdx ] = matRad_readdEdx(pathToTrip);
 
 for i = 1:length(sParticles)
     subplot(233),plot(dEdx.(sParticles{i}).Energy,dEdx.(sParticles{i}).dEdx,[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
@@ -78,38 +71,39 @@ set(gca,'YScale','log','XScale','log'),xlabel('Energy in [MeV/u]','Interpreter',
 title('stopping power','Interpreter','Latex','FontSize',defaultFontSize);
 
 %% load depth dose distributions
-cd('../')
-load('carbon_HIT.mat');
-cd('BaseDataGeneration\')
+if length(sParticles) > 1
+    load('carbon_HIT.mat');
+else 
+    load('protons_HIT.mat');
+end
 [~,Idx]=min(abs([machine.data.energy]-vEnergy));
 
-DoseAccum = zeros(length(vDepth),1);
-DoseParticle= zeros(length(vDepth),1);
+vDoseAccum    =  zeros(length(vDepth),1);
+DoseParticle  =  zeros(length(vDepth),1);
 
-for i = 1:length(sParticles)
-    for x = 1:length(vDepth);  
-        dEdxInterp = interp1(dEdx.(sParticles{i}).Energy,dEdx.(sParticles{i}).dEdx,SPC(x).(sParticles{i}).Emid,'linear','extrap')';
-        DoseParticle(x) = SPC(x).(sParticles{i}).N*dEdxInterp; 
+for idxPart = 1:length(sParticles)
+    for idxDepth = 1:length(vDepth);  
+        dEdxInterp             = interp1(dEdx.(sParticles{idxPart}).Energy,dEdx.(sParticles{idxPart}).dEdx,...
+                                         SPC.data(idxDepth).(sParticles{idxPart}).Emid,'linear','extrap')';
+        DoseParticle(idxDepth) = SPC.data(idxDepth).(sParticles{idxPart}).N*dEdxInterp; 
     end
-    subplot(234),plot(vDepth,DoseParticle,[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
-    DoseAccum = DoseAccum + DoseParticle;
+    subplot(234),plot(vDepth,DoseParticle,[sLineSpec{idxPart} sColor{idxPart}],'Linewidth',3),hold on
+    vDoseAccum = vDoseAccum + DoseParticle;
 end
-plot(vDepth,DoseAccum,[sLineSpec{i+1} sColor{i+1}],'LineWidth',3)
+plot(vDepth,vDoseAccum,[sLineSpec{i+1} sColor{idxPart+1}],'LineWidth',3)
 set(gca,'YScale','log')
-set(gca,'YLim',[0.1 1000])
-set(gca,'XLim',[0 30])
 xlabel('depth in [cm]','Interpreter','Latex','FontSize',defaultFontSize)
 ylabel('$[\frac{MeVcm^2}{g}$]','Interpreter','Latex','FontSize',defaultFontSize)
 title('dose distributions per particle','Interpreter','Latex','FontSize',defaultFontSize)
-sParticles{1,7}='total dose';
+sParticles{1,end+1}='total dose';
 legend(sParticles);
-sParticles = sParticles(1:6);
+sParticles = sParticles(1:end-1);
 set(gca,'FontSize',defaultFontSize);
 grid on, grid minor
 
 %% compare depth dose curves
-subplot(235),plot(vDepth*10,DoseAccum,'k','LineWidth',4),hold on,grid on
-subplot(235),plot(machine.data(Idx).depths,machine.data(Idx).Z,'r--','LineWidth',4)
+subplot(235),plot(vDepth,vDoseAccum,'k','LineWidth',4),hold on,grid on
+subplot(235),plot(machine.data(Idx).depths/10,machine.data(Idx).Z,'r--','LineWidth',4)
 
       
 xlabel('depth in [cm]','Interpreter','Latex','FontSize',defaultFontSize)
@@ -120,50 +114,43 @@ set(gca,'FontSize',defaultFontSize),grid on, grid minor;
 
 %% plot dose averaged LET
 
-LETaccum = zeros(length(vDepth),1);
+vLET_Accum = zeros(length(vDepth),1);
 
-for i = 1:length(sParticles)
+for idxPart = 1:length(sParticles)
     
-    LETmax = 0;
-    LETnumerator = zeros(length(vDepth),1); 
-    Dose          = zeros(length(vDepth),1); 
+    LETmax          = 0;
+    vLET_Numerator  = zeros(length(vDepth),1); 
+    vDose           = zeros(length(vDepth),1); 
     
-    for x = 1:length(vDepth); 
+    for idxDepth = 1:length(vDepth); 
         
-        dEdxInterp = interp1(dEdx.(sParticles{i}).Energy,dEdx.(sParticles{i}).dEdx,SPC(x).(sParticles{i}).Emid,'linear','extrap')';  
-        LETnumerator(x)=(SPC(x).(sParticles{i}).N*(dEdxInterp.^2));
-        Dose(x)=(SPC(x).(sParticles{i}).N*(dEdxInterp));
+        dEdxInterp               = interp1(dEdx.(sParticles{idxPart}).Energy,dEdx.(sParticles{idxPart}).dEdx,SPC.data(idxDepth).(sParticles{idxPart}).Emid,'linear','extrap')';  
+        vLET_Numerator(idxDepth) = (SPC.data(idxDepth).(sParticles{idxPart}).N*(dEdxInterp.^2));
+        vDose(idxDepth)          = (SPC.data(idxDepth).(sParticles{idxPart}).N*(dEdxInterp));
 
     end
     
-    LETaccum = LETaccum + LETnumerator;
-    subplot(236),plot(vDepth,LETnumerator./(Dose*10),[sLineSpec{i} sColor{i}],'Linewidth',3),hold on
-    LET.(sParticles{i}).vDepth = vDepth;
-    LET.(sParticles{i}).LET = LETnumerator./(Dose*10);
+    vLET_Accum = vLET_Accum + vLET_Numerator;
+    subplot(236),plot(vDepth,vLET_Numerator./(vDose*10),[sLineSpec{idxPart} sColor{idxPart}],'Linewidth',3),hold on
+    LET.(sParticles{idxPart}).vDepth = vDepth;
+    LET.(sParticles{idxPart}).LET = vLET_Numerator./(vDose*10);
 end
-LET_tot = LETaccum./(DoseAccum*10);
-subplot(236),plot(vDepth,LET_tot,[sLineSpec{i+1} sColor{i+1}],'Linewidth',3)
+
+LET_tot = vLET_Accum./(vDoseAccum*10);
+subplot(236),plot(vDepth,LET_tot,[sLineSpec{idxPart+1} sColor{idxPart+1}],'Linewidth',3)
 set(gca,'YScale','log')
-set(gca,'YLim',[1 500]),set(gca,'XLim',[0 45])
 xlabel('depth in [cm]','Interpreter','Latex','FontSize',defaultFontSize)
 ylabel('LET in $[\frac{keV}{\mu}$]','Interpreter','Latex','FontSize',defaultFontSize)
 title('particle LET distributions','Interpreter','Latex','FontSize',defaultFontSize)
-sParticles{1,7}='total LET';
+sParticles{1,end+1}='total LET';
 legend(sParticles);
-sParticles = sParticles(1:6);
+sParticles = sParticles(1:end-1);
 set(gca,'FontSize',defaultFontSize);
 grid on,grid minor
 
 
 %% load RBE spc files
-
-if ~ismac
-    path = '\\Mac\Home\Documents\Heidelberg\TRiP98DATA\RBE';
-else
-    path = '\\psf\Home\Documents\Heidelberg\TRiP98DATA\RBE';
-end
-
-RBE = matRad_readRBE(path);
+RBE = matRad_readRBE(pathToTrip);
 
 %% plot RBE spectra of specific cell type;
 CellType = 13;
@@ -294,7 +281,7 @@ LegendString = {'H_{INFN}','H_{lowDose}','He_{INFN}','He_{lowDose}','Li_{INFN}',
 legend(h3,LegendString),grid on, grid minor;
 legend(h4,sParticles),set(h4,'YLim',[1e-2 1e4]),
 legend(h5,sParticles),set(h5,'XLim',[0 max(vDepth)]),grid(h5,'on'),grid minor;
-subplot(236),[AX,H1,H2] = plotyy(vDepth,DoseAccum./max(DoseAccum),vDepth,(a_mixedField./DoseAccum));
+subplot(236),[AX,H1,H2] = plotyy(vDepth,vDoseAccum./max(vDoseAccum),vDepth,(a_mixedField./vDoseAccum));
 grid on, grid minor
 set(H1,'LineWidth',3);
 set(H2,'LineWidth',3);

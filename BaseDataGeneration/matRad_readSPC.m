@@ -1,4 +1,4 @@
-function[Meta, SPC] = matRad_calcParticleDose(path)
+function[Meta, SPC] = matRad_readSPC(path)
 
 % TRiP98 spectra file format
 % Spectra (SPC) files are binary files containing energy spectra and related histograms of 
@@ -240,7 +240,9 @@ while true
                         error('particle not defined')
                 end
                 
-                
+                if strcmp(CurrentParticle,'p')
+                    CurrentParticle = 'H';
+                end
                 
                 %%
                 
@@ -329,7 +331,15 @@ end
 IdxZ = ismember([sParticleInfo{:,2}],SPC(1).typeOfParticle(1,:));
 IdxA = ismember([sParticleInfo{:,3}],SPC(1).typeOfParticle(2,:));
 Idx = IdxA & IdxZ;
-Meta.particles = sParticleInfo(Idx,1)';
+
+if length(sParticleInfo(Idx,1)') == 1
+    if strcmp(sParticleInfo(Idx,1)','p') 
+        Meta.particles = {'H'};
+    end
+else
+    Meta.particles = sParticleInfo(Idx,1)';
+end
+
 end
 
 

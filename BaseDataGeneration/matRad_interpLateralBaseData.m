@@ -29,14 +29,17 @@ function [ machine ] = matRad_interpLateralBaseData(machine,pathTRiP,pathToSpars
 % This file has to be used only for internal purposes! 
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+%#ok<*AGROW>
 
-% parse inital beam width as sigma in [mm]
-if focusIdx > 0
-    [Sigma_SIS,vEnergySIS] = matRad_getSigmaSIS(Identifier,pathTRiP,focusIdx);
-else
-    Sigma_SIS  = 0;
-    vEnergySIS = 0;
-end
+% % parse inital beam width as sigma in [mm]
+% if focusIdx > 0
+%     [Sigma_SIS,vEnergySIS] = matRad_getSigmaSIS(Identifier,pathTRiP,focusIdx);
+% else
+%     Sigma_SIS  = 0;
+%     vEnergySIS = 0;
+% end
+
 %parse sparse lateral double gaussian information
 Files = dir([pathToSparseData filesep '*.txt']);
 
@@ -53,7 +56,7 @@ for i = 1 : length(Files)
             data(j -1,k) = str2num(CurrentLine{k});
         end
     end
-    SamplePoints(EnergyIdx).depth  = data(:,1);
+    SamplePoints(EnergyIdx).depth  = data(:,1); 
     SamplePoints(EnergyIdx).sigma1 = data(:,2);
     SamplePoints(EnergyIdx).sigma2 = data(:,3);
     SamplePoints(EnergyIdx).weight = data(:,4);
@@ -76,9 +79,7 @@ for i = 1:length(SamplePoints)
 end
 
 vEnergy = [machine.data.energy];
-if sum(abs(vEnergySIS-vEnergy')) > 1e-1 && focusIdx > 0
-    warning('sis energies differ from baseData energies')
-end 
+
 
 h = waitbar(0,'initializing waitbar ...');
 

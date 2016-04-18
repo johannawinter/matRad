@@ -1,4 +1,4 @@
-function [ machine ] = matRad_interpDoseAvgBioData( machine, sData,CNAOisUsed, visBool )
+function [ machine ] = matRad_interpDepthDoseAvgData( machine, sData,CNAOisUsed, visBool )
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad_interpDoseAvgBioData script
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
