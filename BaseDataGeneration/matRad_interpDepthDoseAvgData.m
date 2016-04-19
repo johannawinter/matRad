@@ -19,9 +19,10 @@ function [ machine ] = matRad_interpDepthDoseAvgData( machine, sData,CNAOisUsed,
 % dEdxsqrtBeta. 
 
 h = waitbar(0,'Initializing waitbar...');
-NumCellLines = 11; %length(sData);
+NumCellLines = 23; %length(sData);
+Cnt = 1;
 
-for CntCell = 1:NumCellLines
+for CntCell = 12:NumCellLines
    
     % data need to be divided by the ddd in order to assess depth dose averaged 
     % alphas and betas
@@ -148,17 +149,19 @@ for CntCell = 1:NumCellLines
                   
         end
         
-        machine.data(1,i).alpha(:,CntCell)= interp1(vDepth.*interpPeakPos,vA,machine.data(1,i).depths,'linear');
-        machine.data(1,i).beta(:,CntCell) = interp1(vDepth.*interpPeakPos,vB,machine.data(1,i).depths,'linear');
-        machine.data(1,i).alphaBetaRatio(:,CntCell) = unique([sData{1,CntCell}.alphaBetaRatio]);
+        machine.data(1,i).alpha(:,Cnt)= interp1(vDepth.*interpPeakPos,vA,machine.data(1,i).depths,'linear','extrap');
+        machine.data(1,i).beta(:,Cnt) = interp1(vDepth.*interpPeakPos,vB,machine.data(1,i).depths,'linear','extrap');
+        machine.data(1,i).alphaX(1,Cnt) = sData{1,CntCell}.alphaX;
+        machine.data(1,i).betaX(1,Cnt)  = sData{1,CntCell}.betaX;
+        machine.data(1,i).alphaBetaRatio(:,Cnt) = unique([sData{1,CntCell}.alphaBetaRatio]);
         %plot final interpolated depth dose values
         if visBool
-            subplot(235),plot(machine.data(1,i).depths,machine.data(1,i).alpha(:,CntCell),'g','LineWidth',3); 
-            subplot(236),plot(machine.data(1,i).depths,machine.data(1,i).beta(:,CntCell),'g','LineWidth',3);
+            subplot(235),plot(machine.data(1,i).depths,machine.data(1,i).alpha(:,Cnt),'g','LineWidth',3); 
+            subplot(236),plot(machine.data(1,i).depths,machine.data(1,i).beta(:,Cnt),'g','LineWidth',3);
             waitforbuttonpress
         end      
     end
-
+    Cnt = Cnt + 1;
     waitbar(CntCell/NumCellLines,h,'interpolating ...');
 end
 

@@ -85,13 +85,11 @@ save('BioDataHIT.mat','BioDataHIT');
 %% interpolate each entry in the ddd the corresponding depth alpha and depth beta curve
 [machine] = matRad_interpDepthDoseAvgData(machine, BioDataHIT ,false, 0);
 
-%% adjust distances of initial focus manuall as their are constant anyway
+%% adjust distances of initial focus manually as their are constant anyway
 for i = 1:length(machine.data)
     machine.data(i).initFocus.dist(:,1) = 0;
     machine.data(i).initFocus.dist(:,2) = 20000;
 end
-
-
 
 
 %% save file

@@ -71,7 +71,12 @@ else
     
 end
  
-LET  = interp1(depths,baseData.LET,radDepths,'linear');
+if isfield(baseData,'LET')
+    LET  = interp1(depths,baseData.LET,radDepths,'linear');
+else
+    LET  = 0;
+end
+
 
 % check if we have valid dose values
 if any(isnan(dose)) || any(dose<0)
