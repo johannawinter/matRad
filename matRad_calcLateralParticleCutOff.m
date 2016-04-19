@@ -154,6 +154,12 @@ for energyIx = vEnergiesIx
             
             machine.data(energyIx).LatCutOff.CutOff(j) = r_cut;
             
+            if j > 1
+                if 1-relContrib > cutOffLevel
+                    machine.data(energyIx).LatCutOff.CutOff(j) = machine.data(energyIx).LatCutOff.CutOff(j-1);
+                end
+            end
+            
             % set DepthDoseCutOff according to cutoff at entrance dose;
             if j == 1 && strcmp(machine.meta.dataType,'singleGauss')
                 depthDoseCutOff = SG(r_cut,Sigma1); 
