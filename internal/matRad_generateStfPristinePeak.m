@@ -1,4 +1,4 @@
-function stf = matRad_generateStfPristinePeak(pln,energyIx)
+function stf = matRad_generateStfPristinePeak(ct,pln,energyIx)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad steering information generation
 % 
@@ -26,6 +26,10 @@ function stf = matRad_generateStfPristinePeak(pln,energyIx)
 % This file is not part of matRad.
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% density threshold used for SSD calculation
+DensityThresholdSSD = 0.05;
 
 fprintf('matRad: Generating stf struct... ');
 
@@ -70,7 +74,7 @@ for i = 1:length(pln.gantryAngles)
     for j = 1:stf(i).numOfRays
         stf(i).ray(j).rayPos_bev = rayPos(j,:);
         stf(i).ray(j).targetPoint_bev = [2*stf(i).ray(j).rayPos_bev(1) ...
-                                                               machine.meta.SAD ...
+                                                      machine.meta.SAD ...
                                          2*stf(i).ray(j).rayPos_bev(3)];
     end
     
@@ -103,14 +107,44 @@ for i = 1:length(pln.gantryAngles)
     % find appropriate energies for particles
     if strcmp(stf(i).radiationMode,'protons') || strcmp(stf(i).radiationMode,'carbon')
         
-        for j = 1:stf(i).numOfRays
-            stf(i).ray(j).energy = availableEnergies(energyIx);
-        end
+        stf(i).isoCenter = pln.isoCenter;
+        voiTarget = 1:1:numel(ct.cube);
+        stf(i).SAD = machine.meta.SAD;
+        % ray tracing necessary to determine depth of the target
+        [alpha,l,rho,~,~] = matRad_siddonRayTracer(stf(i).isoCenter, ...
+                             ct.resolution, ...
+                             stf(i).sourcePoint, ...
+                             stf(i).ray(j).targetPoint, ...
+                             {ct.cube,voiTarget});
 
+        ixSSD = find(rho{1} > DensityThresholdSSD,1,'first');
+
+        if isempty(ixSSD)== 1
+             warning('Surface for SSD calculation starts directly in first voxel of CT\n');
+        end
+            
+        % calculate SSD
+        stf(i).ray(j).SSD = 2 * stf(i).SAD * alpha(ixSSD);
+
+        % define energy
+        stf(i).ray(j).energy = machine.data(energyIx).energy;
+         
         % book keeping
         stf(i).numOfRays = size(stf(i).ray,2);
         for j = 1:stf(i).numOfRays
             stf(i).numOfBixelsPerRay(j) = numel(stf(i).ray(j).energy);
+            currentMinimumFWHM = interp1(machine.meta.LUT_bxWidthminFWHM(1,:),machine.meta.LUT_bxWidthminFWHM(2,:),pln.bixelWidth);
+            focusIx  =  ones(stf(i).numOfBixelsPerRay(j),1);
+            [~, vEnergyIx] = min(abs(bsxfun(@minus,[machine.data.energy]',...
+                                repmat(stf(i).ray(j).energy,length([machine.data]),1))));
+
+            % get for each spot the focus index
+            for k = 1:stf(i).numOfBixelsPerRay(j)                    
+                focusIx(k) = find(machine.data(vEnergyIx(k)).initFocus.SisFWHMAtIso > currentMinimumFWHM,1);
+            end
+
+            stf(i).ray(j).focusIx = focusIx';
+                
         end
 
     elseif strcmp(stf(i).radiationMode,'photons')
@@ -128,8 +162,8 @@ for i = 1:length(pln.gantryAngles)
     
 end
 
-stf.SSD = machine.meta.BAMStoIsoDist;
-stf.ray.focusIx = 1;
-stf.isoCenter = pln.isoCenter;
+
+
+
 stf.sourcePoint_bev = [0 -machine.meta.SAD 0];
-stf.ixSSD = 100;
+

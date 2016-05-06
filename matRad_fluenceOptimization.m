@@ -84,7 +84,7 @@ doseTarget = [];
 ixTarget   = [];
 for i=1:size(cst,1)
     if isequal(cst{i,3},'TARGET') && ~isempty(cst{i,6})
-        V = [V;cst{i,4}];
+        V = [V;cst{i,4}{1}];
         doseTarget = [doseTarget cst{i,6}.dose];
         ixTarget   = [ixTarget i*ones(1,length([cst{i,6}.dose]))];
     end
@@ -111,7 +111,7 @@ funcs.iterfunc          = @(iter,objective,paramter) matRad_IpoptIterFunc(iter,o
 % calculate initial beam intensities wInit
 if strcmp(pln.bioOptimization,'none')
     
-    bixelWeight =  (doseTarget)/(mean(dij.physicalDose(V,:)*wOnes)); 
+    bixelWeight =  (doseTarget)/(mean(dij.physicalDose{1}(V,:)*wOnes)); 
     wInit       = wOnes * bixelWeight;
 
 else (isequal(pln.bioOptimization,'effect') || isequal(pln.bioOptimization,'RBExD')) ... 
@@ -124,8 +124,8 @@ else (isequal(pln.bioOptimization,'effect') || isequal(pln.bioOptimization,'RBEx
     for i = 1:size(cst,1)
         
         if isequal(cst{i,3},'OAR') || isequal(cst{i,3},'TARGET')
-             dij.ax(cst{i,4}) = cst{i,5}.alphaX;
-             dij.bx(cst{i,4}) = cst{i,5}.betaX;
+             dij.ax(cst{i,4}{1}) = cst{i,5}.alphaX;
+             dij.bx(cst{i,4}{1}) = cst{i,5}.betaX;
         end
         
         for j = 1:size(cst{i,6},2)
@@ -140,8 +140,8 @@ else (isequal(pln.bioOptimization,'effect') || isequal(pln.bioOptimization,'RBEx
     if isequal(pln.bioOptimization,'effect')
         
            effectTarget = cst{ixTarget,5}.alphaX * doseTarget + cst{ixTarget,5}.betaX * doseTarget^2;
-           p            = (sum(dij.mAlphaDose(V,:)*wOnes)) / (sum((dij.mSqrtBetaDose(V,:) * wOnes).^2));
-           q            = -(effectTarget * length(V)) / (sum((dij.mSqrtBetaDose(V,:) * wOnes).^2));
+           p            = (sum(dij.mAlphaDose{1}(V,:)*wOnes)) / (sum((dij.mSqrtBetaDose{1}(V,:) * wOnes).^2));
+           q            = -(effectTarget * length(V)) / (sum((dij.mSqrtBetaDose{1}(V,:) * wOnes).^2));
            wInit        = -(p/2) + sqrt((p^2)/4 -q) * wOnes;
 
     elseif isequal(pln.bioOptimization,'RBExD')
@@ -151,17 +151,23 @@ else (isequal(pln.bioOptimization,'effect') || isequal(pln.bioOptimization,'RBEx
            idx            = dij.bx~=0; 
            dij.gamma(idx) = dij.ax(idx)./(2*dij.bx(idx)); 
             
-           roughRBE = 3;
-           wInit    =  (doseTarget)/(roughRBE*mean(dij.physicalDose(V,:)*wOnes)) * wOnes; 
+           % calculate current in target
+           CurrEffectTarget = (dij.mAlphaDose{1}(V,:)*wOnes + (dij.mSqrtBetaDose{1}(V,:)*wOnes).^2);
+           % ensure a underestimated biological effective dose 
+           TolEstBio        = 1.2;
+           % calculate maximal RBE in target
+           maxCurrRBE = max(-cst{ixTarget,5}.alphaX + sqrt(cst{ixTarget,5}.alphaX^2 + ...
+                        4*cst{ixTarget,5}.betaX.*CurrEffectTarget)./(2*cst{ixTarget,5}.betaX*(dij.physicalDose{1}(V,:)*wOnes)));
+           wInit    =  ((doseTarget)/(TolEstBio*maxCurrRBE*max(dij.physicalDose{1}(V,:)*wOnes)))* wOnes;
     end
 end
 
 % set callback functions.
-[options.cl,options.cu] = matRad_getConstBounds(cst,pln.bioOptimization);   
-funcs.objective         = @(x) matRad_objFunc(x,dij,cst,pln.bioOptimization);
-funcs.constraints       = @(x) matRad_constFunc(x,dij,cst,pln.bioOptimization);
-funcs.gradient          = @(x) matRad_gradFunc(x,dij,cst,pln.bioOptimization);
-funcs.jacobian          = @(x) matRad_jacobFunc(x,dij,cst,pln.bioOptimization);
+[options.cl,options.cu] = matRad_getConstBoundsWrapper(cst,pln.bioOptimization,dij.numOfScenarios);   
+funcs.objective         = @(x) matRad_objFuncWrapper(x,dij,cst,pln.bioOptimization);
+funcs.constraints       = @(x) matRad_constFuncWrapper(x,dij,cst,pln.bioOptimization);
+funcs.gradient          = @(x) matRad_gradFuncWrapper(x,dij,cst,pln.bioOptimization);
+funcs.jacobian          = @(x) matRad_jacobFuncWrapper(x,dij,cst,pln.bioOptimization);
 funcs.jacobianstructure = @( ) matRad_getJacobStruct(dij,cst);
 
 % Run IPOPT.

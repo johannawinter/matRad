@@ -8,16 +8,16 @@
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-clear
-close all
-clc
+% clear
+% close all
+% clc
 
 % load MC cube
 for energyIx     = 30%[30 90 150 200 240];
-%MCfilename   = ['C:\Users\admbangertm\Documents\data\matRad validation\protons\E' num2str(energyIx) '\E' num2str(energyIx) '.txt'];
+MCfilename   = ['C:\Users\wieserh\Documents\matRad validation\protons\E' num2str(energyIx) '\E' num2str(energyIx) '.txt'];
 %MCfilename   = ['C:\Users\wieserh\Documents\matRad validation\protons\SOBP\p_SOBP_highStats.txt'];
 
-MCfilename   = ['C:\Users\wieserh\Documents\matRad validation\carbons\E' num2str(energyIx) '\C_E' num2str(energyIx) '.txt'];
+%MCfilename   = ['C:\Users\wieserh\Documents\matRad validation\carbons\E' num2str(energyIx) '\C_E' num2str(energyIx) '.txt'];
 
 MCcube       = matRad_readMCdata(MCfilename);
 [ct,cst,pln] = matRad_setup4MCValidation(MCcube);
@@ -29,7 +29,7 @@ pln.couchAngles     = [0]; % [°]
 pln.numOfBeams      = numel(pln.gantryAngles);
 pln.numOfVoxels     = numel(ct.cube);
 pln.voxelDimensions = size(ct.cube);
-pln.radiationMode   = 'carbon'; % either photons / protons / carbon
+pln.radiationMode   = 'protons'; % either photons / protons / carbon
 pln.machine         = 'HIT';
 pln.bioOptimization = 'none'; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
 pln.numOfFractions  = 1;
@@ -41,13 +41,13 @@ pln.UseHIT          = true;
 %RSTfilename = ('C:\Users\admbangertm\Documents\data\matRad validation\protons\SOBP\SOBP.hit');
 %[stf, pln, w] = matRad_readRst(pln,RSTfilename);
 
-stf = matRad_generateStfPristinePeak(pln,energyIx);
+stf = matRad_generateStfPristinePeak(ct,pln,energyIx);
 w = 10;
 %% dose calculation
-tic
 matRadDoseCube = matRad_calcParticleDoseVal(w,ct,stf,pln,cst);
+% dij = matRad_calcParticleDose(ct,stf,pln,cst);
+% matRadDoseCube = reshape(full(dij.physicalDose)*w,[pln.voxelDimensions]);
 %load('C:\Users\wieserh\Documents\matRad validation\protons\SOBP\matRadDoseCube.mat');
-toc
 
 %%
 %matRad_compareDoseCubes(matRadDoseCube/sum(w),MCcube.cube/10,MCcube.resolution,['pristinePeak_E' num2str(energyIx) '.ps'])

@@ -42,12 +42,12 @@ end
 if numel(pln.gantryAngles) ~= numel(pln.couchAngles)
     error('Inconsistent number of gantry and couch angles.');
 end
-              
+
 % find all target voxels from cst cell array
 V = [];
 for i=1:size(cst,1)
     if isequal(cst{i,3},'TARGET') && ~isempty(cst{i,6})
-        V = [V;cst{i,4}];
+        V = [V;vertcat(cst{i,4}{:})];
     end
 end
 
@@ -58,7 +58,7 @@ V = unique(V);
 DensityThresholdSSD = 0.05;
 
 % generate voi cube for targets
-voiTarget    = zeros(size(ct.cube));
+voiTarget    = zeros(ct.cubeDim);
 voiTarget(V) = 1;
     
 % add margin
@@ -78,8 +78,6 @@ fileName = [pln.radiationMode '_' pln.machine];
 try
    load(fileName);
    SAD = machine.meta.SAD;
-    machine.meta.SCD = 1000;
-   SCD = machine.meta.SCD;
 catch
    error(['Could not find the following machine file: ' fileName ]); 
 end
@@ -96,7 +94,7 @@ if strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
 end
 
 % Convert linear indices to 3D voxel coordinates
-[coordsY_vox, coordsX_vox, coordsZ_vox] = ind2sub(size(ct.cube),V);
+[coordsY_vox, coordsX_vox, coordsZ_vox] = ind2sub(ct.cubeDim,V);
 
 % Correct for iso center position. Whit this correction Isocenter is
 % (0,0,0) [mm]
@@ -220,10 +218,6 @@ for i = 1:length(pln.gantryAngles)
         stf(i).ray(j).rayPos      = stf(i).ray(j).rayPos_bev*rotMx_XY_T*rotMx_XZ_T;
         stf(i).ray(j).targetPoint = stf(i).ray(j).targetPoint_bev*rotMx_XY_T*rotMx_XZ_T;
         stf(i).ray(j).SSD         = NaN;
-        stf(i).ray(j).rayCorners_SCD = (repmat([0, SCD - SAD, 0],4,1)+ (SCD/SAD)*[rayPos(j,:) + [+stf(i).bixelWidth/2,0,+stf(i).bixelWidth/2];...
-                                                                                                  rayPos(j,:) + [-stf(i).bixelWidth/2,0,+stf(i).bixelWidth/2];...
-                                                                                                  rayPos(j,:) + [-stf(i).bixelWidth/2,0,-stf(i).bixelWidth/2];...
-                                                                                                  rayPos(j,:) + [+stf(i).bixelWidth/2,0,-stf(i).bixelWidth/2]])*rotMx_XY_T*rotMx_XZ_T;
     end
     
     % loop over all rays to determine meta information for each ray    
@@ -236,7 +230,7 @@ for i = 1:length(pln.gantryAngles)
                              ct.resolution, ...
                              stf(i).sourcePoint, ...
                              stf(i).ray(j).targetPoint, ...
-                             {ct.cube,voiTarget});
+                             [ct.cube {voiTarget}]);
 
             ixSSD = find(rho{1} > DensityThresholdSSD,1,'first');
 
@@ -295,14 +289,16 @@ for i = 1:length(pln.gantryAngles)
   
                 % book keeping & calculate focus index
                 stf(i).numOfBixelsPerRay(j) = numel([stf(i).ray(j).energy]);
-                currentMinimumFWHM = interp1(machine.meta.LUT_bxWidthminFWHM(1,:),machine.meta.LUT_bxWidthminFWHM(2,:),pln.bixelWidth);
+                currentMinimumFWHM = matRad_interp1(machine.meta.LUT_bxWidthminFWHM(1,:),...
+                                             machine.meta.LUT_bxWidthminFWHM(2,:),...
+                                             pln.bixelWidth);
                 focusIx  =  ones(stf(i).numOfBixelsPerRay(j),1);
                 [~, vEnergyIx] = min(abs(bsxfun(@minus,[machine.data.energy]',...
                                 repmat(stf(i).ray(j).energy,length([machine.data]),1))));
 
                 % get for each spot the focus index
                 for k = 1:stf(i).numOfBixelsPerRay(j)                    
-                    focusIx(k) = find(machine.data(vEnergyIx(k)).initFocus.SisFWHMAtIso > currentMinimumFWHM,1);
+                    focusIx(k) = find(machine.data(vEnergyIx(k)).initFocus.SisFWHMAtIso > currentMinimumFWHM,1,'first');
                 end
 
                 stf(i).ray(j).focusIx = focusIx';
@@ -352,13 +348,16 @@ for i = 1:length(pln.gantryAngles)
             
             % generate a 3D rectangular grid centered at isocenter in
             % voxel coordinates
-            [X,Y,Z] = meshgrid((1:size(ct.cube,2))-stf(i).isoCenter(1)/ct.resolution.x, ...
-                               (1:size(ct.cube,1))-stf(i).isoCenter(2)/ct.resolution.y, ...
-                               (1:size(ct.cube,3))-stf(i).isoCenter(3)/ct.resolution.z);
+            [X,Y,Z] = meshgrid((1:ct.cubeDim(2))-stf(i).isoCenter(1)/ct.resolution.x, ...
+                               (1:ct.cubeDim(1))-stf(i).isoCenter(2)/ct.resolution.y, ...
+                               (1:ct.cubeDim(3))-stf(i).isoCenter(3)/ct.resolution.z);
             
             % computes surface
-            patSurfCube = 0*ct.cube;
-            patSurfCube(unique(cell2mat(cst(:,4)))) = 1;
+            patSurfCube      = 0*ct.cube{1};
+            idx              = [cst{:,4}];
+            idx              = unique(vertcat(idx{:}));
+            patSurfCube(idx) = 1;
+            
             [f,v] = isosurface(X,Y,Z,patSurfCube,.5);
             
             % convert isosurface from voxel to [mm]
@@ -465,5 +464,3 @@ for i = 1:length(pln.gantryAngles)
 end    
 
 end
-
-

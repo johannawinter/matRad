@@ -59,12 +59,7 @@ round2 = @(a,b)round(a*10^b)/10^b;
 V = unique([cell2mat(cst(:,4))]);
 
 % Convert CT subscripts to linear indices.
-[yCoordsV, xCoordsV, zCoordsV] = ind2sub(size(ct.cube),V);
-
-xCoordsV = xCoordsV(:)*ct.resolution.x-pln.isoCenter(1);
-yCoordsV = yCoordsV(:)*ct.resolution.y-pln.isoCenter(2);
-zCoordsV = zCoordsV(:)*ct.resolution.z-pln.isoCenter(3);
-coordsV  = [xCoordsV yCoordsV zCoordsV];
+[yCoordsV_vox, xCoordsV_vox, zCoordsV_vox] = ind2sub(size(ct.cube),V);
 
 % load machine file
 fileName = [pln.radiationMode '_' pln.machine];
@@ -81,7 +76,7 @@ sourcePoint_bev = [0 -machine.meta.SAD 0];
 fprintf('matRad: calculate lateral cutoff... ');
 cutOffLevel = 1;
 visBoolLateralCutOff = 0;
-machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,visBoolLateralCutOff);
+machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf,visBoolLateralCutOff);
 fprintf('...done \n');
 
 fprintf('matRad: Particle dose calculation... \n ');
@@ -90,56 +85,71 @@ counter = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for i = 1:dij.numOfBeams; % loop over all beams
     
-    %SET GANTRY AND COUCH ROTATION MATRICES ACCORDING IEC 61217 STANDARD FOR LINACS
-    % Note: Signs for the following 2 matrices works for a fixed beam and
-    % rotary CT.
+     fprintf(['Beam ' num2str(i) ' of ' num2str(dij.numOfBeams) ': \n']);
     
-    % Rotation around Z axis (gantry movement)
-    rotMx_XY = [cosd(pln.gantryAngles(i)) -sind(pln.gantryAngles(i)) 0;
-                sind(pln.gantryAngles(i))  cosd(pln.gantryAngles(i)) 0;
-                                        0                          0 1];
-    
-    % Rotation around Y axis (Couch movement)
-    rotMx_XZ = [ cosd(pln.couchAngles(i)) 0 sind(pln.couchAngles(i));
-                                        0 1                        0;
-                -sind(pln.couchAngles(i)) 0 cosd(pln.couchAngles(i))];
-    
-    % ROTATE VOI'S CT COORDINATES. First applies couch rotation and then
-    % gantry. It is important to note matrix multiplication is not "commutative",
-    % you cannot switch the order of the factors and expect to end up with the same result.
-    
-    % Rotate coordinates around Y axis (1st couch movement) and then Z axis
-    % (2nd gantry movement)
-    
-    rot_coordsV = coordsV*rotMx_XZ*rotMx_XY;
-    
-    rot_coordsV(:,1) = rot_coordsV(:,1)-sourcePoint_bev(1);
-    rot_coordsV(:,2) = rot_coordsV(:,2)-sourcePoint_bev(2);
-    rot_coordsV(:,3) = rot_coordsV(:,3)-sourcePoint_bev(3);
-    
-    lateralCutoff = 60;
-    fprintf(['matRad: Calculating radiological depth cube for beam ' num2str(i) ' ... \n']);
-    
-    [radDepths,geoDistCube] = matRad_rayTracing(stf,ct,V,lateralCutoff);
+    % convert voxel indices to real coordinates using iso center of beam i
+    xCoordsV = xCoordsV_vox(:)*ct.resolution.x-stf(i).isoCenter(1);
+    yCoordsV = yCoordsV_vox(:)*ct.resolution.y-stf(i).isoCenter(2);
+    zCoordsV = zCoordsV_vox(:)*ct.resolution.z-stf(i).isoCenter(3);
+    coordsV  = [xCoordsV yCoordsV zCoordsV];
 
-    geoDistBAMSCube = machine.meta.BAMStoIsoDist - (machine.meta.SAD - reshape(geoDistCube,size(ct.cube)));
-    stf.SSD = geoDistBAMSCube(stf.ixSSD);
+    % Set gantry and couch rotation matrices according to IEC 61217
+    % Use transpose matrices because we are working with row vectros
     
-    fprintf('...done \n');
+    % rotation around Z axis (gantry)
+    inv_rotMx_XY_T = [ cosd(-pln.gantryAngles(i)) sind(-pln.gantryAngles(i)) 0;
+                      -sind(-pln.gantryAngles(i)) cosd(-pln.gantryAngles(i)) 0;
+                                                0                          0 1];
+    
+    % rotation around Y axis (couch)
+    inv_rotMx_XZ_T = [cosd(-pln.couchAngles(i)) 0 -sind(-pln.couchAngles(i));
+                                              0 1                         0;
+                      sind(-pln.couchAngles(i)) 0  cosd(-pln.couchAngles(i))];
+                  
+    % Rotate coordinates (1st couch around Y axis, 2nd gantry movement)
+    rot_coordsV = coordsV*inv_rotMx_XZ_T*inv_rotMx_XY_T;
+    
+    rot_coordsV(:,1) = rot_coordsV(:,1)-stf(i).sourcePoint_bev(1);
+    rot_coordsV(:,2) = rot_coordsV(:,2)-stf(i).sourcePoint_bev(2);
+    rot_coordsV(:,3) = rot_coordsV(:,3)-stf(i).sourcePoint_bev(3);
+    
+      lateralCutoffRayTracing = 50;
+    fprintf('matRad: calculate radiological depth cube...');
+    radDepthV = matRad_rayTracing(stf(i),ct,V,rot_coordsV,lateralCutoffRayTracing);
+    fprintf('done.\n');
+    
+    % get indices of voxels where ray tracing results are available
+    radDepthIx = find(~isnan(radDepthV));
+    
+    % limit rotated coordinates to positions where ray tracing is availabe
+    rot_coordsV = rot_coordsV(radDepthIx,:);
+    
+    % Determine lateral cutoff
+    fprintf('matRad: calculate lateral cutoff...');
+    cutOffLevel = 1;
+    visBoolLateralCutOff = 0;
+    machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf(i),visBoolLateralCutOff);
+    fprintf('done.\n');    
                               
     
     for j = 1:stf(i).numOfRays % loop over all rays
         
         if ~isempty(stf(i).ray(j).energy)
             
+            % find index of maximum used energy (round to keV for numerical
+            % reasons
+            energyIx = max(round2(stf(i).ray(j).energy,4)) == round2([machine.data.energy],4);
+            
+            maxLateralCutoffDoseCalc = max(machine.data(energyIx).LatCutOff.CutOff);
+            
             % Ray tracing for beam i and ray j                          
-             [~,latDistsX,latDistsZ] = matRad_calcGeoDists(rot_coordsV, ...
-                                                       stf(i).sourcePoint_bev, ...
-                                                       stf(i).ray(j).targetPoint_bev, ...
-                                                       inf);
-                                       
-            % perform raytracing for each voxel                                       
-            radialDist_sq = latDistsX.^2 + latDistsZ.^2;    
+            [ix,radialDist_sq] = matRad_calcGeoDists(rot_coordsV, ...
+                                                     stf(i).sourcePoint_bev, ...
+                                                     stf(i).ray(j).targetPoint_bev, ...
+                                                     machine.meta.SAD, ...
+                                                     radDepthIx, ...
+                                                     maxLateralCutoffDoseCalc);
+            radDepths = radDepthV(ix);      
             
             for k = 1:stf(i).numOfBixelsPerRay(j) % loop over all bixels per ray
 
@@ -152,31 +162,34 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 end
 
                 % find energy index in base data
-                energyIx = find(round2(stf(i).ray(j).energy(k),4) == round2([machine.data.energy],4));                
+                energyIx = find(round2(stf(i).ray(j).energy(k),4) == round2([machine.data.energy],4));
                 
+                % find depth depended lateral cut off
                 if cutOffLevel >= 1
-                        ix = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset;
-                else
+                    currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset;
+                elseif cutOffLevel < 1 && cutOffLevel > 0
                     % perform rough 2D clipping
-                    ix = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
-                             radialDist_sq <= max(machine.data(energyIx).LatCutOff.CutOff.^2);
-                       
+                    currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
+                         radialDist_sq <= max(machine.data(energyIx).LatCutOff.CutOff.^2);
+
                     % peform fine 2D clipping  
                     if length(machine.data(energyIx).LatCutOff.CutOff) > 1
-                        ix(ix) = interp1(machine.data(energyIx).LatCutOff.depths + machine.data(energyIx).offset,...
-                            machine.data(energyIx).LatCutOff.CutOff.^2, radDepths(ix)) >= radialDist_sq(ix);
+                        currIx(currIx) = interp1(machine.data(energyIx).LatCutOff.depths + machine.data(energyIx).offset,...
+                            machine.data(energyIx).LatCutOff.CutOff.^2, radDepths(currIx)) >= radialDist_sq(currIx);
                     end
+                else
+                    error('cutoff must be a value between 0 and 1')
                 end
                 
-                % calculate particle dose for bixel k on ray j of beam i
-                bixelDose = matRad_calcParticleDoseBixel(...
-                    radDepths(ix),...
-                    radialDist_sq(ix),...
-                    stf(i).SSD(j), ...
+                 % calculate particle dose for bixel k on ray j of beam i
+                [bixelDose,~] = matRad_calcParticleDoseBixel(...
+                    radDepths(currIx), ...
+                    radialDist_sq(currIx), ...
+                    stf(i).ray(j).SSD, ...
                     stf(i).ray(j).focusIx(k), ...
-                    machine.data(energyIx));
-
-                dose(ix) = dose(ix) + w(counter) * bixelDose;
+                    machine.data(energyIx)); 
+                
+                dose(V(ix(currIx))) = dose(V(ix(currIx))) + w(counter) * bixelDose';
                 
             end
             

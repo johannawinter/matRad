@@ -34,19 +34,21 @@ function mVOIEnlarged = matRad_addMargin(mVOI,cst,vResolution,vMargin,bDiaElem)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if nargin == 3
+if nargin == 4
     bDiaElem = false;
-elseif nargin < 3
+elseif nargin < 4
     error('not enough input parameters specified for matRad_addMargin');
 end
 
 % generate voi cube for patient surface/patient skin
-voiSurface = zeros(size(mVOI));
-voiSurface(unique([cell2mat(cst(:,4))])) = 1;
-voiSurfaceIdx = find(voiSurface);
+voiSurface      = zeros(size(mVOI));
+idx             = [cst{:,4}];
+idx             = unique(vertcat(idx{:}));
+voiSurface(idx) = 1;
+voiSurfaceIdx   = find(voiSurface);
 
 % get number of voxels which should be added in each dimension
-voxelMargins = round([vMargin.x vMargin.y vMargin.z]./[vResolution.x vResolution.y vResolution.z]);
+voxelMargins = round([vMargin.y vMargin.x vMargin.z]./[vResolution.y vResolution.x vResolution.z]);
 mVOIEnlarged = mVOI;
 NewIdx = [];
 
