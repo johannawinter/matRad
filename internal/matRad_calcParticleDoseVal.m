@@ -42,6 +42,7 @@ dij.numOfRaysPerBeam   = [stf(:).numOfRays];
 dij.totalNumOfRays     = sum(dij.numOfRaysPerBeam);
 dij.totalNumOfBixels   = sum([stf(:).totalNumOfBixels]);
 dij.dimensions         = pln.voxelDimensions;
+dij.numOfScenarios     = 1;
 
 % set up arrays for book keeping
 dij.bixelNum = NaN*ones(dij.totalNumOfRays,1);
@@ -49,17 +50,17 @@ dij.rayNum   = NaN*ones(dij.totalNumOfRays,1);
 dij.beamNum  = NaN*ones(dij.totalNumOfRays,1);
 
 % Allocate space for dose cube
-dose = zeros(dij.dimensions);
+dose = zeros(size(ct.cube{1}));
 
 % helper function for energy selection
 round2 = @(a,b)round(a*10^b)/10^b;
 
-% take all voxels by default
-
-V = unique([cell2mat(cst(:,4))]);
+% Only take voxels inside patient.
+V = [cst{:,4}];
+V = unique(vertcat(V{:}));
 
 % Convert CT subscripts to linear indices.
-[yCoordsV_vox, xCoordsV_vox, zCoordsV_vox] = ind2sub(size(ct.cube),V);
+[yCoordsV_vox, xCoordsV_vox, zCoordsV_vox] = ind2sub(ct.cubeDim,V);
 
 % load machine file
 fileName = [pln.radiationMode '_' pln.machine];
@@ -69,15 +70,7 @@ catch
    error(['Could not find the following machine file: ' fileName ]); 
 end
 
-% source position in beam's eye view.
-sourcePoint_bev = [0 -machine.meta.SAD 0];
 
-% determine lateral cutoff
-fprintf('matRad: calculate lateral cutoff... ');
-cutOffLevel = 1;
-visBoolLateralCutOff = 0;
-machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf,visBoolLateralCutOff);
-fprintf('...done \n');
 
 fprintf('matRad: Particle dose calculation... \n ');
 counter = 0;
@@ -85,9 +78,10 @@ counter = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for i = 1:dij.numOfBeams; % loop over all beams
     
-     fprintf(['Beam ' num2str(i) ' of ' num2str(dij.numOfBeams) ': \n']);
+    fprintf(['Beam ' num2str(i) ' of ' num2str(dij.numOfBeams) ': \n']);
+    bixelsPerBeam = 0;
     
-    % convert voxel indices to real coordinates using iso center of beam i
+ % convert voxel indices to real coordinates using iso center of beam i
     xCoordsV = xCoordsV_vox(:)*ct.resolution.x-stf(i).isoCenter(1);
     yCoordsV = yCoordsV_vox(:)*ct.resolution.y-stf(i).isoCenter(2);
     zCoordsV = zCoordsV_vox(:)*ct.resolution.z-stf(i).isoCenter(3);
@@ -113,13 +107,13 @@ for i = 1:dij.numOfBeams; % loop over all beams
     rot_coordsV(:,2) = rot_coordsV(:,2)-stf(i).sourcePoint_bev(2);
     rot_coordsV(:,3) = rot_coordsV(:,3)-stf(i).sourcePoint_bev(3);
     
-      lateralCutoffRayTracing = 50;
+    lateralCutoffRayTracing = 50;
     fprintf('matRad: calculate radiological depth cube...');
     radDepthV = matRad_rayTracing(stf(i),ct,V,rot_coordsV,lateralCutoffRayTracing);
     fprintf('done.\n');
     
     % get indices of voxels where ray tracing results are available
-    radDepthIx = find(~isnan(radDepthV));
+    radDepthIx = find(~isnan(radDepthV{1}));
     
     % limit rotated coordinates to positions where ray tracing is availabe
     rot_coordsV = rot_coordsV(radDepthIx,:);
@@ -129,7 +123,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
     cutOffLevel = 1;
     visBoolLateralCutOff = 0;
     machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf(i),visBoolLateralCutOff);
-    fprintf('done.\n');    
+    fprintf('done.\n');
                               
     
     for j = 1:stf(i).numOfRays % loop over all rays
@@ -149,7 +143,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
                                                      machine.meta.SAD, ...
                                                      radDepthIx, ...
                                                      maxLateralCutoffDoseCalc);
-            radDepths = radDepthV(ix);      
+            radDepths = radDepthV{1}(ix);      
             
             for k = 1:stf(i).numOfBixelsPerRay(j) % loop over all bixels per ray
 
@@ -182,14 +176,14 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 end
                 
                  % calculate particle dose for bixel k on ray j of beam i
-                [bixelDose,~] = matRad_calcParticleDoseBixel(...
+                bixelDose = matRad_calcParticleDoseBixel(...
                     radDepths(currIx), ...
                     radialDist_sq(currIx), ...
                     stf(i).ray(j).SSD, ...
-                    stf(i).ray(j).focusIx(k), ...
+                    stf(i).ray(j).focusIx(k),...
                     machine.data(energyIx)); 
                 
-                dose(V(ix(currIx))) = dose(V(ix(currIx))) + w(counter) * bixelDose';
+                dose(V(ix(currIx))) = dose(V(ix(currIx))) + w(counter) * bixelDose;
                 
             end
             

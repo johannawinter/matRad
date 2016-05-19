@@ -1,4 +1,4 @@
-function [stf, pln, w] = matRad_readRst(ct,pln,cst,filename)
+function [stf, pln, w] = matRad_readRst(ct,pln,filename)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad read RST file and generates stearing file
 %
@@ -6,6 +6,7 @@ function [stf, pln, w] = matRad_readRst(ct,pln,cst,filename)
 %   [stf, pln] = matRad_readRst(pln,filename)
 %
 % input
+%   ct:         matRad's ct struct
 %   pln:        plan struct
 %   filename:   name of RST file
 %
@@ -52,11 +53,8 @@ numOfMachinesInRST = numel(machineStartIx)-1;
 load([pln.radiationMode '_' pln.machine])
 
 % generate voi surface cube for SSD calculation
-stf.SAD = pln.SAD;
+stf.SAD = machine.meta.SAD;
 voiSSD = ct.cube;
-%voiSSD(unique([cell2mat(cst(~strcmp(cst(:,2),'SKIN'),4))])) = 1;
-%voiSSD = double(ct.cube>0.7);
-%voiSSD(:,round(pln.isoCenter(1)):end,:) = 1;
 
 
 % loop over all machines
@@ -89,8 +87,9 @@ for i = 1:numOfMachinesInRST
     bixelWidthIx = find(strncmp('stepsize',RSTi,8));
     if numel(unique(RSTi(bixelWidthIx))) > 1
         warning(['Different bixel width used for different energies. Setting pln.bixelWidth = NaN.\n']);
-        pln.bixelWidth = NaN;
-        stf.bixelWidth = NaN;
+        pln.bixelWidth = 3;
+        stf.bixelWidth = 3;
+        warning('setting bixel width to 3');
     elseif numel(unique(cell2mat(textscan(RSTi{bixelWidthIx(1)},'stepsize %f %f')))) > 1
         warning(['Different bixel width used in x and y direction. Setting pln.bixelWidth = NaN.\n']);
         pln.bixelWidth = NaN;
@@ -166,12 +165,12 @@ for i = 1:numOfMachinesInRST
     % Save ray and target position in beam eye´s view (bev)
     for j = 1:stf(i).numOfRays
         stf(i).ray(j).targetPoint_bev = [2*stf(i).ray(j).rayPos_bev(1) ...
-                                         pln.SAD ...
+                                         stf.SAD ...
                                          2*stf(i).ray(j).rayPos_bev(3)];
     end
     
     % source position in bev
-    stf.sourcePoint_bev = [0 -pln.SAD 0];
+    stf.sourcePoint_bev = [0 -stf.SAD 0];
   
     % compute coordinates in lps coordinate system, i.e. rotate beam
     % geometry around fixed patient
@@ -189,63 +188,50 @@ for i = 1:numOfMachinesInRST
     % Rotated Source point, first needs to be rotated around gantry, and then
     % couch.
     stf(i).sourcePoint =  stf.sourcePoint_bev*rotMx_XY_rotated*rotMx_XZ_rotated;
-    
-
-    stf(i).SSD   = zeros(stf.numOfRays,1);
-    stf(i).ixSSD = zeros(stf.numOfRays,1);
+   
 
 
     % Save ray and target position in lps system.
     for j = 1:stf(i).numOfRays
+        
         stf(i).ray(j).rayPos      = stf(i).ray(j).rayPos_bev*rotMx_XY_rotated*rotMx_XZ_rotated;
         stf(i).ray(j).targetPoint = stf(i).ray(j).targetPoint_bev*rotMx_XY_rotated*rotMx_XZ_rotated;
         
-        % ray tracing necessary to determine SSD   
-        [~,~,rhoSSD,~,ix] = matRad_siddonRayTracer(pln.isoCenter, ...
-                                ct.resolution, ...
-                                stf(i).sourcePoint, ...
-                                stf(i).ray(j).targetPoint, ...
-                                {voiSSD});
+        
+        % ray tracing necessary to determine depth of the target
+        [alpha,l,rho,~,~] = matRad_siddonRayTracer(stf(i).isoCenter, ...
+                             ct.resolution, ...
+                             stf(i).sourcePoint, ...
+                             stf(i).ray(j).targetPoint, ...
+                             voiSSD);
+                         
                             
-        DensityThreshold = 0.05;              
-        rhoSSD{1} = rhoSSD{1} > DensityThreshold;
+        DensityThresholdSSD = 0.05;              
+        ixSSD = find(rho{1} > DensityThresholdSSD,1,'first');
                            
-        ixSSD = find(rhoSSD{1} > 0,1,'first');
-       
-        if ixSSD == 1
+        if isempty(ixSSD)== 1
             warning('Surface for SSD calculation starts directly in first voxel of CT\n');
         end
 
-        if isempty(ixSSD)
-            stf(i).SSD(j) = 0;
-        else
-            % save index of surface pixels
-            stf(i).ixSSD(j) = ix(ixSSD);
+        % calculate SSD
+        stf(i).ray(j).SSD = 2 * stf(i).SAD * alpha(ixSSD);
+
+        % book keeping & calculate focus index
+        stf(i).numOfBixelsPerRay(j) = numel([stf(i).ray(j).energy]);
+        currentMinimumFWHM = matRad_interp1(machine.meta.LUT_bxWidthminFWHM(1,:),...
+                                     machine.meta.LUT_bxWidthminFWHM(2,:),...
+                                     pln.bixelWidth);
+        focusIx  =  ones(stf(i).numOfBixelsPerRay(j),1);
+        [~, vEnergyIx] = min(abs(bsxfun(@minus,[machine.data.energy]',...
+                        repmat(stf(i).ray(j).energy,length([machine.data]),1))));
+
+        % get for each spot the focus index
+        for k = 1:stf(i).numOfBixelsPerRay(j)                    
+            focusIx(k) = find(machine.data(vEnergyIx(k)).initFocus.SisFWHMAtIso > currentMinimumFWHM,1,'first');
         end
 
-        focusIx = [];
-        DefaultFoci = 1;        % integer value
-        MinimumBeamWidth = 6;   % [mm]
-        vEnergy = stf(i).ray(j).energy;
-        
-        [~, idxEnergy] = min(abs(bsxfun(@minus,[machine.data.energy]',...
-            repmat(vEnergy,length([machine.data]),1))));
-        
-        for m = idxEnergy
-            for CurrFoci = DefaultFoci:size( machine.data(m).initFocus,2)
-                
-                 SigmaIniAtIsoCenter = interp1(machine.data(m).initFocus(CurrFoci).dist,...
-                               machine.data(m).initFocus(CurrFoci).sigma,...
-                               pln.DistBAMStoIso);
-                           
-                 if SigmaIniAtIsoCenter > MinimumBeamWidth 
-                    focusIx = [focusIx CurrFoci];
-                    break;
-                 end
-            end
-        end
-        stf(i).ray(j).focusIx = focusIx;
-        
+        stf(i).ray(j).focusIx = focusIx';
+
     end
         
     % save total number of bixels

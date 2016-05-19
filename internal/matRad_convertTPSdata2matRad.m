@@ -19,7 +19,8 @@ for i = 1:numel(sNames)
        ~isempty(regexpi(cst{i,2},'tumor'))
         cst{i,3} = 'TARGET';
         % default objectives for targets
-        cst{i,6}(1).parameter = [800 60]; %  
+        cst{i,6}(1).dose = 60; %  
+        cst{i,6}(1).penalty = 800; %  
         cst{i,6}(1).type = 'square deviation';
         cst{i,5}.Priority = 1;
     else
@@ -28,7 +29,7 @@ for i = 1:numel(sNames)
         cst{i,5}.Priority = 2;
     end
 
-    cst{i,4} = find(tps_data.structures.(sNames{i,1}).indicator_mask);
+    cst{i,4}{1} = find(tps_data.structures.(sNames{i,1}).indicator_mask);
     
     % set default parameter for biological planning
     cst{i,5}.TissueClass = 1; 
@@ -37,6 +38,11 @@ for i = 1:numel(sNames)
    
 end
 
-ct = tps_data.ct;
-ct = matRad_calcWaterEqD(ct);
+CT_Ref         = tps_data.ct;
+ct.cube{1}     = CT_Ref.cube;
+ct.dicomInfo   = CT_Ref.dicomInfo;
+ct.resolution  = CT_Ref.resolution;
+ct.cubeDim     = size(ct.cube{1});
+ct.numOfCtScen = 1;
+ct             = matRad_calcWaterEqD(ct);
 resultGUI.physicalDose = tps_data.dose;

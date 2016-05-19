@@ -27,15 +27,16 @@ function [ct,cst,pln] = matRad_setup4MCValidation(MCcube)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % ct assuming water
-ct.cube       = ones(size(MCcube.cube));
-ct.resolution = MCcube.resolution;
-
+ct.cube{1}     = ones(size(MCcube.cube));
+ct.resolution  = MCcube.resolution;
+ct.cubeDim     = size(ct.cube{1});
+ct.numOfCtScen = 1;
 % pln
 pln.isoCenter = [MCcube.isoCenter];
 
 % cst
-cst      = cell(1,6);
-cst{1,1} = 0;
-cst{1,2} = 'BODY';
-cst{1,3} = 'OAR';
-cst{1,4} = 1:numel(ct.cube);
+cst       = cell(1,6);
+cst{1,1}  = 0;
+cst{1,2}  = 'BODY';
+cst{1,3}  = 'OAR';
+cst{1,4}{1} = (1:numel(ct.cube{1}))';

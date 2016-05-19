@@ -72,6 +72,7 @@ end
 resolution.x = 3;
 resolution.y = 3;
 resolution.z = 3;
+warning(['The following x y z resolution are used:' resolution.x ' ' resolution.y ' ' resolution.z]);
 
 info.ImagePositionPatient = [.5*header.pixel_size*ones(1,header.slice_number); ...
                              .5*header.pixel_size*ones(1,header.slice_number); ...
@@ -83,7 +84,7 @@ info.PixelSpacing = [header.pixel_size header.pixel_size header.slice_distance];
 
 % interpolate ct
 fprintf('interpolate ct...\n');
-ct = matRad_interpCtCube(origCt, info, resolution);
+ct = matRad_interpDicomCtCube(origCt, info, resolution);
 
 % conversion from HU to e- density
 fprintf('conversion of HU to waterEqD...\n');
@@ -91,14 +92,14 @@ load hlutDefault.mat; % load LUT
 
 % Manual adjustments if ct data is corrupt. If some values are out of range
 % of the LUT, then these values are adjusted.
-if sum(ct.cube > max(hlut(:,1)) | ct.cube < min(hlut(:,1)))>0
+if sum(ct.cube{1} > max(hlut(:,1)) | ct.cube{1} < min(hlut(:,1)))>0
     warning('projecting out of range HU values');
     ct.cube(ct.cube<min(hlut(:,1))) = min(hlut(:,1));
     ct.cube(ct.cube>max(hlut(:,1))) = max(hlut(:,1));
 end
 
 % interpolate HU to relative electron density based on lookup table
-ct.cube = interp1(hlut(:,1),hlut(:,2),double(ct.cube));
+ct.cube{1} = interp1(hlut(:,1),hlut(:,2),double(ct.cube{1}));
 
 % save hlut
 ct.hlut = hlut;

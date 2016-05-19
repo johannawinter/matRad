@@ -46,10 +46,8 @@ catch
 end
 
 % prepare structures necessary for particles
-if strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
-    
+if strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')   
     availableEnergies = [machine.data.energy];
-
 end
 
 % Define steering file like struct. Prellocating for speed.
@@ -108,17 +106,18 @@ for i = 1:length(pln.gantryAngles)
     if strcmp(stf(i).radiationMode,'protons') || strcmp(stf(i).radiationMode,'carbon')
         
         stf(i).isoCenter = pln.isoCenter;
-        voiTarget = 1:1:numel(ct.cube);
+        voiTarget = ones(ct.cubeDim);
         stf(i).SAD = machine.meta.SAD;
+        
         % ray tracing necessary to determine depth of the target
         [alpha,l,rho,~,~] = matRad_siddonRayTracer(stf(i).isoCenter, ...
                              ct.resolution, ...
                              stf(i).sourcePoint, ...
                              stf(i).ray(j).targetPoint, ...
-                             {ct.cube,voiTarget});
+                             [ct.cube]);
 
         ixSSD = find(rho{1} > DensityThresholdSSD,1,'first');
-
+        
         if isempty(ixSSD)== 1
              warning('Surface for SSD calculation starts directly in first voxel of CT\n');
         end
@@ -144,7 +143,8 @@ for i = 1:length(pln.gantryAngles)
             end
 
             stf(i).ray(j).focusIx = focusIx';
-                
+            warning('focusIx is manually set to 1');
+            stf(i).ray(j).focusIx = 1;
         end
 
     elseif strcmp(stf(i).radiationMode,'photons')

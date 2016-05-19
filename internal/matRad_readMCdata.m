@@ -1,4 +1,4 @@
-function cube = matRad_readMCdata(filename)
+function cube = matRad_readMCdata(filename,isSOBPCube)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % function to read in FLUKA simulation txt files as provided by Andrea
 % Mairani
@@ -58,11 +58,16 @@ cube.resolution.x = zCoordInfo{5}*10 ;
 cube.resolution.y = xCoordInfo{5}*10 ;
 cube.resolution.z = yCoordInfo{5}*10 ;
 
-% compute iso center of cube - remember rearrangement of dimensions!
-cube.isoCenter = [cube.resolution.x/2 + 10*zCoordInfo{1,3} ...
-                  cube.resolution.y/2 - 10*xCoordInfo{1,2} ...
-                  cube.resolution.z/2 - 10*yCoordInfo{1,2}]; 
-
+if ~isSOBPCube   
+    % compute iso center of cube - remember rearrangement of dimensions!
+    cube.isoCenter = [cube.resolution.x/2 + 10*zCoordInfo{1,3} - 10*zCoordInfo{1,2} ...
+                      cube.resolution.y/2 - 10*xCoordInfo{1,2}...
+                      cube.resolution.z/2 - 10*yCoordInfo{1,2}]; 
+else        
+    cube.isoCenter = [cube.resolution.x/2 + 10*zCoordInfo{1,3} ...
+                      cube.resolution.y/2 - 10*xCoordInfo{1,2} ...
+                      cube.resolution.z/2 - 10*yCoordInfo{1,2}]; 
+end
 % close file
 fclose(h);
 

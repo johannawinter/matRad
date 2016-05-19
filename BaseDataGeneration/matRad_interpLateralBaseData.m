@@ -43,6 +43,8 @@ function [ machine ] = matRad_interpLateralBaseData(machine,pathTRiP,pathToSpars
 %parse sparse lateral double gaussian information
 Files = dir([pathToSparseData filesep '*.txt']);
 
+LogIdx = zeros(1,length(machine.data));
+
 for i = 1 : length(Files)
   
     EnergyIdx = str2num(regexprep(Files(i).name,'[^0-9]',''));
@@ -56,30 +58,19 @@ for i = 1 : length(Files)
             data(j -1,k) = str2num(CurrentLine{k});
         end
     end
-    SamplePoints(EnergyIdx).depth  = data(:,1); 
-    SamplePoints(EnergyIdx).sigma1 = data(:,2);
-    SamplePoints(EnergyIdx).sigma2 = data(:,3);
-    SamplePoints(EnergyIdx).weight = data(:,4);
-    SamplePoints(EnergyIdx).Z      = data(:,5);
+    SamplePoints(EnergyIdx).depth   = data(:,1); 
+    SamplePoints(EnergyIdx).sigma1  = data(:,2);
+    SamplePoints(EnergyIdx).sigma2  = data(:,3);
+    SamplePoints(EnergyIdx).weight  = data(:,4);
+    SamplePoints(EnergyIdx).Z       = data(:,5);
+    [~,peakIdx]                     = max(data(:,5));
+    SamplePoints(EnergyIdx).PeakPos = SamplePoints(EnergyIdx).depth(peakIdx);
+    LogIdx(EnergyIdx)               = 1;
 end
 
 %% start interpolating lateral double gaussian information
-
-Idx = zeros(1,length(SamplePoints));
-linIdx = 0;
-Cnt = 1;
-
-% Find non empty indices - sub2ind is not working due to empty structs
-for i = 1:length(SamplePoints)
-    if ~isempty(SamplePoints(i).depth)
-        Idx(i) = 1;
-        linIdx(Cnt) = i;
-        Cnt = Cnt + 1;
-    end
-end
-
+LinIdx = find(LogIdx);
 vEnergy = [machine.data.energy];
-
 
 h = waitbar(0,'initializing waitbar ...');
 
@@ -91,67 +82,75 @@ for i = 1:length(machine.data)
          % entry needs to be interpolated
          % find lower and upper Energy in SamplePoints for interpolation
          E0 = machine.data(i).energy;
-         Tmp = find(i>linIdx);
-         vIdx(1) = Tmp(end);
-         Tmp = find(i<linIdx);
-         vIdx(2) = Tmp(1);
-         vE = vEnergy(linIdx(vIdx));
+         vIdx(1) = LinIdx(find(i>LinIdx,1,'last'));
+         vIdx(2) = LinIdx(find(i<LinIdx,1,'first'));
+         vE = vEnergy(vIdx);
          
          % get query points - simply take union
-         vDepthPointsLower = SamplePoints(linIdx(vIdx(1))).depth;
-         vDepthPointsUpper = SamplePoints(linIdx(vIdx(2))).depth;
+         vDepthPointsLower = SamplePoints(vIdx(1)).depth;
+         vDepthPointsUpper = SamplePoints(vIdx(2)).depth;
          
-         AddIdx                = vDepthPointsUpper < max(vDepthPointsLower);
-         vDepthPoints          = unique(sort([vDepthPointsLower; vDepthPointsUpper(AddIdx)]));
+         if vDepthPointsLower(end) < vDepthPointsUpper(end)
+              AddIdx                = vDepthPointsUpper < max(vDepthPointsLower);
+              vDepthPoints          = unique(sort([vDepthPointsLower; vDepthPointsUpper(AddIdx)]));
+         else
+              AddIdx                = vDepthPointsLower < max(vDepthPointsUpper);
+              vDepthPoints          = unique(sort([vDepthPointsUpper; vDepthPointsLower(AddIdx)]));
+         end
+        
+         vDepthPoints          = unique(sort([vDepthPoints' 1:0.0005:1.1]))'; 
          NumPoints             = length(vDepthPoints);
          SamplePoints(i).depth = vDepthPoints;
                   
          %% interpolate simga1, sigma2, weight based on relative depths
+         PeakPosOffset = (1-[SamplePoints(vIdx).PeakPos]);
+         
+         vSigma1 = []; vSigma2 = []; vWeight = [];
          
          for j = 1:NumPoints
              for k = 1:length(vIdx)
-                vSigma1(k) = interp1(SamplePoints(linIdx(vIdx(k))).depth,...
-                    SamplePoints(linIdx(vIdx(k))).sigma1,SamplePoints(i).depth(j),'linear');
-                vSigma2(k) = interp1(SamplePoints(linIdx(vIdx(k))).depth,...
-                    SamplePoints(linIdx(vIdx(k))).sigma2,SamplePoints(i).depth(j),'linear');
-                vWeight(k) = interp1(SamplePoints(linIdx(vIdx(k))).depth,...
-                    SamplePoints(linIdx(vIdx(k))).weight,SamplePoints(i).depth(j),'linear');
+                vSigma1(j,k) = interp1(SamplePoints(vIdx(k)).depth + PeakPosOffset(k),SamplePoints(vIdx(k)).sigma1,SamplePoints(i).depth(j),'linear','extrap');
+                vSigma2(j,k) = interp1(SamplePoints(vIdx(k)).depth + PeakPosOffset(k),SamplePoints(vIdx(k)).sigma2,SamplePoints(i).depth(j),'linear','extrap');
+                vWeight(j,k) = interp1(SamplePoints(vIdx(k)).depth + PeakPosOffset(k),SamplePoints(vIdx(k)).weight,SamplePoints(i).depth(j),'linear','extrap');
              end
+            
+             [vESig1,ia,~]   = unique(vE(~isnan(vSigma1(j,:))));
+             SamplePoints(i).sigma1(j,1) = interp1(vESig1,vSigma1(j,ia),E0,'linear');
              
-             SamplePoints(i).sigma1(j,1) = interp1(vE,vSigma1,E0,'linear');
-             SamplePoints(i).sigma2(j,1) = interp1(vE,vSigma2,E0,'linear');
-             SamplePoints(i).weight(j,1) = interp1(vE,vWeight,E0,'linear');
-             vSigma1 = []; vSigma2 = []; vWeight = [];
+             [vESig2,ib,~]   = unique(vE(~isnan(vSigma2(j,:))));
+             SamplePoints(i).sigma2(j,1) = interp1(vESig2,vSigma2(j,ib),E0,'linear');
              
+             [vEWeight,ic,~] = unique(vE(~isnan(vWeight(j,:))));
+             SamplePoints(i).weight(j,1) = interp1(vEWeight,vWeight(j,ic),E0,'linear');
          end
 
           if visBool
              subplot(131),cla
-             subplot(131),plot(SamplePoints(linIdx(min(vIdx))).depth,SamplePoints(linIdx(min(vIdx))).sigma1,'r','LineWidth',3),hold on
-             subplot(131),plot(SamplePoints(linIdx(max(vIdx))).depth,SamplePoints(linIdx(max(vIdx))).sigma1,'b','LineWidth',3),hold on
+             subplot(131),plot(SamplePoints(vIdx(1)).depth,SamplePoints(vIdx(1)).sigma1,'r','LineWidth',3),hold on
+             subplot(131),plot(SamplePoints(vIdx(2)).depth,SamplePoints(vIdx(2)).sigma1,'b','LineWidth',3),hold on
              subplot(131),plot(SamplePoints(i).depth,SamplePoints(i).sigma1,'k--','LineWidth',2)
-             legend({['Data at Energy = ' num2str(vEnergy(linIdx(min(vIdx)))) ' MeV'],...
-                     ['Data at Energy = ' num2str(vEnergy(linIdx(max(vIdx)))) ' MeV'],...
+             legend({['Data at Energy = ' num2str(vEnergy(vIdx(1))) ' MeV'],...
+                     ['Data at Energy = ' num2str(vEnergy(vIdx(2))) ' MeV'],...
                      ['Interpolated data; Energy = ' num2str(E0) ' MeV']},'Location','northwest'),grid on;
              title(['energy index: ' num2str(i)],'FontSize',13,'Interpreter','Latex')
              hold on,ylabel('sigma 1'),xlabel('relative depth to bragg peak position'),grid on
 
              subplot(132),cla
-             subplot(132),plot(SamplePoints(linIdx(min(vIdx))).depth,SamplePoints(linIdx(min(vIdx))).sigma2,'r','LineWidth',3),hold on
-             subplot(132),plot(SamplePoints(linIdx(max(vIdx))).depth,SamplePoints(linIdx(max(vIdx))).sigma2,'b','LineWidth',3),hold on
+             subplot(132),plot(SamplePoints(vIdx(1)).depth,SamplePoints(vIdx(1)).sigma2,'r','LineWidth',3),hold on
+             subplot(132),plot(SamplePoints(vIdx(2)).depth,SamplePoints(vIdx(2)).sigma2,'b','LineWidth',3),hold on
              subplot(132),plot(SamplePoints(i).depth,SamplePoints(i).sigma2,'k--','LineWidth',2)
-             legend({['Data at Energy = ' num2str(vEnergy(linIdx(min(vIdx)))) ' MeV'],...
-                     ['Data at Energy = ' num2str(vEnergy(linIdx(max(vIdx)))) ' MeV'],...
+             legend({['Data at Energy = ' num2str(vEnergy(vIdx(1))) ' MeV'],...
+                     ['Data at Energy = ' num2str(vEnergy(vIdx(2))) ' MeV'],...
                      ['Interpolated data; Energy = ' num2str(E0) ' MeV']},'Location','northwest'),grid on;
              title(['energy index: ' num2str(i)],'FontSize',13,'Interpreter','Latex')
              hold on,ylabel('sigma 2'),xlabel('relative depth to bragg peak position'),grid on
 
              subplot(133),cla
-             subplot(133),plot(SamplePoints(linIdx(min(vIdx))).depth,SamplePoints(linIdx(min(vIdx))).weight,'r','LineWidth',3),hold on
-             subplot(133),plot(SamplePoints(linIdx(max(vIdx))).depth,SamplePoints(linIdx(max(vIdx))).weight,'b','LineWidth',3),hold on
+             subplot(133),plot(SamplePoints(vIdx(1)).depth,SamplePoints(vIdx(1)).weight,'r','LineWidth',3),hold on
+             subplot(133),plot(SamplePoints(vIdx(2)).depth,SamplePoints(vIdx(2)).weight,'b','LineWidth',3),hold on
              subplot(133),plot(SamplePoints(i).depth,SamplePoints(i).weight,'k--','LineWidth',2)
-             legend({['Data at Energy = ' num2str(vEnergy(linIdx(min(vIdx)))) ' MeV'],...
-                     ['Data at Energy = ' num2str(vEnergy(linIdx(max(vIdx)))) ' MeV'],...
+             legend({['Data at Energy = ' num2str(vEnergy(vIdx(1))) ' MeV'],...
+                     ['Data at Energy = ' num2str(vEnergy(vIdx(2))) ' MeV'],...
                      ['Interpolated data; Energy = ' num2str(E0) ' MeV']},'Location','northwest'),grid on;
              title(['energy index: ' num2str(i)],'FontSize',13,'Interpreter','Latex')
              hold on,ylabel('weight'),xlabel('relative depth to bragg peak position'),grid on
@@ -163,7 +162,7 @@ for i = 1:length(machine.data)
       
      %% interpolate sigma1, sigma2 and weight based on depths given in baseData
      if focusIdx == 0
-         Sigma_SIS = zeros(numel(Idx),1);
+         Sigma_SIS = zeros(numel(vEnergy),1);
      end
      % interpoalte sigma 1
      sigma1_scat = interp1(SamplePoints(i).depth,SamplePoints(i).sigma1,...
@@ -176,8 +175,8 @@ for i = 1:length(machine.data)
        % interpoalte weight
       weight = interp1(SamplePoints(i).depth,SamplePoints(i).weight,...
             machine.data(i).depths./machine.data(i).peakPos,'linear');
-    
-    
+     
+
      if visBool
          figure,set(gcf,'Color',[1 1 1])
          
