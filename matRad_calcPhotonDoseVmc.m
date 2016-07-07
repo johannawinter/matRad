@@ -33,6 +33,7 @@ dij.numOfRaysPerBeam   = [stf(:).numOfRays];
 dij.totalNumOfRays     = sum(dij.numOfRaysPerBeam);
 dij.totalNumOfBixels   = sum([stf(:).totalNumOfBixels]);
 dij.dimensions         = pln.voxelDimensions;
+dij.numOfScenarios     = 1;
 
 % set environment variables for vmc++
 if exist('vmc++','dir') ~= 7
@@ -108,14 +109,17 @@ dij.rayNum   = NaN*ones(dij.totalNumOfRays,1);
 dij.beamNum  = NaN*ones(dij.totalNumOfRays,1);
 
 % Allocate space for dij.physicalDose sparse matrix
-dij.physicalDose = spalloc(numel(ct.cube),dij.totalNumOfBixels,1);
+for i = 1:dij.numOfScenarios
+    dij.physicalDose{i} = spalloc(prod(ct.cubeDim),dij.totalNumOfBixels,1);
+end
 
 % Allocate memory for dose_temp cell array
 numOfBixelsContainer = ceil(dij.totalNumOfBixels/10);
-doseTmpContainer = cell(numOfBixelsContainer,1);
+doseTmpContainer = cell(numOfBixelsContainer,dij.numOfScenarios);
 
 % take only voxels inside patient
-V = unique([cell2mat(cst(:,4))]);
+V = [cst{:,4}];
+V = unique(vertcat(V{:}));
 
 writeCounter                  = 0;
 readCounter                   = 0;
@@ -217,7 +221,7 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 doseTmpContainer{mod(readCounter-1,numOfBixelsContainer)+1,1} = sparse(V,1,bixelDose(V),numel(ct.cube),1);
 
                 if mod(readCounter,numOfBixelsContainer) == 0 || readCounter == dij.totalNumOfBixels
-                    dij.physicalDose(:,(ceil(readCounter/numOfBixelsContainer)-1)*numOfBixelsContainer+1:readCounter) = ...
+                    dij.physicalDose{1}(:,(ceil(readCounter/numOfBixelsContainer)-1)*numOfBixelsContainer+1:readCounter) = ...
                         [doseTmpContainer{1:mod(readCounter-1,numOfBixelsContainer)+1,1}];
                 end
             end
