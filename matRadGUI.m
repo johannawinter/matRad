@@ -83,17 +83,23 @@ function matRadGUI_OpeningFcn(hObject, ~, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to matRadGUI (see VARARGIN)
 
+if ~isdeployed
+    currFolder = fileparts(mfilename('fullpath'));
+else
+    currFolder = [];
+end
+
 % Choose default command line output for matRadGUI
 handles.output = hObject;
 %show matrad logo
 axes(handles.axesLogo)
-[im, ~, alpha] = imread(['dicomImport' filesep 'matrad_logo.png']);
+[im, ~, alpha] = imread([currFolder filesep 'dicomImport' filesep 'matrad_logo.png']);
 f = image(im);
 axis equal off
 set(f, 'AlphaData', alpha);
 % show dkfz logo
 axes(handles.axesDKFZ)
-[im, ~, alpha] = imread(['dicomImport' filesep 'DKFZ_Logo.png']);
+[im, ~, alpha] = imread([currFolder filesep 'dicomImport' filesep 'DKFZ_Logo.png']);
 f = image(im);
 axis equal off;
 set(f, 'AlphaData', alpha);
@@ -129,9 +135,10 @@ handles.IsoDose.Levels = 0;
 handles.Modalities = {'photons','protons','carbon'};
 for i = 1:length(handles.Modalities)
     pattern = [handles.Modalities{1,i} '_*'];
-    Files = dir(pattern);
     if isdeployed
-        Files = [Files, dir([ctfroot filesep 'matRad' filesep pattern])];
+        Files = dir([ctfroot filesep 'matRad' filesep pattern]);
+    else
+        Files = dir([fileparts(mfilename('fullpath')) filesep pattern]);        
     end
     for j = 1:length(Files)
         if ~isempty(Files)
@@ -355,9 +362,13 @@ end
 
 
 % check if a optimized plan was loaded
-if exist('stf','var')  && exist('dij','var')
+if exist('stf','var')
     assignin('base','stf',stf);
+end
+if exist('dij','var')
     assignin('base','dij',dij);
+end
+if exist('stf','var') && exist('dij','var')
     handles.State = 2;
 end
 
@@ -1570,7 +1581,7 @@ end
 % displays the cst in the GUI
 function setCstTable(handles,cst)
 
-columnname = {'VOI','VOI Type','Priority','Obj Func','penalty','dose', 'EUD','volume','robustness'};
+columnname = {'VOI name','VOI type','priority','obj. / const.','penalty','dose', 'EUD','volume','robustness'};
 
 AllObjectiveFunction = {'square underdosing','square overdosing','square deviation', 'mean', 'EUD',...
        'min dose constraint','max dose constraint',...
@@ -1582,7 +1593,7 @@ AllObjectiveFunction = {'square underdosing','square overdosing','square deviati
 PlaceHolder = NaN;
 columnformat = {cst(:,2)',{'OAR','TARGET'},'numeric',...
        AllObjectiveFunction,...
-       'numeric','char','numeric','numeric',{'none','WC','prob'}};
+       'numeric','numeric','numeric','numeric',{'none','WC','prob'}};
    
 numOfObjectives = 0;
 for i = 1:size(cst,1)
@@ -1610,7 +1621,7 @@ for i = 1:size(cst,1)
        data{Counter,4}=objFunc;
        
        data{Counter,5}  = cst{i,6}(j).penalty;
-       data{Counter,6}  = num2str(cst{i,6}(j).dose);
+       data{Counter,6}  = cst{i,6}(j).dose;
        data{Counter,7}  = cst{i,6}(j).EUD;
        data{Counter,8}  = cst{i,6}(j).volume;
        data{Counter,9}  = cst{i,6}(j).robustness;
@@ -1674,7 +1685,7 @@ for i = 1:size(OldCst,1)
             % get further parameter
             if FlagValidParameters
                 
-              NewCst{Cnt,4}(CntObjF,1).dose       = str2num(data{j,6});
+              NewCst{Cnt,4}(CntObjF,1).dose       = data{j,6};
               NewCst{Cnt,4}(CntObjF,1).penalty    = data{j,5};
               NewCst{Cnt,4}(CntObjF,1).EUD        = data{j,7};
               NewCst{Cnt,4}(CntObjF,1).volume     = data{j,8};
@@ -2352,9 +2363,10 @@ Machine = contents{get(handles.popUpMachine,'Value')};
 contents = cellstr(get(handles.popupRadMode,'String'));
 radMod = contents{get(handles.popupRadMode,'Value')};
 
-FoundFile = dir([radMod '_' Machine '.mat']);
 if isdeployed
-   FoundFile = [FoundFile, dir([ctfroot filesep 'matRad' filesep radMod '_' Machine '.mat'])];
+    FoundFile = dir([ctfroot filesep 'matRad' filesep radMod '_' Machine '.mat']);
+else
+    FoundFile = dir([fileparts(mfilename('fullpath')) filesep radMod '_' Machine '.mat']);    
 end
 if isempty(FoundFile)
     warndlg(['No base data available for machine: ' Machine]);
@@ -2416,9 +2428,9 @@ cst = evalin('base','cst');
 
 contMenuStructChildren = get(get(handles.figure1,'UIContextMenu'),'Children');
 for i = 1:size(contMenuStructChildren,1)
-     boolean = false;
+     boolean = 0;
      if strcmp(get(contMenuStructChildren(i),'Checked'),'on')
-        boolean = true;
+        boolean = 1;
      end
      IdxInCst = find(strcmp(cst(:,2),get(contMenuStructChildren(i),'Label')));
      cst{IdxInCst,5}.Visible = boolean;
@@ -2935,15 +2947,29 @@ end
 pln       = evalin('base','pln');
 resultGUI = evalin('base','resultGUI');
 
-resultGUI.(['physicalDose' Suffix])  = resultGUI.physicalDose; 
-resultGUI.(['w' Suffix])             = resultGUI.w;
-    
+if isfield(resultGUI,'physicalDose')
+    resultGUI.(['physicalDose' Suffix])  = resultGUI.physicalDose; 
+end
+if isfield(resultGUI,'w')
+    resultGUI.(['w' Suffix])             = resultGUI.w;
+end
+
 if ~strcmp(pln.bioOptimization,'none') && strcmp(pln.radiationMode,'carbon') == 1 
-    resultGUI.(['effect' Suffix])             = resultGUI.effect; 
-    resultGUI.(['RBExDose' Suffix])           = resultGUI.RBExDose; 
-    resultGUI.(['RBE' Suffix])                = resultGUI.RBE; 
-    resultGUI.(['alpha' Suffix])              = resultGUI.alpha; 
-    resultGUI.(['beta' Suffix])               = resultGUI.beta; 
+    if isfield(resultGUI,'effect')
+        resultGUI.(['effect' Suffix])= resultGUI.effect; 
+    end
+    if isfield(resultGUI,'RBExDose')
+        resultGUI.(['RBExDose' Suffix]) = resultGUI.RBExDose; 
+    end
+    if isfield(resultGUI,'RBE')
+        resultGUI.(['RBE' Suffix]) = resultGUI.RBE;
+    end
+    if isfield(resultGUI,'alpha')
+        resultGUI.(['alpha' Suffix]) = resultGUI.alpha;
+    end
+    if isfield(resultGUI,'beta')
+        resultGUI.(['beta' Suffix]) = resultGUI.beta;
+    end
 end
 
 close(AllFigHandles(ixHandle));
