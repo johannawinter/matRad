@@ -170,6 +170,34 @@ for i = 1:dij.numOfBeams; % loop over all beams
     fprintf('matRad: calculate radiological depth cube...');
     radDepthV = matRad_rayTracing(stf(i),ct,V,rot_coordsV,lateralCutoffRayTracing);
     fprintf('done.\n');
+
+    calcHeteroCorr = false;
+    calcHeteroCorrCube = zeros(ct.cubeDim);
+    
+    for j = 1:size(cst,1)
+        if isfield(cst{j,5},'HeterogeneityCorrection')
+    
+            if strcmp(cst{j,5}.HeterogeneityCorrection,'Lung')
+                calcHeteroCorr = true;
+                calcHeteroCorrCube(cst{j,4}{1}) = 1;
+            else
+                error(['No heterogeneity correction method implemented for ' ...
+                        cst{j,5}.HeterogeneityCorrection]);
+            end
+            
+        end
+    end
+    
+    if calcHeteroCorr
+        fprintf('matRad: calculate geometrical depth cube for heterogeneity correction...');
+        calcHeteroCorrStruct.cubeDim = ct.cubeDim;
+        calcHeteroCorrStruct.numOfCtScen = 1;
+        calcHeteroCorrStruct.cube = {calcHeteroCorrCube};
+        calcHeteroCorrStruct.resolution = ct.resolution;
+        heteroCorrDepthV = matRad_rayTracing(stf(i),calcHeteroCorrStruct,V,rot_coordsV,lateralCutoffRayTracing);
+        fprintf('done.\n');
+    end
+    
     
     % get indices of voxels where ray tracing results are available
     radDepthIx = find(~isnan(radDepthV{1}));
@@ -202,7 +230,10 @@ for i = 1:dij.numOfBeams; % loop over all beams
                                                      radDepthIx, ...
                                                      maxLateralCutoffDoseCalc);
             radDepths = radDepthV{1}(ix);   
-            
+            if calcHeteroCorr
+                heteroCorrDepths = heteroCorrDepthV{1}(ix);
+            end
+           
             % just use tissue classes of voxels found by ray tracer
             if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ... 
                  && strcmp(pln.radiationMode,'carbon')
@@ -256,7 +287,8 @@ for i = 1:dij.numOfBeams; % loop over all beams
                     radialDist_sq(currIx), ...
                     stf(i).ray(j).SSD, ...
                     stf(i).ray(j).focusIx(k), ...
-                    machine.data(energyIx)); 
+                    machine.data(energyIx), ...
+                    heteroCorrDepths(currIx)); 
                 
                 % Save dose for every bixel in cell array
                 doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix(currIx)),1,bixelDose,dij.numOfVoxels,1);

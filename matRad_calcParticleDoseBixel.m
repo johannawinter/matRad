@@ -1,4 +1,4 @@
-function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,SSD,focusIx,baseData)
+function dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,SSD,focusIx,baseData,heteroCorrDepths)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad visualization of two-dimensional dose distributions on ct including
 % segmentation
