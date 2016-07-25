@@ -87,6 +87,39 @@ catch
    error(['Could not find the following machine file: ' fileName ]); 
 end
 
+% check if we do heterogeneity correction
+calcHeteroCorr = false;
+for j = 1:size(cst,1)
+    if isfield(cst{j,5},'HeterogeneityCorrection')
+        if strcmp(cst{j,5}.HeterogeneityCorrection,'Lung')
+            calcHeteroCorr = true;
+            break;
+        end
+    end
+end
+
+if calcHeteroCorr
+    
+    calcHeteroCorrStruct.cube = {zeros(ct.cubeDim)};
+    calcHeteroCorrStruct.cubeDim = ct.cubeDim;
+    calcHeteroCorrStruct.numOfCtScen = 1;
+    calcHeteroCorrStruct.resolution = ct.resolution;
+
+    for j = 1:size(cst,1)
+        if isfield(cst{j,5},'HeterogeneityCorrection')
+
+            if strcmp(cst{j,5}.HeterogeneityCorrection,'Lung')
+                calcHeteroCorrStruct.cube{1}(cst{j,4}{1}) = 1;
+            else
+                error(['No heterogeneity correction method implemented for ' ...
+                        cst{j,5}.HeterogeneityCorrection]);
+            end
+
+        end
+    end
+
+end
+
 % generates tissue class matrix for biological optimization
 if (strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD')) ... 
         && strcmp(pln.radiationMode,'carbon')
@@ -170,30 +203,9 @@ for i = 1:dij.numOfBeams; % loop over all beams
     fprintf('matRad: calculate radiological depth cube...');
     radDepthV = matRad_rayTracing(stf(i),ct,V,rot_coordsV,lateralCutoffRayTracing);
     fprintf('done.\n');
-
-    calcHeteroCorr = false;
-    calcHeteroCorrCube = zeros(ct.cubeDim);
-    
-    for j = 1:size(cst,1)
-        if isfield(cst{j,5},'HeterogeneityCorrection')
-    
-            if strcmp(cst{j,5}.HeterogeneityCorrection,'Lung')
-                calcHeteroCorr = true;
-                calcHeteroCorrCube(cst{j,4}{1}) = 1;
-            else
-                error(['No heterogeneity correction method implemented for ' ...
-                        cst{j,5}.HeterogeneityCorrection]);
-            end
-            
-        end
-    end
     
     if calcHeteroCorr
-        fprintf('matRad: calculate geometrical depth cube for heterogeneity correction...');
-        calcHeteroCorrStruct.cubeDim = ct.cubeDim;
-        calcHeteroCorrStruct.numOfCtScen = 1;
-        calcHeteroCorrStruct.cube = {calcHeteroCorrCube};
-        calcHeteroCorrStruct.resolution = ct.resolution;
+        fprintf('matRad: calculate geo dist cube for heterogeneity correction...');
         heteroCorrDepthV = matRad_rayTracing(stf(i),calcHeteroCorrStruct,V,rot_coordsV,lateralCutoffRayTracing);
         fprintf('done.\n');
     end
@@ -282,13 +294,22 @@ for i = 1:dij.numOfBeams; % loop over all beams
                 end
                  
                 % calculate particle dose for bixel k on ray j of beam i
-                bixelDose = matRad_calcParticleDoseBixel(...
+                if calcHeteroCorr
+                    bixelDose = matRad_calcParticleDoseBixel(...
                     radDepths(currIx), ...
                     radialDist_sq(currIx), ...
                     stf(i).ray(j).SSD, ...
                     stf(i).ray(j).focusIx(k), ...
                     machine.data(energyIx), ...
                     heteroCorrDepths(currIx)); 
+                else
+                    bixelDose = matRad_calcParticleDoseBixel(...
+                    radDepths(currIx), ...
+                    radialDist_sq(currIx), ...
+                    stf(i).ray(j).SSD, ...
+                    stf(i).ray(j).focusIx(k), ...
+                    machine.data(energyIx));
+                end
                 
                 % Save dose for every bixel in cell array
                 doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix(currIx)),1,bixelDose,dij.numOfVoxels,1);

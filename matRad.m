@@ -40,10 +40,11 @@ pln.bioOptimization = 'none'; % none: physical optimization; effect: effect-base
 pln.numOfFractions  = 30;
 pln.runSequencing   = false; % 1/true: run sequencing, 0/false: don't / will be ignored for particles and also triggered by runDAO below
 pln.runDAO          = false; % 1/true: run DAO, 0/false: don't / will be ignored for particles
-pln.machine         = 'Generic';
+pln.machine         = 'HIT_APM';
 
-% active hetero correction for some tissue...
+%% active hetero correction for some tissue...
 cst{2,5}.HeterogeneityCorrection = 'Lung';
+cst{14,5}.HeterogeneityCorrection = 'Lung';
 
 %% generate steering file
 stf = matRad_generateStf(ct,cst,pln);

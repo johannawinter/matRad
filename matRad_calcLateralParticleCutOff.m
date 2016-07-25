@@ -87,9 +87,16 @@ for energyIx = vEnergiesIx
     % set default depth cut off - finite value will be set during first
     % iteration
     depthDoseCutOff = inf;
+    
+    % fill some structures for APM representation
+    if isstruct(machine.data(energyIx).Z)
+        Z = machine.data(energyIx).Z.doseAPM;
+    else
+        Z = machine.data(energyIx).Z;
+    end
 
     % get indices for which a lateral cutoff should be calculated - always include peak position 
-    [~,peakIdx] = max(machine.data(energyIx).Z);
+    [~,peakIdx] = max(Z);
     Idx = round(linspace(1,length(machine.data(energyIx).depths),NumDepthVal-1));
     Idx = unique(sort([Idx peakIdx]));
     
@@ -102,7 +109,7 @@ for energyIx = vEnergiesIx
         % save depth value
         machine.data(energyIx).LatCutOff.depths(j) = machine.data(energyIx).depths(Idx(j));
         % relative contribution
-        relContrib = machine.data(energyIx).Z(Idx(j))/machine.data(energyIx).Z(peakIdx);
+        relContrib = Z(Idx(j))/Z(peakIdx);
                       
         if strcmp(machine.meta.dataType,'singleGauss')
                     
@@ -225,9 +232,9 @@ if visBool
     contour3(X,Y,vDose,[(DoseLevel+0.001*DoseLevel) DoseLevel],'LineWidth',3,'color','r'),hold on; title(['intensity profile; cutoff = ' num2str(cutOffLevel)]),view(0,90)
     
     if strcmp(machine.meta.dataType,'singleGauss')
-         vDoseLat =  machine.data(energyIx).Z(j)*SG(vLatX,sqrt(machine.data(energyIx).sigma(j)^2 + SigmaInI^2));
+         vDoseLat =  Z(j)*SG(vLatX,sqrt(machine.data(energyIx).sigma(j)^2 + SigmaInI^2));
     elseif strcmp(machine.meta.dataType,'doubleGauss')
-         vDoseLat =  DG(vLatX,machine.data(energyIx).Z(j),machine.data(energyIx).weight(j),...
+         vDoseLat =  DG(vLatX,Z(j),machine.data(energyIx).weight(j),...
          sqrt(machine.data(energyIx).sigma1(j)^2 + SigmaInI^2),sqrt(machine.data(energyIx).sigma2(j)^2 + SigmaInI^2));
     end
     
@@ -245,8 +252,8 @@ if visBool
   
     figure,set(gcf,'Color',[1 1 1]);
     
-    maxZ = max(machine.data(energyIx).Z);
-    subplot(321),plot(vDepth, machine.data(energyIx).Z,'LineWidth',3),
+    maxZ = max(Z);
+    subplot(321),plot(vDepth, Z,'LineWidth',3),
     grid on, grid minor, title(['ddd with energy ' num2str(machine.data(energyIx).energy)])
     hold on,
     plot([machine.data(energyIx).LatCutOff.depths(idx(1)),machine.data(energyIx).LatCutOff.depths(idx(1))],...
