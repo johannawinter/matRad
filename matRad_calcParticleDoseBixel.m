@@ -82,7 +82,11 @@ elseif ~isfield(baseData,'sigma') && isstruct(baseData.Z)
     if nargin < 6
         ellSq = ones(numel(radDepths),1)*baseData.Z.width'.^2;
     else
-        ellSq = bsxfun(@plus,baseData.Z.width'.^2,matRad_getHeterogeneityCorrSigmaSq(heteroCorrDepths));
+        
+        [~,lungDepthAtBraggPeakIx] = min(abs(radialDist_sq+radDepths.^2-heteroCorrDepths.^2));
+        lungDepthAtBraggPeak = heteroCorrDepths(lungDepthAtBraggPeakIx);
+        
+        ellSq = ones(numel(radDepths),1)* (baseData.Z.width'.^2 + matRad_getHeterogeneityCorrSigmaSq(lungDepthAtBraggPeak));
     end
     
     Z = (1./sqrt(2*pi*ellSq) .* exp(-bsxfun(@minus,baseData.Z.mean',radDepths).^2 ./ (2*ellSq)) )* baseData.Z.weight;
