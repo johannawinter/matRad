@@ -83,7 +83,7 @@ elseif ~isfield(baseData,'sigma') && isstruct(baseData.Z)
         ellSq = ones(numel(radDepths),1)*baseData.Z.width'.^2;
     else
         
-        [~,lungDepthAtBraggPeakIx] = min(abs(radialDist_sq+radDepths.^2-heteroCorrDepths.^2));
+        [~,lungDepthAtBraggPeakIx] = min(abs(radialDist_sq+radDepths.^2-baseData.peakPos.^2));
         lungDepthAtBraggPeak = heteroCorrDepths(lungDepthAtBraggPeakIx);
         
         ellSq = ones(numel(radDepths),1)* (baseData.Z.width'.^2 + matRad_getHeterogeneityCorrSigmaSq(lungDepthAtBraggPeak));
