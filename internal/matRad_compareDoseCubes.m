@@ -86,12 +86,16 @@ plot(x,cube2IDD,'b--','LineWidth',defaultLineWidth)
 title(['IDD - rel diff int. dose ' num2str(relIntDoseDif)])
 box on
 grid on
-legend(cellName)
+legend(cellName,'location','northwest')
 
 %% profile along depth
-slice = 100;
-cube1CentralRayProf = squeeze(cube1(slice,:,slice));
-cube2CentralRayProf = squeeze(cube2(100,:,slice));
+AxialSliceCube1 = squeeze(cube1(:,:,slice));
+AxialSliceCube2 = squeeze(cube2(:,:,slice));
+
+[A,CentralIx]   = max(sum(AxialSliceCube1,2));
+
+cube1CentralRayProf = AxialSliceCube1(CentralIx,:);
+cube2CentralRayProf = AxialSliceCube2(CentralIx,:);
 
 subplot(3,2,5)
 hold on
@@ -100,16 +104,17 @@ plot(x,cube2CentralRayProf,'b--','LineWidth',defaultLineWidth)
 box on
 grid on
 title('depth profile')
-legend(cellName)
+legend(cellName,'location','northwest')
 
 %% profile along lateral direction entrance
 
 y = resolution.y*[1/2:1:size(cube1,1)-1/2];
 
-cube1LatProfileEnt = squeeze(cube1(:,300,slice));
-cube2LatProfileEnt = squeeze(cube2(:,300,slice));
+LatIndex = 510;
+cube1LatProfileEnt = AxialSliceCube1(:,LatIndex);
+cube2LatProfileEnt = AxialSliceCube2(:,LatIndex);
 
-NormFac = max(cube1LatProfileEnt);
+NormFac = 1;%max(cube1LatProfileEnt);
 cube1LatProfileEnt = cube1LatProfileEnt/NormFac;
 cube2LatProfileEnt = cube2LatProfileEnt/NormFac;
  
@@ -120,17 +125,18 @@ plot(y,cube2LatProfileEnt,'b--','LineWidth',defaultLineWidth)
 box on
 grid on
 title('lateral entrance profile')
-legend(cellName)
+legend(cellName,'location','northwest')
 
-if nargin > 4
+if nargin > 5
     annotation('textbox', [0 0.9 1 0.1],'String', filename, ...
-    'EdgeColor', 'none','HorizontalAlignment', 'center')
+    'EdgeColor', 'none','HorizontalAlignment', 'center','FontSize',16)
     set(gcf,'PaperOrientation','landscape','PaperUnits','normalized','PaperPosition', [0 0 1 1]);
     print('-dpsc','-r300','-append',filename)
+    %print('-dpdf','-r300',filename)    
 end
     
 %% calculate gamma pass rate
-%gammaCube = matRad_gammaIndex(cube1,cube2,resolution,slice);
+gammaCube = matRad_gammaIndex(cube1,cube2,[resolution.x resolution.y resolution.z],slice);
 
 %% relative differences
 figure,set(gcf,'Color',[1 1 1]);
@@ -168,6 +174,7 @@ if nargin > 4
     'EdgeColor', 'none','HorizontalAlignment', 'center')
     set(gcf,'PaperOrientation','landscape','PaperUnits','normalized','PaperPosition', [0 0 1 1]);
     print('-dpsc','-r300','-append',filename)
+    
 end
 
 
