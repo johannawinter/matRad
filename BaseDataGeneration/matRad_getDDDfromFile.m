@@ -64,18 +64,24 @@ for i = 1:length(Files)
     if fid < 0
         display(['Could not open ' path filesep Files(i).name]);
     end
-    % skip 7 lines - they contain meta information (date,fileversion,filetype)
-    for j= 1:7
-        fgetl(fid);
+    
+    % read meta information
+    currentLine = fgetl(fid);
+    while true     
+       if ~strcmp(currentLine(1),'!') && ~strcmp(currentLine(1),'#')
+            break;
+       end
+       
+       expression = '![eE]nergy';
+       startIndex = regexp(currentLine,expression, 'once');
+       
+       if ~isempty(startIndex)
+             x = regexp(currentLine, '.*?(\d+(\.\d+)*)', 'tokens' );
+             machine.data(i).energy = str2num(x{1,1}{1});
+       end
+       
+       currentLine = fgetl(fid);
     end
-
-    % read energy
-    currentline = fgetl(fid);
-    machine.data(i).energy = strread(currentline,'!energy %f');
-
-    %skip another 2 lines of meta info
-    fgetl(fid);
-    fgetl(fid);
 
     % allocate some variables
     depth = [];
@@ -88,7 +94,7 @@ for i = 1:length(Files)
     FWHM2 = [];
     
     % read the whole file
-    currentLine = fgetl(fid);
+    %currentLine = fgetl(fid);
     while ischar(currentLine)
         
         currentLine = str2num(currentLine); 
@@ -120,7 +126,9 @@ for i = 1:length(Files)
     elseif ~isempty(FWHM1) && ~isempty(FWHM2)
         machine.data(i).FWHM1  = FWHM1;
         machine.data(i).FWHM2  = FWHM2;
-        machine.data(i).weight =weight;
+        machine.data(i).weight = weight;
+    elseif isempty(FWHM1) && isempty(FWHM2)
+        %warning('no lateral information available')
     else
         error('ddd files cannot be parsed');
     end
@@ -183,15 +191,18 @@ for i = 1:length(machine.data)
     else           
         %% TODO: add analytical calculation of sigma according 
         % Hong or the Highland formula
-        machine.data(i).sigma = ones(size(machine.data(i).depths,1),1);
-        machine.meta.dataType = 'not yet implemented';
+        %machine.data(i).sigma = ones(size(machine.data(i).depths,1),1);
+       % machine.meta.dataType = 'not yet implemented';
     end
 end
 
 % remove FWHM fields
-machine.data = rmfield(machine.data,'FWHM1');
-machine.data = rmfield(machine.data,'FWHM2');
-
+if isfield(machine.data,'FWHM1')
+    machine.data = rmfield(machine.data,'FWHM1');
+end
+if isfield(machine.data,'FWHM2')
+    machine.data = rmfield(machine.data,'FWHM2');
+end
 % add meta information
 machine.meta.created_on          = date;
 machine.meta.created_by          = getenv('USERNAME');

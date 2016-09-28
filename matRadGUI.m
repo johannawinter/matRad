@@ -83,17 +83,23 @@ function matRadGUI_OpeningFcn(hObject, ~, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to matRadGUI (see VARARGIN)
 
+if ~isdeployed
+    currFolder = fileparts(mfilename('fullpath'));
+else
+    currFolder = [];
+end
+
 % Choose default command line output for matRadGUI
 handles.output = hObject;
 %show matrad logo
 axes(handles.axesLogo)
-[im, ~, alpha] = imread(['dicomImport' filesep 'matrad_logo.png']);
+[im, ~, alpha] = imread([currFolder filesep 'dicomImport' filesep 'matrad_logo.png']);
 f = image(im);
 axis equal off
 set(f, 'AlphaData', alpha);
 % show dkfz logo
 axes(handles.axesDKFZ)
-[im, ~, alpha] = imread(['dicomImport' filesep 'DKFZ_Logo.png']);
+[im, ~, alpha] = imread([currFolder filesep 'dicomImport' filesep 'DKFZ_Logo.png']);
 f = image(im);
 axis equal off;
 set(f, 'AlphaData', alpha);
@@ -129,16 +135,17 @@ handles.IsoDose.Levels = 0;
 handles.Modalities = {'photons','protons','carbon'};
 for i = 1:length(handles.Modalities)
     pattern = [handles.Modalities{1,i} '_*'];
-    Files = dir(pattern);
     if isdeployed
-        Files = [Files, dir([ctfroot filesep 'matRad' filesep pattern])];
+        Files = dir([ctfroot filesep 'matRad' filesep pattern]);
+    else
+        Files = dir([fileparts(mfilename('fullpath')) filesep pattern]);        
     end
     for j = 1:length(Files)
         if ~isempty(Files)
             MachineName = Files(j).name(numel(handles.Modalities{1,i})+2:end-4);
             if isfield(handles,'Machines')
                 if sum(strcmp(handles.Machines,MachineName)) == 0
-                  handles.Machines{size(handles.Machines,1)+1} = MachineName;
+                  handles.Machines{size(handles.Machines,2)+1} = MachineName;
                 end
             else
                 handles.Machines = cell(1);
@@ -355,9 +362,13 @@ end
 
 
 % check if a optimized plan was loaded
-if exist('stf','var')  && exist('dij','var')
+if exist('stf','var')
     assignin('base','stf',stf);
+end
+if exist('dij','var')
     assignin('base','dij',dij);
+end
+if exist('stf','var') && exist('dij','var')
     handles.State = 2;
 end
 
@@ -492,6 +503,8 @@ RadIdentifier = contents{get(hObject,'Value')};
 
 switch RadIdentifier
     case 'photons'
+        set(handles.vmcFlag,'Value',0);
+        set(handles.vmcFlag,'Enable','on')
         set(handles.radbtnBioOpt,'Value',0);
         set(handles.radbtnBioOpt,'Enable','off');
         set(handles.btnTypBioOpt,'Enable','off');
@@ -503,6 +516,8 @@ switch RadIdentifier
         set(handles.editSequencingLevel,'Enable','on');
         
     case 'protons'
+        set(handles.vmcFlag,'Value',0);
+        set(handles.vmcFlag,'Enable','off')
         set(handles.radbtnBioOpt,'Value',0);
         set(handles.radbtnBioOpt,'Enable','off');
         set(handles.btnTypBioOpt,'Enable','off');
@@ -514,6 +529,8 @@ switch RadIdentifier
         set(handles.editSequencingLevel,'Enable','off');
         
     case 'carbon'
+        set(handles.vmcFlag,'Value',0);
+        set(handles.vmcFlag,'Enable','off')        
         set(handles.radbtnBioOpt,'Value',1);
         set(handles.radbtnBioOpt,'Enable','on');
         set(handles.btnTypBioOpt,'Enable','on');
@@ -664,7 +681,11 @@ end
 % carry out dose calculation
 try
     if strcmp(pln.radiationMode,'photons')
-        dij = matRad_calcPhotonDose(evalin('base','ct'),stf,pln,evalin('base','cst'));
+        if get(handles.vmcFlag,'Value') == 0
+            dij = matRad_calcPhotonDose(evalin('base','ct'),stf,pln,evalin('base','cst'));
+        elseif get(handles.vmcFlag,'Value') == 1
+            dij = matRad_calcPhotonDoseVmc(evalin('base','ct'),stf,pln,evalin('base','cst'));
+        end
     elseif strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
         dij = matRad_calcParticleDose(evalin('base','ct'),stf,pln,evalin('base','cst'));
     end
@@ -677,7 +698,7 @@ try
     UpdateState(handles);
     guidata(hObject,handles);
 catch ME
-    handles = showError(handles,{'CalcDoseCallback: Error in dose calculatio!',ME.message}); 
+    handles = showError(handles,{'CalcDoseCallback: Error in dose calculation!',ME.message}); 
     % change state from busy to normal
     set(Figures, 'pointer', 'arrow');
     set(InterfaceObj,'Enable','on');
@@ -768,7 +789,7 @@ end
 
 plane = get(handles.popupPlane,'Value');
 slice = round(get(handles.sliderSlice,'Value'));
-CutOffLevel = 0.03;
+CutOffLevel = 0.01;
 
 %% plot ct
  if ~isempty(ct) && get(handles.popupTypeOfPlot,'Value')==1
@@ -1570,7 +1591,7 @@ end
 % displays the cst in the GUI
 function setCstTable(handles,cst)
 
-columnname = {'VOI','VOI Type','Priority','Obj Func','penalty','dose', 'EUD','volume','robustness'};
+columnname = {'VOI name','VOI type','priority','obj. / const.','penalty','dose', 'EUD','volume','robustness'};
 
 AllObjectiveFunction = {'square underdosing','square overdosing','square deviation', 'mean', 'EUD',...
        'min dose constraint','max dose constraint',...
@@ -1582,7 +1603,7 @@ AllObjectiveFunction = {'square underdosing','square overdosing','square deviati
 PlaceHolder = NaN;
 columnformat = {cst(:,2)',{'OAR','TARGET'},'numeric',...
        AllObjectiveFunction,...
-       'numeric','char','numeric','numeric',{'none','WC','prob'}};
+       'numeric','numeric','numeric','numeric',{'none','WC','prob'}};
    
 numOfObjectives = 0;
 for i = 1:size(cst,1)
@@ -1610,7 +1631,7 @@ for i = 1:size(cst,1)
        data{Counter,4}=objFunc;
        
        data{Counter,5}  = cst{i,6}(j).penalty;
-       data{Counter,6}  = num2str(cst{i,6}(j).dose);
+       data{Counter,6}  = cst{i,6}(j).dose;
        data{Counter,7}  = cst{i,6}(j).EUD;
        data{Counter,8}  = cst{i,6}(j).volume;
        data{Counter,9}  = cst{i,6}(j).robustness;
@@ -1674,7 +1695,7 @@ for i = 1:size(OldCst,1)
             % get further parameter
             if FlagValidParameters
                 
-              NewCst{Cnt,4}(CntObjF,1).dose       = str2num(data{j,6});
+              NewCst{Cnt,4}(CntObjF,1).dose       = data{j,6};
               NewCst{Cnt,4}(CntObjF,1).penalty    = data{j,5};
               NewCst{Cnt,4}(CntObjF,1).EUD        = data{j,7};
               NewCst{Cnt,4}(CntObjF,1).volume     = data{j,8};
@@ -1737,9 +1758,7 @@ data = get(handles.uiTable, 'data');
 sEnd = size(data,1);
 data{sEnd+1,1} = 'Select VOI';
 data{sEnd+1,2} = 'Select VOI Type';
-data{sEnd+1,3} = 2;
 data{sEnd+1,4} = 'Select obj func/constraint';
-data{sEnd+1,6} = '';
 data{sEnd+1,9} = 'none';
 
 set(handles.uiTable,'data',data);
@@ -1951,7 +1970,7 @@ elseif strcmp(ObjFunction,'EUD')
 elseif sum(strcmp(ObjFunction,{'min dose constraint','max dose constraint'...
                                      'min mean dose constraint','max mean dose constraint','min max mean dose constraint'}))> 0
          
-         if isnan(str2num(data{eventdata.Indices(1),6}))
+         if isnan(data{eventdata.Indices(1),6})
                  data{eventdata.Indices(1),6} = 1;
          end
          data{eventdata.Indices(1),5} = Placeholder;
@@ -2045,8 +2064,8 @@ if handles.State > 0
         set(handles.btnSetTissue,'Enable','on');
     else
         set(handles.radbtnBioOpt,'Enable','off');
-         set(handles.btnTypBioOpt,'Enable','off');
-         set(handles.btnSetTissue,'Enable','off');
+        set(handles.btnTypBioOpt,'Enable','off');
+        set(handles.btnSetTissue,'Enable','off');
     end
 end 
 
@@ -2352,9 +2371,10 @@ Machine = contents{get(handles.popUpMachine,'Value')};
 contents = cellstr(get(handles.popupRadMode,'String'));
 radMod = contents{get(handles.popupRadMode,'Value')};
 
-FoundFile = dir([radMod '_' Machine '.mat']);
 if isdeployed
-   FoundFile = [FoundFile, dir([ctfroot filesep 'matRad' filesep radMod '_' Machine '.mat'])];
+    FoundFile = dir([ctfroot filesep 'matRad' filesep radMod '_' Machine '.mat']);
+else
+    FoundFile = dir([fileparts(mfilename('fullpath')) filesep radMod '_' Machine '.mat']);    
 end
 if isempty(FoundFile)
     warndlg(['No base data available for machine: ' Machine]);
@@ -2416,9 +2436,9 @@ cst = evalin('base','cst');
 
 contMenuStructChildren = get(get(handles.figure1,'UIContextMenu'),'Children');
 for i = 1:size(contMenuStructChildren,1)
-     boolean = false;
+     boolean = 0;
      if strcmp(get(contMenuStructChildren(i),'Checked'),'on')
-        boolean = true;
+        boolean = 1;
      end
      IdxInCst = find(strcmp(cst(:,2),get(contMenuStructChildren(i),'Label')));
      cst{IdxInCst,5}.Visible = boolean;
@@ -2711,7 +2731,11 @@ if evalin('base','exist(''pln'',''var'')') && ...
 
     % recalculate influence matrix
     if strcmp(pln.radiationMode,'photons')
-        dij = matRad_calcPhotonDose(ct,stf,pln,cst);
+        if get(handles.vmcFlag,'Value') == 0
+            dij = matRad_calcPhotonDose(ct,stf,pln,cst);
+        elseif get(handles.vmcFlag,'Value') == 1
+            dij = matRad_calcPhotonDoseVmc(evalin('base','ct'),stf,pln,evalin('base','cst'));
+        end
     elseif strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
         dij = matRad_calcParticleDose(ct,stf,pln,cst);
     end
@@ -2935,15 +2959,29 @@ end
 pln       = evalin('base','pln');
 resultGUI = evalin('base','resultGUI');
 
-resultGUI.(['physicalDose' Suffix])  = resultGUI.physicalDose; 
-resultGUI.(['w' Suffix])             = resultGUI.w;
-    
+if isfield(resultGUI,'physicalDose')
+    resultGUI.(['physicalDose' Suffix])  = resultGUI.physicalDose; 
+end
+if isfield(resultGUI,'w')
+    resultGUI.(['w' Suffix])             = resultGUI.w;
+end
+
 if ~strcmp(pln.bioOptimization,'none') && strcmp(pln.radiationMode,'carbon') == 1 
-    resultGUI.(['effect' Suffix])             = resultGUI.effect; 
-    resultGUI.(['RBExDose' Suffix])           = resultGUI.RBExDose; 
-    resultGUI.(['RBE' Suffix])                = resultGUI.RBE; 
-    resultGUI.(['alpha' Suffix])              = resultGUI.alpha; 
-    resultGUI.(['beta' Suffix])               = resultGUI.beta; 
+    if isfield(resultGUI,'effect')
+        resultGUI.(['effect' Suffix])= resultGUI.effect; 
+    end
+    if isfield(resultGUI,'RBExDose')
+        resultGUI.(['RBExDose' Suffix]) = resultGUI.RBExDose; 
+    end
+    if isfield(resultGUI,'RBE')
+        resultGUI.(['RBE' Suffix]) = resultGUI.RBE;
+    end
+    if isfield(resultGUI,'alpha')
+        resultGUI.(['alpha' Suffix]) = resultGUI.alpha;
+    end
+    if isfield(resultGUI,'beta')
+        resultGUI.(['beta' Suffix]) = resultGUI.beta;
+    end
 end
 
 close(AllFigHandles(ixHandle));
@@ -3042,3 +3080,12 @@ function sliderOffset_CreateFcn(hObject, ~, ~)
 if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor',[.9 .9 .9]);
 end
+
+
+% --- Executes on button press in vmcFlag.
+function vmcFlag_Callback(hObject, eventdata, handles)
+% hObject    handle to vmcFlag (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of vmcFlag

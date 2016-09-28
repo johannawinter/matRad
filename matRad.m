@@ -29,9 +29,9 @@ load TG119.mat
 
 % meta information for treatment plan
 pln.isoCenter       = matRad_getIsoCenter(cst,ct,0);
-pln.bixelWidth      = 5; % [mm] / also corresponds to lateral spot spacing for particles
-pln.gantryAngles    = [0:72:359]; % [°]
-pln.couchAngles     = [0 0 0 0 0]; % [°]
+pln.bixelWidth      = 15; % [mm] / also corresponds to lateral spot spacing for particles
+pln.gantryAngles    = [0]; % [°]
+pln.couchAngles     = [0]; % [°]
 pln.numOfBeams      = numel(pln.gantryAngles);
 pln.numOfVoxels     = prod(ct.cubeDim);
 pln.voxelDimensions = ct.cubeDim;
@@ -51,7 +51,7 @@ stf = matRad_generateStf(ct,cst,pln);
 %% dose calculation
 if strcmp(pln.radiationMode,'photons')
     dij = matRad_calcPhotonDose(ct,stf,pln,cst);
-    %dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst,5000);
+    %dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst);
 elseif strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     dij = matRad_calcParticleDose(ct,stf,pln,cst);
 end
