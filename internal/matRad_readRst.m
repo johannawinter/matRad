@@ -42,6 +42,15 @@ if numel(pln.gantryAngles) > 1 || numOfGantryAnglesInRST > 1
     error('parser not validated for more than one beam direction\n');
 end
 
+% prepare structures necessary for particles
+fileName = [pln.radiationMode '_' pln.machine];
+try
+   load([pwd filesep fileName]);
+   pln.SAD = machine.meta.SAD;
+catch
+   error(['Could not find the following machine file: ' fileName ]); 
+end
+
 % Define steering file like struct. Prellocating for speed.
 stf = struct;
 w   = [];
@@ -54,7 +63,6 @@ load([pln.radiationMode '_' pln.machine])
 
 % generate voi surface cube for SSD calculation
 stf.SAD = machine.meta.SAD;
-voiSSD = ct.cube;
 
 
 % loop over all machines
@@ -177,33 +185,31 @@ for i = 1:numOfMachinesInRST
     
     % Rotation around Z axis (gantry)
     rotMx_XY_rotated = [ cosd(pln.gantryAngles(i)) sind(pln.gantryAngles(i)) 0;
-        -sind(pln.gantryAngles(i)) cosd(pln.gantryAngles(i)) 0;
-        0                         0 1];
+                        -sind(pln.gantryAngles(i)) cosd(pln.gantryAngles(i)) 0;
+                         0                         0                         1];
     
     % Rotation around Y axis (couch)
     rotMx_XZ_rotated = [ cosd(pln.couchAngles(i)) 0 -sind(pln.couchAngles(i));
-        0 1                        0;
-        sind(pln.couchAngles(i)) 0 cosd(pln.couchAngles(i))];
+                         0                        1                        0;
+                         sind(pln.couchAngles(i)) 0 cosd(pln.couchAngles(i))];
     
     % Rotated Source point, first needs to be rotated around gantry, and then
     % couch.
-    stf(i).sourcePoint =  stf.sourcePoint_bev*rotMx_XY_rotated*rotMx_XZ_rotated;
+    stf(i).sourcePoint =  stf.sourcePoint_bev * rotMx_XY_rotated * rotMx_XZ_rotated;
    
-
-
     % Save ray and target position in lps system.
     for j = 1:stf(i).numOfRays
         
-        stf(i).ray(j).rayPos      = stf(i).ray(j).rayPos_bev*rotMx_XY_rotated*rotMx_XZ_rotated;
-        stf(i).ray(j).targetPoint = stf(i).ray(j).targetPoint_bev*rotMx_XY_rotated*rotMx_XZ_rotated;
+        stf(i).ray(j).rayPos      = stf(i).ray(j).rayPos_bev      * rotMx_XY_rotated * rotMx_XZ_rotated;
+        stf(i).ray(j).targetPoint = stf(i).ray(j).targetPoint_bev * rotMx_XY_rotated * rotMx_XZ_rotated;
         
         
         % ray tracing necessary to determine depth of the target
-        [alpha,l,rho,~,~] = matRad_siddonRayTracer(stf(i).isoCenter, ...
+        [alpha,~,rho,~,~] = matRad_siddonRayTracer(stf(i).isoCenter, ...
                              ct.resolution, ...
                              stf(i).sourcePoint, ...
                              stf(i).ray(j).targetPoint, ...
-                             voiSSD);
+                             [ct.cube]);
                          
                             
         DensityThresholdSSD = 0.05;              

@@ -24,7 +24,7 @@ function costumMap = matRad_getCostumColorbarDiff(cube1,cube2,slice,plane)
     greenRow = [a  1 b];
     redRow   = [a  1 d2];
     
-    costumMap = [blueRow; greenRow; redRow]'; 
+    costumMap = abs([blueRow; greenRow; redRow])'; 
 
 end
 

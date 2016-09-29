@@ -11,9 +11,9 @@
 clear
 close all
 clc
-rootPath = ['C:\Users\wieserh\Documents\matRad validation\protons\patientData'];
+rootPath = ['E:\matRad validation\protons\patientData'];
 % Syngo dose cube was imported using matRad's dicom import
-load('H02333.mat');
+load([rootPath filesep 'H02333_fine111.mat']);
 SyngoDoseCube = resultGUI.physicalDose_BEAM_1;
 % load Fluka Monte Carlo Cube
 MCfilename   = [rootPath filesep 'H02333_01T180_dosePhys' '.txt'];
@@ -24,8 +24,8 @@ pln.bixelWidth      = 3; % [mm] / also corresponds to lateral spot spacing for p
 pln.gantryAngles    = [90]; % [°]
 pln.couchAngles     = [180]; % [°]
 pln.numOfBeams      = numel(pln.gantryAngles);
-pln.numOfVoxels     = numel(ct.cube);
-pln.voxelDimensions = size(ct.cube);
+pln.numOfVoxels     = numel(ct.cube{1});
+pln.voxelDimensions = size(ct.cube{1});
 pln.radiationMode   = 'protons'; % either photons / protons / carbon
 pln.machine         = 'HIT';
 pln.bioOptimization = 'none'; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
@@ -40,10 +40,11 @@ RSTfilename     = [rootPath filesep 'H02333_01T180.hit'];
 stf.bixelWidth  = 3;
 
 %% dose calculation
+%matRadDoseCubeSupine = matRad_calcDoseDirect(ct,stf,pln,cst,w);  
 %matRadDoseCubeSupine = matRad_calcParticleDoseVal(w,ct,stf,pln,cst);
-%save('matRadDoseCubeSupine','matRadDoseCubeSupine');
-load('matRadDoseCubeSupine');
-
+%save('matRadDoseCubeSupineDirect','matRadDoseCubeSupineDirect');
+load('matRadDoseCubeSupineDirect');
+matRadDoseCubeSupine = matRadDoseCubeSupineDirect.physicalDose;
 %% flip ct, dose cube and ct to prone
 ct.cube           = flip(ct.cube,3);
 matRadDoseCube    = flip(matRadDoseCubeSupine,3);
@@ -59,10 +60,10 @@ end
 
 %% Plot all cubes
 cellName = {'Syngo','FLUKA','matRad'};
-slice = 32;
-plane = 3;
-DoseCutOff = 0;
-
+slice       = 32;
+plane       = 3;
+DoseCutOff  = 0;
+defFontSize = 20;
 % consider fractionation
 SyngoDoseCube = SyngoDoseCube/30;
 
@@ -101,9 +102,80 @@ elseif plane == 3
     ctImg   = squeeze(ct.cube{1}(:,:,slice));
 end
 vLevelsDose = vLevels*MaxDoseSyngo;
+%% compare matRad and Syngo dose cube
+m=100;
+cm_magma=magma(m);cm_inferno=inferno(m);cm_plasma=plasma(m);cm_viridis=viridis(m);
+CM = cm_viridis;%jet;
+%downsample cubes
+
+mMatRadDownSamp = mMatRad(2:2:end,2:2:end);
+mSyngoDownSamp  = mSyngo(2:2:end,2:2:end);
+ctImgDownSamp   = ctImg(2:2:end,2:2:end);
+
+maxDose = max([MaxDoseSyngo MaxDoseMatRad]);
+figure,set(gcf,'Color',[1 1 1]);
+
+ct_rgb = ind2rgb(uint8(63*ctImgDownSamp/max(ct.cube{1}(:))),bone);
+% transversal slices
+subplot(221),imagesc(ct_rgb),hold on;colormap(CM),
+h1=imagesc(mMatRadDownSamp);
+set(h1,'AlphaData', .6*double(mMatRadDownSamp>DoseCutOff));
+contour(mMatRadDownSamp,vLevelsDose,'LevelListMode','manual','LineWidth',1.5);
+title([ cellName{1,3} ': slice ' num2str(slice)]); cBarHandel = colorbar(gca);
+set(get(cBarHandel,'ylabel'),'String', 'dose [Gy]','fontsize',15,'Interpreter','Latex');
+set(gca,'XTickLabel','');set(gca,'YTickLabel',''), axis equal
+
+subplot(222),imagesc(ct_rgb),hold on;colormap(CM),
+h1=imagesc(mSyngoDownSamp);
+set(h1,'AlphaData', .6*double(mSyngoDownSamp>DoseCutOff));
+contour(mSyngoDownSamp,vLevelsDose,'LevelListMode','manual','LineWidth',1.5);
+title([ cellName{1,1} ': slice ' num2str(slice)]); cBarHandel = colorbar(gca);
+set(get(cBarHandel,'ylabel'),'String', 'dose [Gy]','fontsize',15,'Interpreter','Latex');
+set(gca,'XTickLabel','');set(gca,'YTickLabel',''), axis equal
+
+
+mMatRadDownSampFull = matRadDoseCube(2:2:end,2:2:end,:);
+mSyngoDownSampFull  = SyngoDoseCube(2:2:end,2:2:end,:);
+
+normMatRad  = max(max(mMatRadDownSamp(:)));
+normSyngo   = max(max(mSyngoDownSamp(:)));
+
+ax3 = subplot(223);
+imagesc(100*(mMatRadDownSamp-mSyngoDownSamp)./normMatRad);
+myMap = matRad_getCostumColorbarDiff(mMatRadDownSampFull,mSyngoDownSampFull,slice,plane);
+colormap(ax3,myMap); colorbar;
+title(['rel diff [%] (' cellName{1,1} ' - ' cellName{1,2} ')/ ' cellName{1,2} ' : slice ' num2str(slice)])
+
+
+
+profileSlice = 49;
+cube1CentralRayProf = (mMatRadDownSamp(profileSlice,:));
+cube2CentralRayProf = (mSyngoDownSamp(profileSlice,:));
+
+subplot(224),hold on
+plot(1:1:size(mMatRadDownSamp,2),cube1CentralRayProf,'r','LineWidth',defaultLineWidth)
+plot(1:1:size(mMatRadDownSamp,2),cube2CentralRayProf,'b--','LineWidth',defaultLineWidth)
+box on,grid on,title(['depth profiles at slice: ' num2str(profileSlice)]),legend({'matRad','Syngo'})
+
+
+[gammaCube,costumMap] = matRad_gammaIndex(mMatRadDownSampFull,mSyngoDownSampFull,[2 2 3],32);
+figure,subplot(131),
+set(gcf,'Color',[1 1 1]);
+ct_rgb = ind2rgb(uint8(63*ctImg/max(ct.cube{1}(:))),bone);
+imagesc(ct_rgb),hold on;
+colormap(jet),
+h1=imagesc(matRadDoseCubeOrg(:,:,32));
+set(h1,'AlphaData', .6*double(matRadDoseCubeOrg(:,:,32)>0));
+%[C,myContour] = contour(SyngoDoseCube(:,:,slice),vLevelsDose,'LevelListMode','manual','LineWidth',1.5);
+title(['a) matRad'],'FontSize',15);
+set(gca,'XTickLabel','');
+set(gca,'YTickLabel','');
+cBarHandel = colorbar(gca);
+set(get(cBarHandel,'ylabel'),'String', 'dose [Gy]','fontsize',16);
+
 
 %% plot the result in coronal, sagittal and axial slice
-figure,,set(gcf,'Color',[1 1 1]);
+figure,set(gcf,'Color',[1 1 1]);
 sliceCoronal = 90;
 subplot(131),
 ct_rgb = ind2rgb(uint8(63*squeeze(ct.cube{1}(sliceCoronal,:,:))/max(ct.cube{1}(:))),bone);

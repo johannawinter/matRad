@@ -79,7 +79,6 @@ counter = 0;
 for i = 1:dij.numOfBeams; % loop over all beams
     
     fprintf(['Beam ' num2str(i) ' of ' num2str(dij.numOfBeams) ': \n']);
-    bixelsPerBeam = 0;
     
  % convert voxel indices to real coordinates using iso center of beam i
     xCoordsV = xCoordsV_vox(:)*ct.resolution.x-stf(i).isoCenter(1);
