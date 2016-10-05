@@ -144,12 +144,22 @@ if exist('stf','var') && exist('resultGUI','var')
     end
 end
 
+if exist('stf','var') 
+    if (strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon'))
+       w = 0;
+        for i = 1:size(stf,2)
+            w = [w; [stf(i).ray.weight]'];
+        end
+    end
+end
 %% save ct, cst, pln, dose
 matRadFileName = [files.ct{1,3} '.mat']; % use default from dicom
 [FileName,PathName] = uiputfile('*','Save as...',matRadFileName);
 if ischar(FileName)
     % delete unnecessary variables
-    clearvars -except ct cst pln stf resultGUI FileName PathName
+    clearvars -except ct cst pln stf w resultGUI FileName PathName
     % save all except FileName and PathName
     save([PathName, FileName], '-regexp', '^(?!(FileName|PathName)$).','-v7.3');
 end
+
+

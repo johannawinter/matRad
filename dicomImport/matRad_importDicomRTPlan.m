@@ -92,10 +92,10 @@ if numel(isoCenter) > 1
     end
 end
 
-% transform iso. At the moment just this way for HFS
+% transform iso. At the moment just this way for HFS=head first-supine 
 if ct.dicomInfo.ImageOrientationPatient == [1;0;0;0;1;0]
-    isoCenter = isoCenter{1}' - ct.dicomInfo.ImagePositionPatient' + ...
-                         [ct.resolution.x ct.resolution.y ct.resolution.z];
+     isoCenter = isoCenter{1}' - ct.dicomInfo.ImagePositionPatient' + ...
+                          [ct.resolution.x ct.resolution.y ct.resolution.z];
 else
     error('This Orientation is not yet supported.');
 end
@@ -133,9 +133,9 @@ pln.numOfVoxels     = numel(ct.cube{1});
 pln.voxelDimensions = ct.cubeDim;
 pln.bioOptimization = NaN; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
 pln.numOfFractions  = planInfo.FractionGroupSequence.Item_1.NumberOfFractionsPlanned;
-pln.runSequencing   = NaN; % 1/true: run sequencing, 0/false: don't / will be ignored for particles and also triggered by runDAO below
-pln.runDAO          = NaN; % 1/true: run DAO, 0/false: don't / will be ignored for particles
-pln.machine         = 'unknown';
+pln.runSequencing   = false; % 1/true: run sequencing, 0/false: don't / will be ignored for particles and also triggered by runDAO below
+pln.runDAO          = false; % 1/true: run DAO, 0/false: don't / will be ignored for particles
+pln.machine         = 'Generic';
 
 % timestamp
 pln.timeStamp = datestr(clock);

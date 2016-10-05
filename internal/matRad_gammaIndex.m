@@ -1,4 +1,4 @@
-function [gammaCube,myColormap] = matRad_gammaIndex(cube1,cube2,resolution,slice)
+function [gammaCube,myColormap,gammaPassRate] = matRad_gammaIndex(cube1,cube2,resolution,slice)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % gamma index calculation according to http://www.ncbi.nlm.nih.gov/pubmed/9608475
 % 
@@ -36,8 +36,8 @@ if ~isequal(size(cube1),size(cube2))
 end
 
 % set parameters for gamma index calculation
-dist2AgreeMm = 3; % [mm]
-relDoseThreshold = 3; % in [%]
+dist2AgreeMm = 2; % [mm]
+relDoseThreshold = 2; % in [%]
 
 % convert to absolute doses (use global max) and distance in voxels
 absDoseThreshold = relDoseThreshold/100 * max(cube1(:));
@@ -155,15 +155,17 @@ gammaCube = sqrt(gammaCubeSq);
                     1.0000    0.0323         0
                     1.0000         0         0];
  
-if nargin > 3       
-        figure
-        set(gcf,'Color',[1 1 1]);
-        imagesc(gammaCube(:,:,slice),[0 2])
+    
+       
         
         doseIx          = cube1 > absDoseThreshold;
         numOfPassGamma  = sum(gammaCube(doseIx) < 1);
         gammaPassRate   = 100 * numOfPassGamma / sum(doseIx(:));
         
+if nargin > 3   
+        figure
+        set(gcf,'Color',[1 1 1]);
+        imagesc(gammaCube(:,:,slice),[0 2])
         colormap(gca,myColormap);
         colorbar
         

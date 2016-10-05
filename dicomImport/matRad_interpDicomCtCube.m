@@ -69,3 +69,10 @@ interpCt.z = zq;
 
 interpCt.cubeDim     = [numel(yq) numel(xq) numel(zq)];
 interpCt.numOfCtScen = 1;
+
+
+if sum(isnan(interpCt.cube{1} )) > 0
+   warning('ct cube contains NaN values'); 
+end
+
+
