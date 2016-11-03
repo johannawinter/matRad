@@ -135,7 +135,7 @@ for idx=1:length(jtbc)
     end
 end
 
-handles.legendTable.String{1} = 'not data loaded';
+set(handles.legendTable,'String',{'no data loaded'});
 %initialize maximum dose for visualization to Zero
 handles.maxDoseVal     = 0;
 handles.IsoDose.Levels = 0;
@@ -345,7 +345,7 @@ try
     % clear state and read new data
     handles.State = 0;
     load([FilePath FileName]);
-    handles.legendTable.String = {'no data loaded'};
+    set(handles.legendTable,'String',{'no data loaded'});
     
 catch
     handles = showWarning(handles,'LoadMatFileFnc: Could not load *.mat file');
@@ -708,7 +708,11 @@ try
         if get(handles.vmcFlag,'Value') == 0
             dij = matRad_calcPhotonDose(evalin('base','ct'),stf,pln,evalin('base','cst'));
         elseif get(handles.vmcFlag,'Value') == 1
-            dij = matRad_calcPhotonDoseVmc(evalin('base','ct'),stf,pln,evalin('base','cst'));
+            if ~isdeployed
+                dij = matRad_calcPhotonDoseVmc(evalin('base','ct'),stf,pln,evalin('base','cst'));
+            else
+                error('VMC++ not available in matRad standalone application');
+            end
         end
     elseif strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
         dij = matRad_calcParticleDose(evalin('base','ct'),stf,pln,evalin('base','cst'));
@@ -1612,11 +1616,12 @@ for s = 1:size(cst,1)
     clr = dec2hex(round(colors(s,:)*255),2)';
     clr = ['#';clr(:)]';
     if handles.VOIPlotFlag(s)
-        handles.legendTable.String{s} = ['<html><table border=0 ><TR><TD bgcolor=',clr,' width="18"><center>&#10004;</center></TD><TD>',cst{s,2},'</TD></TR> </table></html>'];
+        tmpString{s} = ['<html><table border=0 ><TR><TD bgcolor=',clr,' width="18"><center>&#10004;</center></TD><TD>',cst{s,2},'</TD></TR> </table></html>'];
     else
-        handles.legendTable.String{s} = ['<html><table border=0 ><TR><TD bgcolor=',clr,' width="18"></TD><TD>',cst{s,2},'</TD></TR> </table></html>'];
+        tmpString{s} = ['<html><table border=0 ><TR><TD bgcolor=',clr,' width="18"></TD><TD>',cst{s,2},'</TD></TR> </table></html>'];
     end
 end
+set(handles.legendTable,'String',tmpString);
 
 columnname = {'VOI name','VOI type','priority','obj. / const.','penalty','dose', 'EUD','volume','robustness'};
 
@@ -3223,14 +3228,18 @@ colors = colors(round(linspace(1,63,size(cst,1))),:);
 idx    = get(hObject,'Value');
 clr    = dec2hex(round(colors(idx,:)*255),2)';
 clr    = ['#';clr(:)]';
+
+%Get the string entries
+tmpString = get(handles.legendTable,'String');
+
 if handles.VOIPlotFlag(idx)
     handles.VOIPlotFlag(idx) = false;
-    handles.legendTable.String{idx} = ['<html><table border=0 ><TR><TD bgcolor=',clr,' width="18"></TD><TD>',cst{idx,2},'</TD></TR> </table></html>'];
+    tmpString{idx} = ['<html><table border=0 ><TR><TD bgcolor=',clr,' width="18"></TD><TD>',cst{idx,2},'</TD></TR> </table></html>'];
 elseif ~handles.VOIPlotFlag(idx)
     handles.VOIPlotFlag(idx) = true;
-    handles.legendTable.String{idx} = ['<html><table border=0 ><TR><TD bgcolor=',clr,' width="18"><center>&#10004;</center></TD><TD>',cst{idx,2},'</TD></TR> </table></html>'];
+    tmpString{idx} = ['<html><table border=0 ><TR><TD bgcolor=',clr,' width="18"><center>&#10004;</center></TD><TD>',cst{idx,2},'</TD></TR> </table></html>'];
 end
-
+set(handles.legendTable,'String',tmpString);
 
 guidata(hObject, handles);
 UpdatePlot(handles)
@@ -3283,3 +3292,34 @@ function radioBtnIsoCenter_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 UpdatePlot(handles)
 % Hint: get(hObject,'Value') returns toggle state of radioBtnIsoCenter
+
+% --------------------------------------------------------------------
+function uipushtool_screenshot_ClickedCallback(hObject, eventdata, handles)
+% hObject    handle to uipushtool_screenshot (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+ 
+tmpFig = figure('position',[100 100 700 600],'Visible','off','name','Current View'); 
+cBarHandle = findobj(handles.figure1,'Type','colorbar');
+if ~isempty(cBarHandle)
+    new_handle = copyobj([handles.axesFig cBarHandle],tmpFig);
+else
+    new_handle = copyobj(handles.axesFig,tmpFig);
+end
+
+oldPos = get(handles.axesFig,'Position');
+set(new_handle(1),'units','normalized', 'Position',oldPos);
+
+[filename, pathname] = uiputfile({'*.jpg;*.tif;*.png;*.gif','All Image Files'},'Save current view','./screenshot.png');
+
+if ~isequal(filename,0) && ~isequal(pathname,0)
+    set(gcf, 'pointer', 'watch');
+    saveas(tmpFig,fullfile(pathname,filename));
+    set(gcf, 'pointer', 'arrow');
+    close(tmpFig);
+    uiwait(msgbox('Current view has been succesfully saved!'));
+else
+    uiwait(msgbox('Aborted saving, showing figure instead!'));
+    set(tmpFig,'Visible','on');
+end
