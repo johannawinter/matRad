@@ -45,7 +45,7 @@ if nargin >= 5
     end
 end
 
-if nargin == 7
+if nargin >= 7
      if isnumeric(varargin{2})
         if varargin{2}>3
             slice = varargin{2};
@@ -55,11 +55,12 @@ if nargin == 7
     elseif ischar(varargin{2})
         FlagSave = true;
         filename = varargin{2};
-    end
-elseif nargin == 8
+     end
+end
+if nargin == 8
     if ischar(varargin{3})
         FlagSave = true;
-        filename = varargin{1};
+        filename = varargin{3};
     end
 end
 
@@ -160,10 +161,10 @@ function updatePlot(hObject,event,slice)
 
              if sum(tmpSlice(:)) > 0
                  [c, h] = contour(gca,squeeze(maskCst(:,:,slice)),.5*[1 1],'LineWidth',2,'Color',colors(ColorCnt,:),'DisplayName',cst{i,2});
-                 cHandle = [cHandle h];
-                 ColorCnt = ColorCnt + 1;
-                 Name = regexprep(cst{i,2},'_','.'); 
-                 sLegend{CntLegend} = Name; CntLegend = CntLegend +1;
+                 if ~isempty(c)
+                     cHandle = [cHandle h]; ColorCnt = ColorCnt + 1; Name = regexprep(cst{i,2},'_','.'); 
+                     sLegend{CntLegend} = Name; CntLegend = CntLegend +1;
+                 end
              end
     end
     legend(cHandle,sLegend,'FontSize',defFontSize,'Location','northwestoutside')
