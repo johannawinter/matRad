@@ -1,4 +1,4 @@
-function [gammaCube,myColormap,gammaPassRate] = matRad_gammaIndex(cube1,cube2,resolution,slice,criteria)
+function [gammaCube,myColormap,gammaPassRate] = matRad_gammaIndex(cube1,cube2,resolution,criteria,slice)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % gamma index calculation according to http://www.ncbi.nlm.nih.gov/pubmed/9608475
 % 
@@ -44,6 +44,8 @@ else
     dist2AgreeMm     = 1; % in [mm]
     relDoseThreshold = 1; % in [%]
 end
+
+fprintf(['matRad: using gamme criteria ' num2str(dist2AgreeMm) '[mm], ' num2str(relDoseThreshold) '[%%]' ]);
 
 % convert to absolute doses (use global max) and distance in voxels
 absDoseThreshold = relDoseThreshold/100 * max(cube1(:));

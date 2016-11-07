@@ -158,7 +158,7 @@ set(cBarHandel,'YLim',[0 maxDose]); if plane ==3;axis equal;end
 
 %% save first plot
 folderPath = [folder filesep 'exports'];
-if exist('FolderPath','file')
+if exist('folderPath','dir')
     status = mkdir(folderPath);
 end
 
