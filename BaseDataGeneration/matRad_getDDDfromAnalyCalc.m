@@ -69,6 +69,6 @@ DDD.dose = dose;
  
 end
 
-function getCarbonDose(R0,depth)
-
+function [DDD] = getCarbonDose(R0,depth)
+        error('not implemented');
 end
