@@ -62,7 +62,7 @@ machine       = matRad_readBeamWideningAIR(machine,PathToXMLFile);
 
 %path to sampling points/Stützstellen provided by Katia P.
 % if visBool is on then dont forget to press a key to step to the next plot
-pathToSparseData = [pathTRiP filesep 'DDD\p\HIT_2D_DB_p_KatjaP'];
+pathToSparseData = [pathTRiP filesep 'DDD' filesep 'p' filesep 'HIT_2D_DB_p_KatjaP'];
 machine = matRad_interpLateralBaseData(machine,pathTRiP,pathToSparseData,Identifier,SisFocusIdx,visBool);
 
 
