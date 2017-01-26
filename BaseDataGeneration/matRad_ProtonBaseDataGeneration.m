@@ -28,8 +28,8 @@ close all
 
 %% set global path which is valid for all subsections
 
-pathTRiP   = 'E:\TRiP98DATA_HIT-20131120';
-matRadRoot = 'C:\Users\wieserh\Documents\matRad';
+pathTRiP   = '/Users/Hans-PeterWieser/Documents/Heidelberg/TRiP98DATA';
+matRadRoot = '/Users/Hans-PeterWieser/Documents/Heidelberg/matRad';
 
 %% define some meta information on how the base data set should be generated
 SisFocusIdx                 = 0;      % 0-> use no initalBeam, 1...7 determines the FocusIndex which should
@@ -42,7 +42,7 @@ metaInfo.SAD                = 6509;   %[mm] distance from source to iso-center
 metaInfo.BAMStoIsoDist      = 1126;   %[mm] distance beam nozzle to iso-center
 metaInfo.LUT_bxWidthminFWHM = [1 2 3 4 6 8 10 20;8 8 8 8 8 8 8 8];      %[mm] 
 metaInfo.machine            = 'HIT';
-metaInfo.description        = ['proton baseData from TRiP98 combined with KatjaP ' ...
+metaInfo.description        = ['proton baseData from TRiP98 combined with KatiaP ' ...
                                'lateral double gauss data considering beam widening in air'];
                            
  

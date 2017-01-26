@@ -1,18 +1,23 @@
-function [ddd] = matRad_getDDDfromAnalyCalc(Identifier,R0, ZSec, ASec, vDepth)
+function [ddd] = matRad_getDDDfromAnalyCalc(Identifier,R0_mm, ZSec, ASec, vDepth_mm)
+
+
+
+R0_cm     = R0_mm/10;
+vDepth_cm = vDepth_mm/10;
 
 switch Identifier
     case {'p','P','h''H'}
-           getDose = @(R0,depth) getProtonDose(R0,vDepth);
+           getDose = @(R0,depth) getProtonDose(R0_cm,vDepth_cm);
     case {'c','C'}
-           getDose = @(R0,depth) getCarbonDose(R0,vDepth);
+           getDose = @(R0,depth) getCarbonDose(R0_cm,vDepth_cm);
     otherwise
         error('unkown particle type')
 end
 
-
-ddd = getDose(R0,vDepth);
+ddd       = getDose(R0_cm,vDepth_cm);
 
 end
+
 
 
 function [DDD] = getProtonDose(R0,depth)
@@ -50,7 +55,7 @@ zeta = (z-R0)./sigma;   % benannt wie im Paper
 xi = (z-RT-R0)./sigma;  % ???
 
 % Calculate physical DOSE
-dose = sigma.^(1/p).*gamma(1/p).*(cyl_gaussj(-1./p,zeta)./sigma ...
+DDD.dose = sigma.^(1/p).*gamma(1/p).*(cyl_gaussj(-1./p,zeta)./sigma ...
     + cyl_gaussj(-(1/p)-1,zeta).*(beta/p+vargamma*beta+epsilon/R0) )/ ...
 	(sqrt(2*pi)*rho*p*alpha^(1/p)*(1+beta*R0));
 
@@ -62,12 +67,10 @@ DDD.LETd_RT = ( 0.1 .* (sigma^(2./p).*gamma(2./p) ...
 	./ (p^2.*alpha^(1./p).*(2./p-1.).*(sigma^(1./p+1.).*gamma(1./p+1) ...
     * ( cyl_gaussj(-1./p-1.,xi) -  cyl_gaussj(-1./p-1.,zeta) )  ...
     - 2.* (RT/2.).^(1./p+1.).*exp(-(zeta+xi).^2./8))));
-
-
-%DDD.dose = dose./max(dose);
-DDD.dose = dose;
  
 end
+
+
 
 function [DDD] = getCarbonDose(R0,depth)
         error('not implemented');
