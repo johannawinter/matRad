@@ -81,9 +81,6 @@ elseif strcmp(accMethod,'EMT')
 
     [X,Y,Z] = ndgrid(xGridVec,yGridVec,zGridVec);
 
-    m_ref = zeros(dimensions);
-    e_ref = zeros(dimensions);
-
     for i = 1:nPhases
         
         m_i     = ct.cube(:,:,:,i);
@@ -94,6 +91,9 @@ elseif strcmp(accMethod,'EMT')
         
         ix = e_i>0;
         
+        m_ref = zeros(dimensions);
+        e_ref = zeros(dimensions);
+
         X_i = X(ix) + dvf_x_i(ix);
         Y_i = Y(ix) + dvf_y_i(ix);
         Z_i = Z(ix) + dvf_z_i(ix);
@@ -145,11 +145,10 @@ elseif strcmp(accMethod,'EMT')
                 
         m_ref(ix_i) = m_ref(ix_i) + overlap .* m_i(ix);
         e_ref(ix_i) = e_ref(ix_i) + overlap .* e_i(ix);
-                       
+        
+        dAcc = dAcc + e_ref./m_ref;
+                
     end
-    
-    ix = m_ref>0;
-    dAcc(ix) = dAcc(ix) + e_ref(ix)./m_ref(ix);
     
 elseif strcmp(accMethod,'DDMM')
     
