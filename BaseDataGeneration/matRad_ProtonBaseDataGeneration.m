@@ -37,9 +37,9 @@ SisFocusIdx                 = 0;      % 0-> use no initalBeam, 1...7 determines 
 BeamOffset                  = -2.89;  %[mm]
 visBool                     = 0;
 saveToDiskBool              = 0;
-Identifier                  = 'p';    % p indicates protons
-metaInfo.SAD                = 6509;   %[mm] distance from source to iso-center
-metaInfo.BAMStoIsoDist      = 1126;   %[mm] distance beam nozzle to iso-center
+Identifier                  = 'p';      % p indicates protons
+metaInfo.SAD                = 43416.5;  %[mm] distance from source to iso-center  fixedBeamLine 6850  Gantry 43416.5
+metaInfo.BAMStoIsoDist      = 993.9;    %[mm] distance beam nozzle to iso-center  fixedBeamLine 1126  Gantry 993.9
 metaInfo.LUT_bxWidthminFWHM = [1 2 3 4 6 8 10 20;8 8 8 8 8 8 8 8];      %[mm] 
 metaInfo.machine            = 'HIT';
 metaInfo.description        = ['proton baseData from TRiP98 combined with KatiaP ' ...
@@ -54,7 +54,13 @@ fileName    = [machine.meta.radiationMode  '_'  machine.meta.machine];
 % the field machine.data(:).iniFocus will hold for each energy, lookups tables 
 % which correspond to different foci. Make sure that the SisFocusIdx is set to 0
 % Note that data is only available for foci index 1-4
-PathToXMLFile = [matRadRoot filesep 'BaseDataGeneration' filesep 'ProtonLPD.xml'];
+
+PathToXMLFile = [matRadRoot filesep 'BaseDataGeneration' filesep 'Basisdaten_HIT' filesep ...
+                 'LPD' filesep 'SingleGaussianBeamWidthSets_vor_12.9.2016' filesep 'ProtonGantryLPD.xml'];
+
+% PathToXMLFile = [matRadRoot filesep 'BaseDataGeneration' filesep 'Basisdaten_HIT' filesep ...
+%                  'LPD' filesep 'SingleGaussianBeamWidthSets_nach_12.9.2016' filesep 'ProtonGantryLPD_2016.xml'];
+              
 machine       = matRad_readBeamWideningAIR(machine,PathToXMLFile);
 
 %% interpolate double gaussian data from sparse sigma1, sigma2 and weight matrix
