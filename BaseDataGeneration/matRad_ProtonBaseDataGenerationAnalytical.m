@@ -21,7 +21,6 @@ close all
 
 load protons_Generic.mat
 
-% figure
 for i = 1:numel(machine.data)
    cla
     [ddd] = matRad_getDDDfromAnalyCalc('p',machine.data(i).range, 1, 1, machine.data(i).depths);
