@@ -2,11 +2,15 @@
 
 * Mark Bangert
 * Eduadro Cisternas
+* Eric Christiansen
 * Hubert Gabrys
+* Emily Heath
 * Cindy Hermann
 * Thomas Klinge
 * Henning Mescher
 * Lucas-Raphael Müller
 * Alexander Stadler
 * Niklas Wahl
+* Jona Welsch
 * Hans-Peter Wieser
+* Tong Xu

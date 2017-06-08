@@ -75,13 +75,19 @@ else
     numOfBixelsContainer = ceil(dij.totalNumOfBixels/10);
 end
 doseTmpContainer = cell(numOfBixelsContainer,dij.numOfScenarios);
-if isequal(pln.bioOptimization,'effect') || isequal(pln.bioOptimization,'RBExD')
-    alphaDoseTmpContainer = cell(numOfBixelsContainer,dij.numOfScenarios);
-    betaDoseTmpContainer  = cell(numOfBixelsContainer,dij.numOfScenarios);
-    for i = 1:dij.numOfScenarios
-        dij.mAlphaDose{i}    = spalloc(prod(ct.cubeDim),dij.totalNumOfBixels,1);
-        dij.mSqrtBetaDose{i} = spalloc(prod(ct.cubeDim),dij.totalNumOfBixels,1);
-    end
+if (isequal(pln.bioOptimization,'LEMIV_effect') || isequal(pln.bioOptimization,'LEMIV_RBExD')) ... 
+        && strcmp(pln.radiationMode,'carbon')
+   
+        alphaDoseTmpContainer = cell(numOfBixelsContainer,dij.numOfScenarios);
+        betaDoseTmpContainer  = cell(numOfBixelsContainer,dij.numOfScenarios);
+        for i = 1:dij.numOfScenarios
+            dij.mAlphaDose{i}    = spalloc(prod(ct.cubeDim),dij.totalNumOfBixels,1);
+            dij.mSqrtBetaDose{i} = spalloc(prod(ct.cubeDim),dij.totalNumOfBixels,1);
+        end
+        
+elseif isequal(pln.bioOptimization,'const_RBExD') && strcmp(pln.radiationMode,'protons')
+            dij.RBE = 1.1;
+            fprintf(['matRad: Using a constant RBE of 1.1 \n']);   
 end
 
 % Only take voxels inside patient.
@@ -112,8 +118,9 @@ if isfield(pln,'calcLET') && pln.calcLET
 end
 
 % generates tissue class matrix for biological optimization
-if (strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD')) ... 
+if (isequal(pln.bioOptimization,'LEMIV_effect') || isequal(pln.bioOptimization,'LEMIV_RBExD')) ... 
         && strcmp(pln.radiationMode,'carbon')
+    
     fprintf('matRad: loading biological base data... ');
     vTissueIndex = zeros(size(V,1),1);
     
@@ -149,10 +156,14 @@ if (strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD'))
     fprintf('done.\n');
 
 % issue warning if biological optimization not possible
-elseif sum(strcmp(pln.bioOptimization,{'effect','RBExD'}))>0 && strcmp(pln.radiationMode,'protons')
-    warndlg('Effect based and RBE optimization not possible with protons - physical optimization is carried out instead.');
-    pln.bioOptimization = 'none';
+elseif sum(strcmp(pln.bioOptimization,{'LEMIV_effect','LEMIV_RBExD'}))>0 && ~strcmp(pln.radiationMode,'carbon') ||...
+       ~strcmp(pln.radiationMode,'protons') && strcmp(pln.bioOptimization,'const_RBExD')
+    warndlg([pln.bioOptimization ' optimization not possible with ' pln.radiationMode '- physical optimization is carried out instead.']);
+    pln.bioOptimization = 'none';      
 end
+
+% compute SSDs
+stf = matRad_computeSSD(stf,ct);
 
 fprintf('matRad: Particle dose calculation...\n');
 counter = 0;
@@ -169,21 +180,15 @@ for i = 1:dij.numOfBeams % loop over all beams
     zCoordsV = zCoordsV_vox(:)*ct.resolution.z-stf(i).isoCenter(3);
     coordsV  = [xCoordsV yCoordsV zCoordsV];
 
-    % Set gantry and couch rotation matrices according to IEC 61217
-    % Use transpose matrices because we are working with row vectros
+    % Get Rotation Matrix
+    % Do not transpose matrix since we usage of row vectors &
+    % transformation of the coordinate system need double transpose
 
     % rotation around Z axis (gantry)
-    inv_rotMx_XY_T = [ cosd(-pln.gantryAngles(i)) sind(-pln.gantryAngles(i)) 0;
-                      -sind(-pln.gantryAngles(i)) cosd(-pln.gantryAngles(i)) 0;
-                                                0                          0 1];
-
-    % rotation around Y axis (couch)
-    inv_rotMx_XZ_T = [cosd(-pln.couchAngles(i)) 0 -sind(-pln.couchAngles(i));
-                                              0 1                         0;
-                      sind(-pln.couchAngles(i)) 0  cosd(-pln.couchAngles(i))];
+    rotMat_system_T = matRad_getRotationMatrix(pln.gantryAngles(i),pln.couchAngles(i));
 
     % Rotate coordinates (1st couch around Y axis, 2nd gantry movement)
-    rot_coordsV = coordsV*inv_rotMx_XZ_T*inv_rotMx_XY_T;
+    rot_coordsV = coordsV*rotMat_system_T;
 
     rot_coordsV(:,1) = rot_coordsV(:,1)-stf(i).sourcePoint_bev(1);
     rot_coordsV(:,2) = rot_coordsV(:,2)-stf(i).sourcePoint_bev(2);
@@ -228,8 +233,8 @@ for i = 1:dij.numOfBeams % loop over all beams
             radDepths = radDepthV{1}(ix);   
             
             % just use tissue classes of voxels found by ray tracer
-            if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ... 
-                 && strcmp(pln.radiationMode,'carbon')
+            if (isequal(pln.bioOptimization,'LEMIV_effect') || isequal(pln.bioOptimization,'LEMIV_RBExD')) ... 
+                && strcmp(pln.radiationMode,'carbon')
                     vTissueIndex_j = vTissueIndex(ix,:);
             end
 
@@ -273,6 +278,12 @@ for i = 1:dij.numOfBeams % loop over all beams
                 else
                     error('cutoff must be a value between 0 and 1')
                 end
+                
+                % empty bixels may happen during recalculation of error
+                % scenarios -> skip to next bixel
+                if ~any(currIx)
+                    continue;
+                end
                  
                 % calculate particle dose for bixel k on ray j of beam i
                 bixelDose = matRad_calcParticleDoseBixel(...
@@ -301,7 +312,7 @@ for i = 1:dij.numOfBeams % loop over all beams
                   letDoseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix(currIx)),1,bixelLET.*bixelDose,dij.numOfVoxels,1);
                 end
                              
-                if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ... 
+                if (isequal(pln.bioOptimization,'LEMIV_effect') || isequal(pln.bioOptimization,'LEMIV_RBExD')) ... 
                     && strcmp(pln.radiationMode,'carbon')
                     % calculate alpha and beta values for bixel k on ray j of                  
                     [bixelAlpha, bixelBeta] = matRad_calcLQParameter(...
@@ -327,7 +338,7 @@ for i = 1:dij.numOfBeams % loop over all beams
                                 dij.mLETDose{1}(:,1) = dij.mLETDose{1}(:,1) + stf(i).ray(j).weight(k) * letDoseTmpContainer{1,1};
                             end
                             
-                            if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ...
+                            if (isequal(pln.bioOptimization,'LEMIV_effect') || isequal(pln.bioOptimization,'LEMIV_RBExD')) ... 
                                 && strcmp(pln.radiationMode,'carbon')
                                 
                                 % score alpha and beta matrices
@@ -348,8 +359,9 @@ for i = 1:dij.numOfBeams % loop over all beams
                             dij.mLETDose{1}(:,(ceil(counter/numOfBixelsContainer)-1)*numOfBixelsContainer+1:counter) = [letDoseTmpContainer{1:mod(counter-1,numOfBixelsContainer)+1,1}];
                         end
                         
-                        if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ... 
-                                && strcmp(pln.radiationMode,'carbon')
+                        if (isequal(pln.bioOptimization,'LEMIV_effect') || isequal(pln.bioOptimization,'LEMIV_RBExD')) ... 
+                            && strcmp(pln.radiationMode,'carbon')
+                        
                             dij.mAlphaDose{1}(:,(ceil(counter/numOfBixelsContainer)-1)*numOfBixelsContainer+1:counter) = [alphaDoseTmpContainer{1:mod(counter-1,numOfBixelsContainer)+1,1}];
                             dij.mSqrtBetaDose{1}(:,(ceil(counter/numOfBixelsContainer)-1)*numOfBixelsContainer+1:counter) = [betaDoseTmpContainer{1:mod(counter-1,numOfBixelsContainer)+1,1}];
                         end

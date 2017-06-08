@@ -3,7 +3,7 @@ function resultGUI = matRad_calcDoseDirect(ct,stf,pln,cst,w)
 % matRad dose calculation wrapper bypassing dij calculation
 % 
 % call
-%   dij = matRad_calcDoseDirect(ct,stf,pln,cst)
+%   resultGUI = matRad_calcDoseDirect(ct,stf,pln,cst)
 %
 % input
 %   ct:         ct cube
@@ -37,6 +37,9 @@ calcDoseDirect = true;
 
 % copy bixel weight vector into stf struct
 if exist('w','var')
+    if sum([stf.totalNumOfBixels]) ~= numel(w)
+        error('weighting does not match steering information')
+    end
     counter = 0;
     for i = 1:pln.numOfBeams
         for j = 1:stf(i).numOfRays
@@ -58,6 +61,7 @@ end
 
 % remember bixel weight
 counter = 0;
+resultGUI.w = NaN * ones(dij.totalNumOfBixels,1);
 for i = 1:pln.numOfBeams
     for j = 1:stf(i).numOfRays
         for k = 1:stf(i).numOfBixelsPerRay(j)
@@ -81,8 +85,11 @@ if isfield(dij,'mLETDose')
 end
                       
 % compute biological cubes
-if strcmp(pln.bioOptimization,'effect') || strcmp(pln.bioOptimization,'RBExD') ... 
-    && strcmp(pln.radiationMode,'carbon')
+if strcmp(pln.bioOptimization,'const_RBExD')
+
+    resultGUI.RBExDose = resultGUI.physicalDose * dij.RBE;
+    
+elseif strcmp(pln.bioOptimization,'LEMIV_effect') || strcmp(pln.bioOptimization,'LEMIV_RBExD')
 
     ix = resultGUI.physicalDose>0;
 
