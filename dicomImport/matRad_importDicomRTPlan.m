@@ -32,10 +32,6 @@ function pln = matRad_importDicomRTPlan(ct, rtPlanFiles, dicomMetaBool)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-% %% print current status of the import script
-% fprintf('Please provide an appropriate machine file:\n');
-
 %% load plan file
 % check size of RT Plan
 if size(rtPlanFiles,1) ~= 1
@@ -56,46 +52,44 @@ else
     errordlg('Not supported kind of DICOM RT plan file.');    
 end
 
-% use the treatment beams only
+% get beam sequence
 BeamSequence = planInfo.(BeamParam);
 BeamSeqNames = fieldnames(BeamSequence);
-for i = 1:length(BeamSeqNames)
-    currBeamSeq = BeamSequence.(BeamSeqNames{i});
-    try
-        treatDelType = currBeamSeq.TreatmentDeliveryType;
-        if ~strcmpi(treatDelType,'TREATMENT')
-            BeamSequence = rmfield(BeamSequence,BeamSeqNames{i});
+
+% use the treatment beams only
+if isfield(BeamSequence.(BeamSeqNames{1}),'TreatmentDeliveryType')
+    for i = 1:length(BeamSeqNames)
+        currBeamSeq = BeamSequence.(BeamSeqNames{i});
+        try
+            treatDelType = currBeamSeq.TreatmentDeliveryType;
+            if ~strcmpi(treatDelType,'TREATMENT')
+                BeamSequence = rmfield(BeamSequence,BeamSeqNames{i});
+            end
+        catch
+            warning('Something went wrong while determining the type of the beam.');
         end
-    catch
-        warning('Something went wrong while determining the type of the beam.');
     end
+    BeamSeqNames = fieldnames(BeamSequence);
 end
-BeamSeqNames = fieldnames(BeamSequence);
+
 
 %% get information may change between beams
 % loop over beams
 gantryAngles{length(BeamSeqNames)} = [];
 PatientSupportAngle{length(BeamSeqNames)} = [];
-isoCenter{length(BeamSeqNames)} = [];
+isoCenter = NaN*ones(length(BeamSeqNames),3);
 for i = 1:length(BeamSeqNames)   
     currBeamSeq             = BeamSequence.(BeamSeqNames{i});
     % parameters not changing are stored in the first ControlPointSequence
     gantryAngles{i}         = currBeamSeq.(ControlParam).Item_1.GantryAngle;
     PatientSupportAngle{i}  = currBeamSeq.(ControlParam).Item_1.PatientSupportAngle;
-    isoCenter{i}            = currBeamSeq.(ControlParam).Item_1.IsocenterPosition;
-end
-
-% check wether isocenters are consistent
-if numel(isoCenter) > 1
-    if ~isequal(isoCenter{:})
-       errordlg('Values for isocenter are not consistent.')
-    end
+    isoCenter(i,:)          = currBeamSeq.(ControlParam).Item_1.IsocenterPosition';
 end
 
 % transform iso. At the moment just this way for HFS
 if ct.dicomInfo.ImageOrientationPatient == [1;0;0;0;1;0]
-    isoCenter = isoCenter{1}' - ct.dicomInfo.ImagePositionPatient' + ...
-                         [ct.resolution.x ct.resolution.y ct.resolution.z];
+    isoCenter = isoCenter - ones(length(BeamSeqNames),1) * ...
+        ([ct.x(1) ct.y(1) ct.z(1)] - [ct.resolution.x ct.resolution.y ct.resolution.z]);
 else
     error('This Orientation is not yet supported.');
 end
@@ -122,6 +116,14 @@ else
     warning('The given type of radiation is not yet supported');
 end
 
+% extract field shapes
+if strcmp(radiationMode, 'photons')
+           
+    fractionSequence = planInfo.FractionGroupSequence.Item_1;
+    pln.Collimation  = matRad_importFieldShapes(BeamSequence,fractionSequence);
+    
+end
+
 %% write parameters found to pln variable
 pln.isoCenter       = isoCenter;
 pln.radiationMode   = radiationMode; % either photons / protons / carbon
@@ -131,24 +133,30 @@ pln.couchAngles     = [PatientSupportAngle{1:length(BeamSeqNames)}]; % [°]
 pln.numOfBeams      = length(BeamSeqNames);
 pln.numOfVoxels     = numel(ct.cube{1});
 pln.voxelDimensions = ct.cubeDim;
-pln.bioOptimization = NaN; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
+pln.bioOptimization = 'none'; % none: physical optimization; effect: effect-based optimization; RBExD: optimization of RBE-weighted dose
 pln.numOfFractions  = planInfo.FractionGroupSequence.Item_1.NumberOfFractionsPlanned;
-pln.runSequencing   = NaN; % 1/true: run sequencing, 0/false: don't / will be ignored for particles and also triggered by runDAO below
-pln.runDAO          = NaN; % 1/true: run DAO, 0/false: don't / will be ignored for particles
-pln.machine         = 'unknown';
+pln.runSequencing   = false; % 1/true: run sequencing, 0/false: don't / will be ignored for particles and also triggered by runDAO below
+pln.runDAO          = false; % 1/true: run DAO, 0/false: don't / will be ignored for particles
+pln.machine         = 'Generic';
+
+% if we imported field shapes then let's trigger field based dose calc by
+% setting the bixelWidth to 'field'
+if isfield(pln,'Collimation')
+    pln.bixelWidth  = 'field'; 
+end
 
 % timestamp
-pln.timeStamp = datestr(clock);
+pln.DicomInfo.timeStamp = datestr(clock);
 
 try
-   pln.SOPClassUID = planInfo.SOPClassUID;
-   pln.SOPInstanceUID = planInfo.SOPInstanceUID;
-   pln.ReferencedDoseSequence = planInfo.ReferencedDoseSequence;
+   pln.DicomInfo.SOPClassUID = planInfo.SOPClassUID;
+   pln.DicomInfo.SOPInstanceUID = planInfo.SOPInstanceUID;
+   pln.DicomInfo.ReferencedDoseSequence = planInfo.ReferencedDoseSequence;
 catch
 end
 
 % safe entire dicomInfo
 if dicomMetaBool == true
-    pln.dicomMeta = planInfo;
+    pln.DicomInfo.Meta = planInfo;
 end
 end
