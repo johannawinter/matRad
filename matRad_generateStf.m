@@ -254,7 +254,7 @@ for i = 1:length(pln.gantryAngles)
 
                 % get for each spot the focus index
                 for k = 1:stf(i).numOfBixelsPerRay(j)                    
-                    focusIx(k) = find(machine.data(vEnergyIx(k)).initFocus.SisFWHMAtIso > currentMinimumFWHM,1,'first');
+                    focusIx(k) = find(machine.data(vEnergyIx(k)).initFocus.SisFWHMAtIso > currentMinimumFWHM,1);
                 end
 
                 stf(i).ray(j).focusIx = focusIx';

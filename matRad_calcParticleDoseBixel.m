@@ -1,4 +1,4 @@
-function dose = matRad_calcParticleDoseBixel(radDepths, radialDist_sq, SSD, focusIx, baseData, rangeShifter, radiationMode,heteroCorrDepths)
+function dose = matRad_calcParticleDoseBixel(radDepths, radialDist_sq, SSD, focusIx, baseData, rangeShifter, radiationMode, heteroCorrDepths)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad visualization of two-dimensional dose distributions on ct including
 % segmentation
@@ -7,13 +7,14 @@ function dose = matRad_calcParticleDoseBixel(radDepths, radialDist_sq, SSD, focu
 %   dose = matRad_calcParticleDoseBixel(radDepths,radialDist_sq,SSD,focusIx,baseData)
 %
 % input
-%   radDepths:      radiological depths
-%   radialDist_sq:  squared radial distance in BEV from central ray
-%   SSD:            source to surface distance
-%   focusIx:        index of focus to be used
-%   baseData:       base data required for particle dose calculation
-%   rangeShifter    struct with fields ID, equivalent thickness, source to rashi (upstream) surface
-%   radiationMode   'protons', 'carbon' 
+%   radDepths:        radiological depths
+%   radialDist_sq:    squared radial distance in BEV from central ray
+%   SSD:              source to surface distance
+%   focusIx:          index of focus to be used
+%   baseData:         base data required for particle dose calculation
+%   rangeShifter:     struct with fields ID, equivalent thickness, source to rashi (upstream) surface
+%   radiationMode:    'protons', 'carbon'
+%   heteroCorrDepths: radiological depths for heterogeneity correction (optional)
 %
 % output
 %   dose:   particle dose at specified locations as linear vector
@@ -49,7 +50,7 @@ radDepths = radDepths + rangeShifter.eqThickness;
 % convert from MeV cm^2/g per primary to Gy mm^2 per 1e6 primaries
 conversionFactor = 1.6021766208e-02;
 
- % calculate initial focus sigma
+% calculate initial focus sigma
 SigmaIni = matRad_interp1(baseData.initFocus.dist(focusIx,:)',baseData.initFocus.sigma(focusIx,:)',SSD);
 
 sigmaRashi = matRad_sigmaRashi(baseData, radiationMode, rangeShifter.eqThickness, rashiSurfaceDist);
@@ -75,12 +76,12 @@ if ~isfield(baseData,'sigma') && ~isstruct(baseData.Z)
 
 elseif ~isfield(baseData,'sigma') && isstruct(baseData.Z)
 
-    % interpolate depth dose, sigmas, and weights    
+    % interpolate narrow sigma, weights, and broad sigma    
     X = matRad_interp1(depths,[baseData.sigma1 baseData.weight baseData.sigma2],radDepths);
     
     % compute lateral sigmas
-    sigmaSq_Narr = X(:,1).^2 + SigmaIni^2;
-    sigmaSq_Bro  = X(:,3).^2 + SigmaIni^2;
+    sigmaSq_Narr = X(:,1).^2 + sigmaRashi.^2 + SigmaIni^2;
+    sigmaSq_Bro  = X(:,3).^2 + sigmaRashi.^2 + SigmaIni^2;
     
     % calculate lateral profile
     L_Narr =  exp( -radialDist_sq ./ (2*sigmaSq_Narr))./(2*pi*sigmaSq_Narr);
@@ -93,12 +94,12 @@ elseif ~isfield(baseData,'sigma') && isstruct(baseData.Z)
     radDepths = radDepths - baseData.offset;
     
     % add sigma if heterogeneity correction wanted
-    if nargin < 6
+    if nargin < 8
         ellSq = ones(numel(radDepths),1)*baseData.Z.width'.^2;
     else
         
         [~,lungDepthAtBraggPeakIx] = min(abs(radialDist_sq+radDepths.^2-baseData.peakPos.^2));
-        lungDepthAtBraggPeak = heteroCorrDepths(lungDepthAtBraggPeakIx);        
+        lungDepthAtBraggPeak = heteroCorrDepths(lungDepthAtBraggPeakIx);
         ellSq = ones(numel(radDepths),1)* (baseData.Z.width'.^2 + matRad_getHeterogeneityCorrSigmaSq(lungDepthAtBraggPeak));
     end
     
