@@ -1,7 +1,7 @@
 % clear all global
 % close all
-%
-load RICPHANTOM.mat;
+
+load RICPHANTOM_extension.mat; % RICPHANTOM_none.mat/RICPHANTOM.mat/RICPHANTOM_extension.mat
 
 %% set up plan for RICPHANTOM
 
