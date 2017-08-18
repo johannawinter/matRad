@@ -127,7 +127,7 @@ if calcHeteroCorr
         if isfield(cst{j,5},'HeterogeneityCorrection')
 
             if strcmp(cst{j,5}.HeterogeneityCorrection,'Lung')
-                calcHeteroCorrStruct.cube{1}(cst{j,4}{1}) = 1;
+                calcHeteroCorrStruct.cube{1}(cst{j,4}{1}) = ct.cube{1}(cst{j,4}{1}); % 1;
             else
                 error(['No heterogeneity correction method implemented for ' ...
                         cst{j,5}.HeterogeneityCorrection]);
@@ -214,7 +214,7 @@ for i = 1:dij.numOfBeams % loop over all beams
     coordsV  = [xCoordsV yCoordsV zCoordsV];
 
     % Get Rotation Matrix
-    % Do not transpose matrix since we usage of row vectors &
+    % Do not transpose matrix since the usage of row vectors &
     % transformation of the coordinate system need double transpose
 
     % rotation around Z axis (gantry)
@@ -228,7 +228,7 @@ for i = 1:dij.numOfBeams % loop over all beams
     rot_coordsV(:,3) = rot_coordsV(:,3)-stf(i).sourcePoint_bev(3);
 
     % Calcualte radiological depth cube
-    lateralCutoffRayTracing = 50;
+    lateralCutoffRayTracing = 50; % [mm]
     fprintf('matRad: calculate radiological depth cube...');
     radDepthV = matRad_rayTracing(stf(i),ct,V,rot_coordsV,lateralCutoffRayTracing);
     fprintf('done.\n');

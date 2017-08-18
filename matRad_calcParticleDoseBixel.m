@@ -70,7 +70,7 @@ if ~isfield(baseData,'sigma') && ~isstruct(baseData.Z)
     % calculate lateral profile
     L_Narr =  exp( -radialDist_sq ./ (2*sigmaSq_Narr))./(2*pi*sigmaSq_Narr);
     L_Bro  =  exp( -radialDist_sq ./ (2*sigmaSq_Bro ))./(2*pi*sigmaSq_Bro );
-    L = baseData.LatCutOff.CompFac * ((1-(X(:,3))).*L_Narr) + (X(:,3).*L_Bro);
+    L = baseData.LatCutOff.CompFac * ((1-X(:,3)).*L_Narr + X(:,3).*L_Bro);
 
     dose = X(:,1).*L;
 
@@ -98,7 +98,7 @@ elseif ~isfield(baseData,'sigma') && isstruct(baseData.Z)
         ellSq = ones(numel(radDepths),1)*baseData.Z.width'.^2;
     else
         
-        [~,lungDepthAtBraggPeakIx] = min(abs(radialDist_sq+radDepths.^2-baseData.peakPos.^2));
+        [~,lungDepthAtBraggPeakIx] = min(abs(radialDist_sq+(radDepths-baseData.peakPos).^2)); % radDepths.^2-baseData.peakPos.^2));
         lungDepthAtBraggPeak = heteroCorrDepths(lungDepthAtBraggPeakIx);
         ellSq = ones(numel(radDepths),1)* (baseData.Z.width'.^2 + matRad_getHeterogeneityCorrSigmaSq(lungDepthAtBraggPeak));
     end
