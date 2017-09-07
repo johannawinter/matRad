@@ -119,6 +119,20 @@ else
     %compute lateral sigma
     sigmaSq = X(:,2).^2 + sigmaRashi.^2 + SigmaIni^2;
     
+%    L = baseData.LatCutOff.CompFac * exp( -radialDist_sq ./ (2*sigmaSq))./(2*pi*sigmaSq);
+%    
+%    % add sigma if heterogeneity correction wanted
+%    if nargin == 8
+%        [~,lungDepthAtBraggPeakIx] = min(abs(radialDist_sq+(radDepths-baseData.peakPos).^2));
+%        lungDepthAtBraggPeak = heteroCorrDepths(lungDepthAtBraggPeakIx);
+%        heteroCorrSigmaSq = matRad_getHeterogeneityCorrSigmaSq(lungDepthAtBraggPeak));
+% 
+%        heteroCorrCoords = -3*heteroCorrSigma:.1:3*heteroCorrSigma;
+%        heteroCorrGauss = 1/(sqrt(2*pi).*heteroCorrSigma) .* exp(- heteroCorrCoords.^2 ./(2*heteroCorrSigma.^2));;
+%    end
+% 
+%    dose = conv( X(:,1), heteroCorrGauss,'same' );             % problem: X(:,1) and heteroCorrGauss must have same coordinates
+    
     % calculate dose
     dose = baseData.LatCutOff.CompFac * exp( -radialDist_sq ./ (2*sigmaSq)) .* X(:,1) ./(2*pi*sigmaSq);
     

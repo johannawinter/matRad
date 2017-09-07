@@ -248,7 +248,7 @@ for i = 1:dij.numOfBeams % loop over all beams
     
     % Determine lateral cutoff
     fprintf('matRad: calculate lateral cutoff...');
-    cutOffLevel = .99;
+    cutOffLevel = 1;          % extended from .99 to .999 to 1 to match lung experiments
     visBoolLateralCutOff = 0;
     machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf(i),visBoolLateralCutOff);
     fprintf('done.\n');    
@@ -327,6 +327,17 @@ for i = 1:dij.numOfBeams % loop over all beams
                 if ~any(currIx)
                     continue;
                 end
+                
+%                 % add rangeShifter if not yet implemented
+%                 if ~isfield(stf(i).ray(j), 'rangeShifter')
+%                     stf(i).ray(j).rangeShifter = ([]);
+%                 end
+%                 
+%                 if isempty(stf(i).ray(j).rangeShifter(k))
+%                     stf(i).ray(j).rangeShifter(k).ID = 0;
+%                     stf(i).ray(j).rangeShifter(k).eqThickness = 0;
+%                     stf(i).ray(j).rangeShifter(k).sourceRashiDistance = 0;
+%                 end
                 
                 % calculate particle dose for bixel k on ray j of beam i
                 if calcHeteroCorr

@@ -1,7 +1,9 @@
 % clear all global
 % close all
 
-load RICPHANTOM_extension.mat; % RICPHANTOM_none.mat/RICPHANTOM.mat/RICPHANTOM_extension.mat
+% load RICPHANTOM_extension.mat;    % RICPHANTOM_none.mat/RICPHANTOM.mat/RICPHANTOM_extension.mat
+
+% energyStep = 70;
 
 %% set up plan for RICPHANTOM
 
@@ -36,7 +38,7 @@ stf.ray.rayPos_bev      = [0 0 0];
 stf.ray.targetPoint_bev = [0 stf.SAD 0];
 stf.ray.rayPos          = [0 0 0];
 stf.ray.targetPoint     = [stf.SAD 0 0];
-stf.ray.energy          = machine.data(70).energy;
+stf.ray.energy          = machine.data(energyStep).energy;
 stf.ray.focusIx         = 1;
 stf.ray.weight          = 1;
 stf.ray.rangeShifter.ID = 0;
