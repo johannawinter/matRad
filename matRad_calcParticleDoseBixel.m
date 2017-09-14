@@ -73,6 +73,10 @@ if ~isfield(baseData,'sigma') && ~isstruct(baseData.Z)
     L = baseData.LatCutOff.CompFac * ((1-X(:,3)).*L_Narr + X(:,3).*L_Bro);
 
     dose = X(:,1).*L;
+    
+    if nargin == 8
+        warning('calcParticleDoseBixel: heterogeneity correction not yet implemented for these basedata')
+    end
 
 elseif ~isfield(baseData,'sigma') && isstruct(baseData.Z)
 
@@ -135,6 +139,10 @@ else
     
     % calculate dose
     dose = baseData.LatCutOff.CompFac * exp( -radialDist_sq ./ (2*sigmaSq)) .* X(:,1) ./(2*pi*sigmaSq);
+    
+    if nargin == 8
+        warning('calcParticleDoseBixel: heterogeneity correction not yet implemented for these basedata')
+    end
     
  end
  
