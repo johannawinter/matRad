@@ -1,4 +1,4 @@
-function [ machine ] = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf,visBool,heteroCorrDepths)
+function [ machine ] = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf,visBool)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad function to calculate a depth dependend lateral cutoff for each 
 % pristine particle beam
@@ -125,29 +125,14 @@ for energyIx = vEnergiesIx
     radiationMode              = stf(1).radiationMode;
     rangeShifter               = rangeShifterLUT(ix_Max(cnt));
     baseData.LatCutOff.CompFac = 1;
-    
-    if exist('heteroCorrDepths', 'var') == 1
-        dosePeakPos = matRad_calcParticleDoseBixel(radDepths, radialDist_sq, maxSSD, maxfocusIx, baseData, rangeShifter, radiationMode, heteroCorrDepths);
-    else
-        dosePeakPos = matRad_calcParticleDoseBixel(radDepths, radialDist_sq, maxSSD, maxfocusIx, baseData, rangeShifter, radiationMode);
-    end
-    
-    iddPeak     = idd(peakixDepth) * conversionFactor;
 
-    radialDist_sq  = r_mid.^2;
 
     for j = 1:length(ixDepth)
         
         % save depth value
         machine.data(energyIx).LatCutOff.depths(j) = machine.data(energyIx).depths(ixDepth(j));
-        
         radDepths      = machine.data(energyIx).LatCutOff.depths(j) * ones(numel(r_mid),1) + machine.data(energyIx).offset;       
-
-        if exist('heteroCorrDepths', 'var') == 1
-            dose_r         = matRad_calcParticleDoseBixel(radDepths - 1e-4, radialDist_sq, maxSSD, maxfocusIx, baseData, rangeShifter, radiationMode, heteroCorrDepths);
-        else
-            dose_r         = matRad_calcParticleDoseBixel(radDepths - 1e-4, radialDist_sq, maxSSD, maxfocusIx, baseData, rangeShifter, radiationMode);
-        end
+        dose_r         = matRad_calcParticleDoseBixel(radDepths - 1e-4, radialDist_sq, maxSSD, maxfocusIx, baseData, rangeShifter, radiationMode);
 
         if cutOffLevel == 1
             machine.data(energyIx).LatCutOff.CompFac = 1;
@@ -226,16 +211,12 @@ if visBool
     mDose         = zeros(dimX,dimX,numel(radDepths));
     vDoseInt      = zeros(numel(radDepths),1);
     
-    for kk = 1:numel(radDepths)          
-         if exist('heteroCorrDepths', 'var') == 1
-             mDose(:,:,kk) = reshape(matRad_calcParticleDoseBixel(radDepths(kk)*ones(numel(radialDist_sq),1), radialDist_sq, maxSSD,...
-                                maxfocusIx, baseData, rangeShifter, radiationMode, heteroCorrDepths),[dimX dimX]);
-         else
-             mDose(:,:,kk) = reshape(matRad_calcParticleDoseBixel(radDepths(kk)*ones(numel(radialDist_sq),1), radialDist_sq, maxSSD,...
-                                maxfocusIx, baseData, rangeShifter, radiationMode),[dimX dimX]);
-         end
+    for kk = 1:numel(radDepths)
+        
+         mDose(:,:,kk) = reshape(matRad_calcParticleDoseBixel(radDepths(kk)*ones(numel(radialDist_sq),1), radialDist_sq, maxSSD,...
+                              maxfocusIx, baseData, rangeShifter, radiationMode),[dimX dimX]);
          
-         IX               =  find((radDepths(kk) - machine.data(energyIx).offset - machine.data(energyIx).LatCutOff.depths)>=0,1,'last');
+         IX               = find((radDepths(kk) - machine.data(energyIx).offset - machine.data(energyIx).LatCutOff.depths)>=0,1,'last');
          TmpCutOff        = machine.data(energyIx).LatCutOff.CutOff(IX);
          
          vXCut = vX(vX<=TmpCutOff);
@@ -245,14 +226,8 @@ if visBool
          dr_Cut           = (vXCut(2:end) - vXCut(1:end-1))';
          radialDist_sqCut = r_mid_Cut.^2;
               
-        if exist('heteroCorrDepths', 'var') == 1
-            dose_r_Cut    = matRad_calcParticleDoseBixel(radDepths(kk)*ones(numel(radialDist_sqCut),1), radialDist_sqCut(:), maxSSD,...
-                                 maxfocusIx, baseData, rangeShifter, radiationMode, heteroCorrDepths);
-        else
-            dose_r_Cut    = matRad_calcParticleDoseBixel(radDepths(kk)*ones(numel(radialDist_sqCut),1), radialDist_sqCut(:), maxSSD,...
-                                 maxfocusIx, baseData, rangeShifter, radiationMode);
-        end
-         
+         dose_r_Cut    = matRad_calcParticleDoseBixel(radDepths(kk)*ones(numel(radialDist_sqCut),1), radialDist_sqCut(:), maxSSD,...
+                              maxfocusIx, baseData, rangeShifter, radiationMode);
          cumAreaCut = cumsum(2*pi.*r_mid_Cut.*dose_r_Cut.*dr_Cut);  
          
          if ~isempty(cumAreaCut)
@@ -269,11 +244,7 @@ if visBool
     end
     
     [~,peakixDepth] = max(idd); 
-    if exist('heteroCorrDepths', 'var') == 1
-        dosePeakPos = matRad_calcParticleDoseBixel(entry.depths(peakixDepth), 0, maxSSD, maxfocusIx, baseData, rangeShifter, radiationMode, heteroCorrDepths);   
-    else
-        dosePeakPos = matRad_calcParticleDoseBixel(entry.depths(peakixDepth), 0, maxSSD, maxfocusIx, baseData, rangeShifter, radiationMode);   
-    end
+    dosePeakPos = matRad_calcParticleDoseBixel(entry.depths(peakixDepth), 0, maxSSD, maxfocusIx, baseData, rangeShifter, radiationMode);   
     
     vLevelsDose = dosePeakPos.*[0.01 0.05 0.1 0.9];
     figure,set(gcf,'Color',[1 1 1]);
@@ -340,9 +311,6 @@ if visBool
     title(['cutoff level = ' num2str(cutOffLevel)]),
     ylim = get(gca,'Ylim');    set(gca,'Ylim',[0 ylim(2)+3]),    legend(cellLegend)
 end
-
-
-
 
 
 end

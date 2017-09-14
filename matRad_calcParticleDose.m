@@ -251,21 +251,21 @@ for i = 1:dij.numOfBeams % loop over all beams
     cutOffLevel = .99;          % extended from .99 to .999 to 1 to match lung experiments
     visBoolLateralCutOff = 1;
     
-    if calcHeteroCorr
-        for j = 1:stf(i).numOfRays % loop over all rays
-            estimatedMaxLateralCutoffDoseCalc = 60; % [mm]      % to be adjusted!!!
-            [ix] = matRad_calcGeoDists(rot_coordsV, ...
-                                        stf(i).sourcePoint_bev, ...
-                                        stf(i).ray(j).targetPoint_bev, ...
-                                        machine.meta.SAD, ...
-                                        radDepthIx, ...
-                                        estimatedMaxLateralCutoffDoseCalc);
-            heteroCorrDepths = heteroCorrDepthV{1}(ix);
-            machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf(i),visBoolLateralCutOff,heteroCorrDepths);
-        end
-    else
+%     if calcHeteroCorr
+%         for j = 1:stf(i).numOfRays % loop over all rays
+%             estimatedMaxLateralCutoffDoseCalc = 60; % [mm]      % to be adjusted!!!
+%             [ix] = matRad_calcGeoDists(rot_coordsV, ...
+%                                         stf(i).sourcePoint_bev, ...
+%                                         stf(i).ray(j).targetPoint_bev, ...
+%                                         machine.meta.SAD, ...
+%                                         radDepthIx, ...
+%                                         estimatedMaxLateralCutoffDoseCalc);
+%             heteroCorrDepths = heteroCorrDepthV{1}(ix);
+%             machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf(i),visBoolLateralCutOff,heteroCorrDepths);
+%         end
+%     else
         machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf(i),visBoolLateralCutOff);
-    end
+%     end
     
     fprintf('done.\n');    
 
