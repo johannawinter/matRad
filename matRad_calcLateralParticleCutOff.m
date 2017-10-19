@@ -252,7 +252,7 @@ if visBool
     set(h,'AlphaData', .8*double(squeeze(mDose(fix(numel(vLatX)/2),:,:))>0));
     contour(squeeze(mDose(fix(numel(vLatX)/2),:,:)),vLevelsDose,'LevelListMode','manual','LineWidth',3);hold on
     plot(machine.data(energyIx).LatCutOff.depths, machine.data(energyIx).LatCutOff.CutOff * sStep^-1 + midPos,'rx');
-    legend({'isodose 1%,5%,10% 90%','calculated cutoff'}) ,colorbar,set(gca,'FontSize',12),xlabel('z [mm]')',ylabel('x [mm]')
+    legend({'isodose 1%,5%,10% 90%','calculated cutoff'}) ,colorbar,set(gca,'FontSize',12),xlabel('z [mm]');ylabel('x [mm]');
        
     entry = machine.data(energyIx);
     if isstruct(entry.Z)

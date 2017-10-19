@@ -1,4 +1,4 @@
-function resultGUI = matRad_calcDoseDirect(ct,stf,pln,cst,w)
+function resultGUI = matRad_calcDoseDirect(ct,stf,pln,cst,w,cutOffLevel)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad dose calculation wrapper bypassing dij calculation
 % 
@@ -33,6 +33,10 @@ function resultGUI = matRad_calcDoseDirect(ct,stf,pln,cst,w)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+if nargin < 6
+   cutOffLevel = .995;
+end
+
 calcDoseDirect = true;
 
 % copy bixel weight vector into stf struct
@@ -56,7 +60,7 @@ if strcmp(pln.radiationMode,'photons')
     dij = matRad_calcPhotonDose(ct,stf,pln,cst,calcDoseDirect);
     %dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst,5000,4,calcDoseDirect);
 elseif strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
-    dij = matRad_calcParticleDose(ct,stf,pln,cst,calcDoseDirect);
+    dij = matRad_calcParticleDose(ct,stf,pln,cst,calcDoseDirect,cutOffLevel);
 end
 
 % remember bixel weight

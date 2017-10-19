@@ -1,4 +1,4 @@
-function dij = matRad_calcParticleDose(ct,stf,pln,cst,calcDoseDirect)
+function dij = matRad_calcParticleDose(ct,stf,pln,cst,calcDoseDirect,cutOffLevel)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad particle dose calculation wrapper
 % 
@@ -34,6 +34,10 @@ function dij = matRad_calcParticleDose(ct,stf,pln,cst,calcDoseDirect)
 % LICENSE file.
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if nargin < 6
+   cutOffLevel = .995;
+end
 
 % default: dose influence matrix computation
 if ~exist('calcDoseDirect','var')
@@ -246,26 +250,26 @@ for i = 1:dij.numOfBeams % loop over all beams
     % limit rotated coordinates to positions where ray tracing is availabe
     rot_coordsV = rot_coordsV(radDepthIx,:);
     
+%     % add rangeShifter if not yet implemented         % there is still an error!
+%     if ~isfield(stf(i).ray(j), 'rangeShifter')
+%         stf(i).ray(j).rangeShifter = ([]);
+%     end
+%     
+%     for j = 1:stf(i).numOfRays
+%         if isempty(stf(i).ray(j).rangeShifter)
+%             stf(i).ray(j).rangeShifter = struct('ID',0,'eqThickness',0,'sourceRashiDistance',0);
+% %             stf(i).ray(j).rangeShifter(1:stf.numOfBixelsPerRay(j)).ID = 0;
+% %             stf(i).ray(j).rangeShifter(1:stf.numOfBixelsPerRay(j)).eqThickness = 0;
+% %             stf(i).ray(j).rangeShifter(1:stf.numOfBixelsPerRay(j)).sourceRashiDistance = 0;
+%         end
+%     end
+    
     % Determine lateral cutoff
     fprintf('matRad: calculate lateral cutoff...');
-    cutOffLevel = .99;          % extended from .99 to .999 to 1 to match lung experiments
-    visBoolLateralCutOff = 1;
+    %cutOffLevel = .95;
+    visBoolLateralCutOff = 0;
     
-%     if calcHeteroCorr
-%         for j = 1:stf(i).numOfRays % loop over all rays
-%             estimatedMaxLateralCutoffDoseCalc = 60; % [mm]      % to be adjusted!!!
-%             [ix] = matRad_calcGeoDists(rot_coordsV, ...
-%                                         stf(i).sourcePoint_bev, ...
-%                                         stf(i).ray(j).targetPoint_bev, ...
-%                                         machine.meta.SAD, ...
-%                                         radDepthIx, ...
-%                                         estimatedMaxLateralCutoffDoseCalc);
-%             heteroCorrDepths = heteroCorrDepthV{1}(ix);
-%             machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf(i),visBoolLateralCutOff,heteroCorrDepths);
-%         end
-%     else
-        machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf(i),visBoolLateralCutOff);
-%     end
+    machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf(i),visBoolLateralCutOff);
     
     fprintf('done.\n');    
 
@@ -343,17 +347,6 @@ for i = 1:dij.numOfBeams % loop over all beams
                 if ~any(currIx)
                     continue;
                 end
-                
-%                 % add rangeShifter if not yet implemented
-%                 if ~isfield(stf(i).ray(j), 'rangeShifter')
-%                     stf(i).ray(j).rangeShifter = ([]);
-%                 end
-%                 
-%                 if isempty(stf(i).ray(j).rangeShifter(k))
-%                     stf(i).ray(j).rangeShifter(k).ID = 0;
-%                     stf(i).ray(j).rangeShifter(k).eqThickness = 0;
-%                     stf(i).ray(j).rangeShifter(k).sourceRashiDistance = 0;
-%                 end
                 
                 % calculate particle dose for bixel k on ray j of beam i
                 if calcHeteroCorr
