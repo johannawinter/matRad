@@ -15,27 +15,29 @@
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-clear
-close all
-clc
+% clear
+% close all
+% clc
 
 % load patient data, i.e. ct, voi, cst
 
-%load HEAD_AND_NECK
-%load TG119.mat
-load PROSTATE.mat
-%load LIVER.mat
-%load BOXPHANTOM.mat
+% load HEAD_AND_NECK
+% load TG119.mat
+% load PROSTATE.mat
+% load LIVER.mat
+% load BOXPHANTOM.mat
+% load Lung-HIT-ID20160720-adj.mat
+% load Lung-HIT-ID20160720-RTplan2.mat
 
 % meta information for treatment plan
-pln.bixelWidth      = 5; % [mm] / also corresponds to lateral spot spacing for particles
-pln.gantryAngles    = [0]; % [°]
+pln.bixelWidth      = 3; % [mm] / also corresponds to lateral spot spacing for particles
+pln.gantryAngles    = [270]; % [°]
 pln.couchAngles     = [0]; % [°]
 pln.numOfBeams      = numel(pln.gantryAngles);
 pln.numOfVoxels     = prod(ct.cubeDim);
 pln.isoCenter       = ones(pln.numOfBeams,1) * matRad_getIsoCenter(cst,ct,0);
 pln.voxelDimensions = ct.cubeDim;
-pln.radiationMode   = 'photons';     % either photons / protons / carbon
+pln.radiationMode   = 'protons';     % either photons / protons / carbon
 pln.bioOptimization = 'none';        % none: physical optimization;             const_RBExD; constant RBE of 1.1;
                                      % LEMIV_effect: effect-based optimization; LEMIV_RBExD: optimization of RBE-weighted dose
 pln.numOfFractions  = 30;
@@ -43,14 +45,18 @@ pln.runSequencing   = false; % 1/true: run sequencing, 0/false: don't / will be 
 pln.runDAO          = false; % 1/true: run DAO, 0/false: don't / will be ignored for particles
 pln.machine         = 'HIT_APM';
 
+%dummy line
 %% active hetero correction for some tissue...
 % cst{2,5}.HeterogeneityCorrection = 'Lung';
+% cst{3,5}.HeterogeneityCorrection = 'Lung';
 % cst{14,5}.HeterogeneityCorrection = 'Lung';
 
 %% generate steering file
 stf = matRad_generateStf(ct,cst,pln);
 
 %% dose calculation
+% resultGUI = matRad_calcDoseDirect(ct,stf,pln,cst);
+
 if strcmp(pln.radiationMode,'photons')
     dij = matRad_calcPhotonDose(ct,stf,pln,cst);
     %dij = matRad_calcPhotonDoseVmc(ct,stf,pln,cst);
@@ -78,8 +84,8 @@ if strcmp(pln.radiationMode,'photons') && pln.runDAO
 end
 
 %% start gui for visualization of result
-matRadGUI
+% matRadGUI
 
 %% show DVH and QI
-matRad_showDVH(cst,pln)
+% matRad_showDVH(cst,pln)
 
