@@ -8,8 +8,8 @@
 %% set up plan for RICPHANTOM
 
 pln.bixelWidth      = 5; % [mm] / also corresponds to lateral spot spacing for particles
-pln.gantryAngles    = 270; % [°]
-pln.couchAngles     = 0; % [°]
+pln.gantryAngles    = [270]; % [°]
+pln.couchAngles     = [0]; % [°]
 pln.numOfBeams      = numel(pln.gantryAngles);
 pln.numOfVoxels     = prod(ct.cubeDim);
 pln.isoCenter       = [35.5 250.5 250.5];
