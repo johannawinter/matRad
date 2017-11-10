@@ -290,8 +290,8 @@ for i = 1:length(pln.gantryAngles)
         minPeakPos  = machine.data(minEnergy == availableEnergies).peakPos;
         maxPeakPos  = machine.data(maxEnergy == availableEnergies).peakPos;
         
-        % find set of energyies with adequate spacing
-        longitudialSpotSpacing = 3;
+        % find set of energies with adequate spacing
+        longitudialSpotSpacing = 1;
         tolerance              = longitudialSpotSpacing/10;
         availablePeakPos = [machine.data.peakPos];
         

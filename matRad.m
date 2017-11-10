@@ -30,7 +30,7 @@
 % load Lung-HIT-ID20160720-RTplan2.mat
 
 % meta information for treatment plan
-pln.bixelWidth      = 3; % [mm] / also corresponds to lateral spot spacing for particles
+pln.bixelWidth      = 5; % [mm] / also corresponds to lateral spot spacing for particles
 pln.gantryAngles    = [270]; % [°]
 pln.couchAngles     = [0]; % [°]
 pln.numOfBeams      = numel(pln.gantryAngles);
@@ -52,6 +52,10 @@ pln.machine         = 'HIT_APM';
 
 %% generate steering file
 stf = matRad_generateStf(ct,cst,pln);
+
+%%% for RicphantomFallOffs
+stf = matRad_computeSSD(stf,ct);
+%%%
 
 %% dose calculation
 % resultGUI = matRad_calcDoseDirect(ct,stf,pln,cst);

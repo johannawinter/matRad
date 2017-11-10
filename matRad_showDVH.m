@@ -1,4 +1,4 @@
-function matRad_showDVH(cst,pln,scenIx,lineStyleIndicator)
+function matRad_showDVH(cst,pln,scenIx,lineStyleIndicator,dvhTitle)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad dvh calculation
 % 
@@ -12,6 +12,7 @@ function matRad_showDVH(cst,pln,scenIx,lineStyleIndicator)
 %   lineStyleIndicator: integer (1,2,3,4) to indicate the current linestyle
 %                       (hint: use different lineStyles to overlay
 %                       different dvhs)
+%   title: (optional)   title of figure (character vector)
 %
 % output
 %   graphical display of DVH & dose statistics in console   
@@ -68,8 +69,11 @@ for i = 1:numOfVois
     if cst{i,5}.Visible
         dvh = cst{i,8}{scenIx};
         subplot(211);
-        plot(dvh(1,:),dvh(2,:),'LineWidth',4,'Color',colorMx(i,:), ...
+        plot(dvh(1,:),dvh(2,:),'LineWidth',2,'Color',colorMx(i,:), ...
             'LineStyle',lineStyles{lineStyleIndicator},'DisplayName',cst{i,2});hold on
+        if exist('dvhTitle','var')
+            title(dvhTitle)
+        end
     end
 end
 

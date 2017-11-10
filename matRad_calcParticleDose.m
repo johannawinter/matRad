@@ -200,7 +200,7 @@ elseif sum(strcmp(pln.bioOptimization,{'LEMIV_effect','LEMIV_RBExD'}))>0 && ~str
 end
 
 % compute SSDs
-stf = matRad_computeSSD(stf,ct);
+% stf = matRad_computeSSD(stf,ct);
 
 fprintf('matRad: Particle dose calculation...\n');
 counter = 0;
@@ -250,20 +250,7 @@ for i = 1:dij.numOfBeams % loop over all beams
     % limit rotated coordinates to positions where ray tracing is availabe
     rot_coordsV = rot_coordsV(radDepthIx,:);
     
-%     % add rangeShifter if not yet implemented         % there is still an error!
-%     if ~isfield(stf(i).ray(j), 'rangeShifter')
-%         stf(i).ray(j).rangeShifter = ([]);
-%     end
-%     
-%     for j = 1:stf(i).numOfRays
-%         if isempty(stf(i).ray(j).rangeShifter)
-%             stf(i).ray(j).rangeShifter = struct('ID',0,'eqThickness',0,'sourceRashiDistance',0);
-% %             stf(i).ray(j).rangeShifter(1:stf.numOfBixelsPerRay(j)).ID = 0;
-% %             stf(i).ray(j).rangeShifter(1:stf.numOfBixelsPerRay(j)).eqThickness = 0;
-% %             stf(i).ray(j).rangeShifter(1:stf.numOfBixelsPerRay(j)).sourceRashiDistance = 0;
-%         end
-%     end
-    
+  
     % Determine lateral cutoff
     fprintf('matRad: calculate lateral cutoff...');
     %cutOffLevel = .95;
