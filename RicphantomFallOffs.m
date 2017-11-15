@@ -15,9 +15,6 @@ A(111:140,beginTarget:endTarget,111:140) = 1; % middle of water tank y = 135:165
 ix = find(A > 0);
 cst{2,4}{1} = ix;
 
-% geom. lung thickness in mm*2, dependent on target depth
-lungThickness = [1:2:21 30:10:70];          % not longer than 70!
-
 matRad;
 targetDepth = pln.isoCenter(1) - 151;
 resultGUI.physicalDose_0mm = resultGUI.physicalDose;
@@ -78,6 +75,9 @@ DeltaD95(1,2) = 0;      % difference to D95 without lung material [mm]
 
 
 %% add heterogeneous sample
+% geom. lung thickness in mm*2
+lungThickness = [1:2:21 30:10:70];          % not longer than 70!
+
 rho = 0.306;    % relative electron density of lung phantom
 
 cst{3,1} = 2;
@@ -260,13 +260,12 @@ savefig(f,['C:\Matlab\Analysis phantom degradation\fallOff_D95\falloff_targetDep
 savefig(d,['C:\Matlab\Analysis phantom degradation\fallOff_D95\deltaD95_targetDepth_' num2str(targetDepth) '.fig'])
 
 
-%% include DVH comparison no lung vs. 38 mm lung
+%% include DVH comparison no lung vs. lung
 ixForDvh = 10;      % different behaviour / changes for differen lung thicknesses!
 lungThicknessForDvh = lungThickness(ixForDvh); % length(lungThickness) = 16
 
-resultGUI_0mm = resultGUI;
-resultGUI_0mm.physicalDose = resultGUI.physicalDose_0mm;
-cst_0ForDvh = matRad_indicatorWrapper(cst,pln,resultGUI_0mm);
+dvh_0 = matRad_calcDVH(cst,resultGUI.physicalDose_0mm,'cum');
+qi_0  = matRad_calcQualityIndicators(cst,pln,resultGUI.physicalDose_0mm);
 
 % for lung dose distribution, target must be shifted by WetSample
 WetSampleForDvh = lungThicknessForDvh*rho;
@@ -277,26 +276,25 @@ A(111:140,beginTarget-round(WetSampleForDvh):endTarget-round(WetSampleForDvh),11
 ix = find(A > 0);
 cst_lungForDvh{2,4}{1} = ix;
 
-resultGUI_lungForDvh = resultGUI;
-resultGUI_lungForDvh.physicalDose = resultGUI.physicalDoseLung{ixForDvh};
-cst_lungForDvh = matRad_indicatorWrapper(cst_lungForDvh,pln,resultGUI_lungForDvh);
+dvh_lung = matRad_calcDVH(cst_lungForDvh,resultGUI.physicalDoseLung{ixForDvh},'cum');
+qi_lung = matRad_calcQualityIndicators(cst_lungForDvh,pln,resultGUI.physicalDoseLung{ixForDvh});
 
-for i = 1:size(cst,1)
-    cst{i,8}{1} = cst_0ForDvh{i,8}{1};
-    cst{i,8}{2} = cst_lungForDvh{i,8}{1};
-    
-    cst{i,9}{1} = cst_0ForDvh{i,9}{1};
-    cst{i,9}{2} = cst_lungForDvh{i,9}{1};
-end
 
 dvhTitle = ['DVH comparison - solid line: 0 mm lung, dotted line: ' num2str(lungThicknessForDvh*2) ' mm lung'];
-dvh = figure('Name','DVH comparison','Color',[0.5 0.5 0.5],'Position',([300 300 800 600]));
+dvhFig = figure('Name','DVH comparison','Color',[0.5 0.5 0.5],'Position',([300 300 800 600]));
 hold on
-for scenIx = [1,2]
-    matRad_showDVH(cst,pln,scenIx,scenIx,dvhTitle)   % scenIx = 1: 0 mm, scenIx = 2: lung
-end
+subplot(311)
+matRad_showDVH(dvh_0,cst,pln,1,dvhTitle)
+matRad_showDVH(dvh_lung,cst,pln,2)
 
-savefig(dvh,['C:\Matlab\Analysis phantom degradation\fallOff_D95\DVH_targetDepth_' num2str(targetDepth) '_lung_' num2str(lungThicknessForDvh*2) '.fig'])
+subplot(312)
+matRad_showQualityIndicators(qi_0);
+
+subplot(313)
+matRad_showQualityIndicators(qi_lung);
+
+
+savefig(dvhFig,['C:\Matlab\Analysis phantom degradation\fallOff_D95\DVH_targetDepth_' num2str(targetDepth) '_lung_' num2str(lungThicknessForDvh*2) '.fig'])
 
 
 % %% falloff and DeltaD95 comparison P256 vs. P750
