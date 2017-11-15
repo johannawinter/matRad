@@ -65,6 +65,8 @@ voiTarget(V) = 1;
 % add margin
 addmarginBool = 1;
 if addmarginBool
+    %%% add 3mm
+    %%% myMargin.x = 3; myMargin.y = 3; myMargin.z = 3;
     voiTarget = matRad_addMargin(voiTarget,cst,ct.resolution,ct.resolution,true);
     V   = find(voiTarget>0);
 end
@@ -291,9 +293,14 @@ for i = 1:length(pln.gantryAngles)
         maxPeakPos  = machine.data(maxEnergy == availableEnergies).peakPos;
         
         % find set of energies with adequate spacing
-        longitudialSpotSpacing = 1;
-        tolerance              = longitudialSpotSpacing/10;
-        availablePeakPos = [machine.data.peakPos];
+        if strcmp(machine.meta.machine,'Generic')
+            longitudinalSpotSpacing = 1.5; % enforce all entries to be used
+        else
+            longitudinalSpotSpacing = 1;   % default value for all other treatment machines
+        end
+        
+        tolerance              = longitudinalSpotSpacing/10;
+        availablePeakPos       = [machine.data.peakPos];
         
         useEnergyBool = availablePeakPos >= minPeakPos & availablePeakPos <= maxPeakPos;
         
@@ -303,7 +310,7 @@ for i = 1:length(pln.gantryAngles)
 
         while ixRun <= ixEnd
             if abs(availablePeakPos(ixRun)-availablePeakPos(ixCurr)) < ...
-                                    longitudialSpotSpacing - tolerance
+                                    longitudinalSpotSpacing - tolerance
                 useEnergyBool(ixRun) = 0;
             else
                 ixCurr = ixRun;

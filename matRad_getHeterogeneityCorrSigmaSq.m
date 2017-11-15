@@ -10,6 +10,6 @@ function sigmaSq = matRad_getHeterogeneityCorrSigmaSq(WET)
 % Pmod = a^2; 150-750 micrometer for swine lung from Witt et al.
 % Pmod = 256 is equivalent to a = 1.6
 
-Pmod = 750; % [micrometer]
+Pmod = 256; % [micrometer]
 
 sigmaSq = Pmod/1000 * WET;
