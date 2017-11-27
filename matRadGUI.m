@@ -354,13 +354,7 @@ try
         cst = evalin('base','cst');
         cst = setCstTable(handles,cst);
         handles.State = 1;
-        % check if contours are precomputed
-        for i = 1:size(cst,1)
-            if size(cst,2) < 7 || isempty(cst{i,7})
-                cst = matRad_computeVoiContours(ct,cst);
-                break
-            end
-        end
+        cst = matRad_computeVoiContoursWrapper(cst,ct);
         assignin('base','cst',cst);
 
     elseif ismember('ct',AllVarNames) &&  ~ismember('cst',AllVarNames)
@@ -454,14 +448,7 @@ try
     cst = setCstTable(handles,cst);
     handles.TableChanged = false;
     set(handles.popupTypeOfPlot,'Value',1);
-    
-    % precompute contours if necessary
-    for i = 1:size(cst,1)
-        if size(cst,2) < 7 || isempty(cst{i,7})
-            cst = matRad_computeVoiContours(ct,cst);
-            break
-        end
-    end
+    cst = matRad_computeVoiContoursWrapper(cst,ct);
 
     assignin('base','ct',ct);
     assignin('base','cst',cst);
@@ -2779,13 +2766,7 @@ try
         cst = evalin('base','cst');
         cst = setCstTable(handles,cst);
         handles.State = 1;
-        % check if contours are precomputed
-        for i = 1:size(cst,1)
-            if size(cst,2) < 7 || isempty(cst{i,7})
-                cst = matRad_computeVoiContours(ct,cst);
-                break
-            end
-        end
+        cst = matRad_computeVoiContoursWrapper(cst,ct);
         assignin('base','cst',cst);
     elseif ismember('ct',AllVarNames) &&  ~ismember('cst',AllVarNames)
          handles = showError(handles,'GUI OpeningFunc: could not find cst file');
