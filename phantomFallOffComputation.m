@@ -136,7 +136,8 @@ if plotDD
     grid on, grid minor
     box on
     
-    savefig(dd,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DD_breastThickness' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
+%     savefig(dd,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DD_breastThickness' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
+     savefig(dd,['DD_breastThickness' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
 end
 
 % calculate falloff 80%-20% [mm]
@@ -173,7 +174,10 @@ resultGUI.physicalDose_absDiffHeteroHomo = absDiffCube;
 
 
 %% save results
-save(['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\results_breastThickness_' ...
+% save(['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\results_breastThickness_' ...
+%     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h))],...
+%     'ct','cst','pln','resultGUI','stf','z8020','DeltaD95','-v7.3')
+save(['results_breastThickness_' ...
     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h))],...
     'ct','cst','pln','resultGUI','stf','z8020','DeltaD95','-v7.3')
 
@@ -199,7 +203,8 @@ matRad_showQualityIndicators(qi_0);
 subplot(313)
 matRad_showQualityIndicators(qi_lung);
 
-savefig(dvhFig,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
+% savefig(dvhFig,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
+savefig(dvhFig,['DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
 
 end
 
