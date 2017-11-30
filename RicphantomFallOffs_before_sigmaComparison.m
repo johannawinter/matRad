@@ -205,53 +205,67 @@ savefig(idd,['C:\Matlab\Analysis phantom degradation\fallOff_D95\idd_vs_dd_targe
 %% plot falloff for various lung thicknesses
 
 % fit falloff dependence to different models
-% fitFalloffLinear = fit(z8020(:,1),z8020(:,2),'poly1');
-% fitFalloffSqrt_temp = [sqrt(z8020(:,1)) ones(size(z8020(:,2)))] \ z8020(:,2);
-% fitFalloffSqrt = fitFalloffSqrt_temp(1)*z8020(:,1).^.5 + fitFalloffSqrt_temp(2); % y = K+x^.5+c
-fitFalloffPower = fit(z8020(:,1),z8020(:,2),'power2');      % y = a*x^b+c
-abc = coeffvalues(fitFalloffPower);
-a = abc(1); b = abc(2); c = abc(3);
+
+% % fitFalloffLinear = fit(z8020(:,1),z8020(:,2),'poly1');
+% % fitFalloffSqrt_temp = [sqrt(z8020(:,1)) ones(size(z8020(:,2)))] \ z8020(:,2);
+% % fitFalloffSqrt = fitFalloffSqrt_temp(1)*z8020(:,1).^.5 + fitFalloffSqrt_temp(2); % y = K+x^.5+c
+% fitFalloffPower = myfit(z8020(:,1),z8020(:,2),'power2');      % y = a*x^b+c
+% abcFalloff = coeffvalues(fitFalloffPower);
+% aFalloff = abcFalloff(1); bFalloff = abcFalloff(2); cFalloff = abcFalloff(3);
+
+% own fit function with lsqcurvefit (Optimization toolbox needed but no curve fitting tooolbox)
+powerFitFun = @(x,xdata)x(1)*xdata.^x(2)+x(3);   % ydata = x(1)*xdata^x(2) + x(3)
+
+coeffFitFalloff = lsqcurvefit(powerFitFun,[.1, .5, 2],z8020(:,1),z8020(:,2));
+aFalloff = coeffFitFalloff(1); bFalloff = coeffFitFalloff(2); cFalloff = coeffFitFalloff(3);
 
 % plot z8020
 f = figure;
 hold on
 title(['falloff dependence on thickness of traversed lung material - target depth ' num2str(targetDepth) ' mm'])
 plot(z8020(:,1),z8020(:,2),'bo')
-% plot(fitFalloffLinear,'g')
-% plot(z8020(:,1),fitFalloffSqrt,'c')
-plot(fitFalloffPower,'r')
+% % plot(fitFalloffLinear,'g')
+% % plot(z8020(:,1),fitFalloffSqrt,'c')
+% plot(fitFalloffPower,'r')
+plot(z8020(:,1),powerFitFun(coeffFitFalloff,z8020(:,1)),'r')
 xlabel('z_g_e_o lung [mm]')
 ylabel('80% - 20% [mm]')
 xticks(0:10:max(lungThickness)*2)
 grid on
 box on
 % legend('simulation data','linear fit','square root fit',['power fit with a = ' num2str(a) ', b = ' num2str(b) ', c = ' num2str(c)],'location','northwest')
-legend('simulation data',['power fit with a = ' num2str(a) ', b = ' num2str(b) ', c = ' num2str(c)],'location','northwest')
+legend('simulation data',['power fit with a = ' num2str(aFalloff) ', b = ' num2str(bFalloff) ', c = ' num2str(cFalloff)],'location','northwest')
 
 
 % fit DeltaD95 dependence to different models
-% fitDeltaD95Linear = fit(DeltaD95(:,1),DeltaD95(:,2),'poly1');
-% fitDeltaD95Sqrt_temp = [sqrt(DeltaD95(:,1)) ones(size(DeltaD95(:,2)))] \ DeltaD95(:,2);
-% fitDeltaD95Sqrt = fitFalloffSqrt_temp(1)*DeltaD95(:,1).^.5 + fitDeltaD95Sqrt_temp(2); % y = K+x^.5+c
-fitDeltaD95Power = fit(DeltaD95(:,1),DeltaD95(:,2),'power2');      % y = a*x^b+c
-abc = coeffvalues(fitDeltaD95Power);
-a = abc(1); b = abc(2); c = abc(3);
+
+% % fitDeltaD95Linear = fit(DeltaD95(:,1),DeltaD95(:,2),'poly1');
+% % fitDeltaD95Sqrt_temp = [sqrt(DeltaD95(:,1)) ones(size(DeltaD95(:,2)))] \ DeltaD95(:,2);
+% % fitDeltaD95Sqrt = fitFalloffSqrt_temp(1)*DeltaD95(:,1).^.5 + fitDeltaD95Sqrt_temp(2); % y = K+x^.5+c
+% fitDeltaD95Power = myfit(DeltaD95(:,1),DeltaD95(:,2),'power2');      % y = a*x^b+c
+% abcDeltaD95 = coeffvalues(fitDeltaD95Power);
+% aDeltaD95 = abcDeltaD95(1); bDeltaD95 = abcDeltaD95(2); cDeltaD95 = abcDeltaD95(3);
+
+% own fit function with lsqcurvefit
+coeffFitDeltaD95 = lsqcurvefit(powerFitFun,[.1, .5, .5],DeltaD95(2:end,1),DeltaD95(2:end,2));
+aDeltaD95 = coeffFitDeltaD95(1); bDeltaD95 = coeffFitDeltaD95(2); cDeltaD95 = coeffFitDeltaD95(3);
 
 % plot DeltaD95
 d = figure;
 hold on
 title(['Delta D95 dependence on thickness of traversed lung material - target depth ' num2str(targetDepth) ' mm'])
 plot(DeltaD95(:,1),DeltaD95(:,2),'bo')
-% plot(fitDeltaD95Linear,'g')
-% plot(DeltaD95(:,1),fitDeltaD95Sqrt,'c')
-plot(fitDeltaD95Power,'r')
+% % plot(fitDeltaD95Linear,'g')
+% % plot(DeltaD95(:,1),fitDeltaD95Sqrt,'c')
+% plot(fitDeltaD95Power,'r')
+plot(DeltaD95(2:end,1),powerFitFun(coeffFitDeltaD95,DeltaD95(2:end,1)),'r')
 xlabel('z_g_e_o lung [mm]')
 ylabel('Delta D95 [mm]')
 xticks(0:10:max(lungThickness)*2)
 grid on
 box on
 % legend('simulation data','linear fit','square root fit',['power fit with a = ' num2str(a) ', b = ' num2str(b) ', c = ' num2str(c)],'location','northwest')
-legend('simulation data',['power fit with a = ' num2str(a) ', b = ' num2str(b) ', c = ' num2str(c)],'location','northwest')
+legend('simulation data',['power fit with a = ' num2str(aDeltaD95) ', b = ' num2str(bDeltaD95) ', c = ' num2str(cDeltaD95)],'location','northwest')
 
 
 save(['C:\Matlab\Analysis phantom degradation\fallOff_D95\falloff_targetDepth_' num2str(targetDepth)],'z8020','fitFalloffPower','-v7.3');

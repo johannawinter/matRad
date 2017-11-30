@@ -5,13 +5,13 @@ clear
 load('protons_HIT_APM')
 
 plotFits = 0;       % 1: true / 0: false
-saveFigs = 0;       % 1: true / 0: false
+saveFigs = 1;       % 1: true / 0: false
 
 PmodMin = 150;      % modulation power
 PmodPhan = 256;
 PmodMax = 750;
 
-breastThickness = [70,135,200]; % 70 / 135 / 200    % [mm]
+breastThickness = [70,110,150,200]; % 70 / 110 / 150 / 200    % [mm]
 lungThickness = 100;                                % [mm]
 geoThickness = breastThickness + lungThickness;
 
@@ -27,24 +27,17 @@ gaussErrorFitFunction = @(coeffErrorFun,x)...
 zGeoLungHetero = linspace(0, lungThickness, lungThickness+1);
 wetLungHetero = zGeoLungHetero*rho;
 
-sigmaLungSqMin = matRad_getHeterogeneityCorrSigmaSq(wetLungHetero,PmodMin);
-sigmaLungMin = sqrt(sigmaLungSqMin);
-
-sigmaLungSqPhan = matRad_getHeterogeneityCorrSigmaSq(wetLungHetero,PmodPhan);
-sigmaLungPhan = sqrt(sigmaLungSqPhan);
-
-sigmaLungSqMax = matRad_getHeterogeneityCorrSigmaSq(wetLungHetero,PmodMax);
-sigmaLungMax = sqrt(sigmaLungSqMax);
+sigmaLungMin = sqrt(matRad_getHeterogeneityCorrSigmaSq(wetLungHetero,PmodMin));
+sigmaLungPhan = sqrt(matRad_getHeterogeneityCorrSigmaSq(wetLungHetero,PmodPhan));
+sigmaLungMax = sqrt(matRad_getHeterogeneityCorrSigmaSq(wetLungHetero,PmodMax));
 
 
 %% calculate sigma range straggeling by fitting an error function to base data
 % lung part
-zGeoTotal(3,:)                                          = linspace(breastThickness(3), geoThickness(3), (geoThickness(3)-breastThickness(3))/5+1);
-zGeoTotal(2,1:(geoThickness(2)-breastThickness(2))/5+1) = linspace(breastThickness(2), geoThickness(2), (geoThickness(2)-breastThickness(2))/5+1);
-zGeoTotal(1,1:(geoThickness(1)-breastThickness(1))/5+1) = linspace(breastThickness(1), geoThickness(1), (geoThickness(1)-breastThickness(1))/5+1);
-
+for i = 1:length(breastThickness)
+   zGeoTotal(i,1:(geoThickness(i)-breastThickness(i))/5+1) = linspace(breastThickness(i), geoThickness(i), (geoThickness(i)-breastThickness(i))/5+1); 
+end
 zGeoLung = zGeoTotal(1,:) - breastThickness(1);	% same for all breast thicknesses as they cancel
-
 for i = 1:length(breastThickness)
     wetTotal(i,:) = (zGeoTotal(i,:) - breastThickness(i)) * rho + breastThickness(i);
 end
@@ -125,9 +118,9 @@ alphaWater = 2.2e-3;        % [cm MeV^(-p)] for p+ in water, ~ sqrt(Aeff) [14], 
 p = 1.77;                   % for protons between 10 and 250 MeV, p = 1.8 according to sources [14],[15] 
 alphaPrimeWater = 0.087;    % [MeV^2/cm]
 
-zGeoWater(3,:)                                      = linspace(21, breastThickness(3), (breastThickness(3)-21)/3+1);	% [mm]
-zGeoWater(2,1:floor((breastThickness(2)-21)/3+1))	= linspace(21, breastThickness(2), (breastThickness(2)-21)/3+1);
-zGeoWater(1,1:floor((breastThickness(1)-21)/3+1))	= linspace(21, breastThickness(1), (breastThickness(1)-21)/3+1);
+for i = 1:length(breastThickness)
+   zGeoWater(i,1:floor((breastThickness(i)-21)/3+1)) = linspace(21, breastThickness(i), (breastThickness(i)-21)/3+1);	% [mm]
+end
 
 R0Breast = zeros(size(zGeoWater));
 for i = 1:length(breastThickness)
@@ -198,21 +191,34 @@ end
 
 %% fits
 powerFitFun = @(x,xdata)x(1)*xdata.^x(2)+x(3);   % ydata = x(1)*xdata^.x(2) + x(3)
-for i = 1:length(breastThickness)
-    coeffFitSigmaRSLung(i,:) = lsqcurvefit(powerFitFun,[0.0001, 1, 0],zGeoLung,sigmaRSLung(i,:))
-end
+% for i = 1:length(breastThickness)
+%     coeffFitSigmaRSLung(i,:) = lsqcurvefit(powerFitFun,[0.0001, 1, 0],zGeoLung,sigmaRSLung(i,:))
+% end
 
 % fit theoretical range straggeling sigma
-% for i = 1:length(breastThickness)
-%     coeffFitSigmaTheoRSLung(i,:) = lsqcurvefit(powerFitFun,[0.0001, 1, 0],zGeoLung,sigmaTheoRSLung(i,:))
-% end
+for i = 1:length(breastThickness)
+    coeffFitSigmaTheoRSLung(i,:) = lsqcurvefit(powerFitFun,[0.0001, 1, 0],zGeoLung,sigmaTheoRSLung(i,:))
+end
 
 
 %% get intersections
 for i = 1:length(breastThickness)
-    [xIntersectMin(i),yIntersectMin(i)] = intersections(zGeoLung,sigmaRSLung(i,:), zGeoLungHetero,sigmaLungMin,1);
-    [xIntersectMax(i),yIntersectMax(i)] = intersections(zGeoLung,sigmaRSLung(i,:), zGeoLungHetero,sigmaLungMax,1);
+    try
+        [xIntersectMin(i),yIntersectMin(i)] = intersections(zGeoLung,sigmaTheoRSLung(i,:), zGeoLungHetero,sigmaLungMin,1);
+    catch
+        xIntersectMin(i) = []; yIntersectMin(i) = [];
+    end
+    [xIntersectMax(i),yIntersectMax(i)] = intersections(zGeoLung,sigmaTheoRSLung(i,:), zGeoLungHetero,sigmaLungMax,1);
 end
+
+
+%% combination of heterogeneity effect and range straggeling
+sigmaLungMinCombi = sqrt(matRad_getHeterogeneityCorrSigmaSq(zGeoLung*rho,PmodMin));
+sigmaLungMaxCombi = sqrt(matRad_getHeterogeneityCorrSigmaSq(zGeoLung*rho,PmodMax));
+
+sigmaCombiMin = sqrt(sigmaLungMinCombi.^2 + sigmaRSLung(1,:).^2);
+sigmaCombiMax = sqrt(sigmaLungMaxCombi.^2 + sigmaRSLung(1,:).^2);
+
 
 %% plot sigmas - with breast in front of lung
 sigmaFig = figure('Name','sigma comparison');
@@ -226,16 +232,23 @@ plot(zGeoLungHetero, sigmaLungMin, 'b--')
 plot(zGeoLungHetero, sigmaLungPhan, 'b-')
 plot(zGeoLungHetero, sigmaLungMax, 'b--')
 
-plot(zGeoLung, sigmaRSLung(1,:), 'o','color',[0.7,0,1])     % purple
+plot(zGeoLung, sigmaRSLung(1,:), 'o','color',[.7,0,1])     % purple
 plot(zGeoLung, sigmaRSLung(2,:), 'ro')
-plot(zGeoLung, sigmaRSLung(3,:), 'o','color',[1,0.7,0])     % orange
-plot(zGeoLung, sigmaTheoRSLung(1,:),'*','color',[0.7,0,1])	% purple
-plot(zGeoLung, sigmaTheoRSLung(2,:),'r*')
-plot(zGeoLung, sigmaTheoRSLung(3,:),'*','color',[1,0.7,0])	% orange
+plot(zGeoLung, sigmaRSLung(3,:), 'o','color',[1,.7,0])     % orange
+plot(zGeoLung, sigmaRSLung(4,:), 'o','color',[.5,.5,0])	% olive
 
-plot(zGeoLung, powerFitFun(coeffFitSigmaRSLung(1,:),zGeoLung),'color',[0.7,0,1])    % purple
-plot(zGeoLung, powerFitFun(coeffFitSigmaRSLung(2,:),zGeoLung),'r')
-plot(zGeoLung, powerFitFun(coeffFitSigmaRSLung(3,:),zGeoLung),'color',[1,0.7,0])	% orange
+plot(zGeoLung, sigmaTheoRSLung(1,:),'*','color',[.7,0,1])	% purple
+plot(zGeoLung, sigmaTheoRSLung(2,:),'r*')
+plot(zGeoLung, sigmaTheoRSLung(3,:),'*','color',[1,.7,0])	% orange
+plot(zGeoLung, sigmaTheoRSLung(4,:),'*','color',[.5,.5,0])	% olive
+
+plot(zGeoLung, powerFitFun(coeffFitSigmaTheoRSLung(1,:),zGeoLung),'color',[.7,0,1])     % purple
+plot(zGeoLung, powerFitFun(coeffFitSigmaTheoRSLung(2,:),zGeoLung),'r')
+plot(zGeoLung, powerFitFun(coeffFitSigmaTheoRSLung(3,:),zGeoLung),'color',[1,.7,0])     % orange
+plot(zGeoLung, powerFitFun(coeffFitSigmaTheoRSLung(4,:),zGeoLung),'color',[.5,.5,0])	% olive
+
+plot(zGeoLung, sigmaCombiMin ,'k:')
+plot(zGeoLung, sigmaCombiMax ,'k:')
 
 plot(xIntersectMin(1),yIntersectMin(1),'kx','Linewidth',2,'MarkerSize',16)
 plot(xIntersectMax(1),yIntersectMax(1),'kx','Linewidth',2,'MarkerSize',16)
@@ -243,6 +256,8 @@ plot(xIntersectMin(2),yIntersectMin(2),'kx','Linewidth',2,'MarkerSize',16)
 plot(xIntersectMax(2),yIntersectMax(2),'kx','Linewidth',2,'MarkerSize',16)
 plot(xIntersectMin(3),yIntersectMin(3),'kx','Linewidth',2,'MarkerSize',16)
 plot(xIntersectMax(3),yIntersectMax(3),'kx','Linewidth',2,'MarkerSize',16)
+% plot(xIntersectMin(4),yIntersectMin(4),'kx','Linewidth',2,'MarkerSize',16)
+plot(xIntersectMax(4),yIntersectMax(4),'kx','Linewidth',2,'MarkerSize',16)
 
 ax1 = gca;
 set(ax1,'XMinorTick','on')
@@ -255,25 +270,29 @@ legend(ax1,'heterogeneity - P_m_o_d_,_m_i_n = 150 µm',...
     ['RS - water thickness ' num2str(breastThickness(1)) ' mm'],...
     ['RS - water thickness ' num2str(breastThickness(2)) ' mm'],...
     ['RS - water thickness ' num2str(breastThickness(3)) ' mm'],...
+    ['RS - water thickness ' num2str(breastThickness(4)) ' mm'],...
     ['RS (theoretical)  - water thickness ' num2str(breastThickness(1)) ' mm'],...
     ['RS (theoretical)  - water thickness ' num2str(breastThickness(2)) ' mm'],...
     ['RS (theoretical)  - water thickness ' num2str(breastThickness(3)) ' mm'],...
-    ['power fit with a = ' num2str(coeffFitSigmaRSLung(1,1),2) ', b = ' num2str(coeffFitSigmaRSLung(1,2),3)],...
-    ['power fit with a = ' num2str(coeffFitSigmaRSLung(2,1),2) ', b = ' num2str(coeffFitSigmaRSLung(2,2),3)],...
-    ['power fit with a = ' num2str(coeffFitSigmaRSLung(3,1),2) ', b = ' num2str(coeffFitSigmaRSLung(3,2),3)],...
+    ['RS (theoretical)  - water thickness ' num2str(breastThickness(4)) ' mm'],...
+    ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(1,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(1,2),3)],...
+    ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(2,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(2,2),3)],...
+    ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(3,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(3,2),3)],...
+    ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(4,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(4,2),3)],...
+    'combination RS (70 mm) with P_m_o_d_,_m_i_n','combination RS (70 mm) with P_m_o_d_,_m_a_x',...
     'location','northwest')
 
 if saveFigs
-    savefig(sigmaFig,'C:\Matlab\Analysis phantom degradation\sigma_analysis\sigmaComparison')
+    savefig(sigmaFig,['C:\Matlab\Analysis phantom degradation\sigma_analysis\sigmaComparison_' num2str(length(breastThickness)) 'breastThicknesses.fig'])
 end
 
 %% test for water
 %% calculate sigma range straggeling by fitting an error function to base data
 
 % breast part - 21 mm corresponds to lowest proton energy
-zGeoWater(3,:)                              = linspace(21, breastThickness(3), (breastThickness(3)-21)/3+1);	% [mm]
-zGeoWater(2,1:floor((breastThickness(2)-21)/3+1))  = linspace(21, breastThickness(2), (breastThickness(2)-21)/3+1);
-zGeoWater(1,1:floor((breastThickness(1)-21)/3+1))  = linspace(21, breastThickness(1), (breastThickness(1)-21)/3+1);
+% for i = 1:length(breastThickness)
+%    zGeoWater(i,1:floor((breastThickness(i)-21)/3+1)) = linspace(21, breastThickness(i), (breastThickness(i)-21)/3+1);	% [mm]
+% end
 
 sigmaWater = zeros(size(zGeoWater));
 
@@ -303,7 +322,7 @@ for i = 1:length(breastThickness)
         % show error function fit
         if plotFits
             gaussFit = -0.5 .* erf( (xWater1-muFit)/(sqrt(2)*sigmaFit) ) + 0.5;
-            fitFigWater = figure;
+            fitFigWater(j) = figure;
             hold on
             plot(xWater1,braggCurveWater)
             plot(xWater1,gaussFit.*maxBraggCurveWater)
@@ -343,27 +362,31 @@ end
 %% plot water
 waterTest = figure;
 hold on
-plot(zGeoWater(1,find(zGeoWater(1,:),1,'last')),sigmaWater(1,find(sigmaTheoWater(1,:),1,'last')), 'o','color',[0.7,0,1])
-plot(zGeoWater(2,find(zGeoWater(2,:),1,'last')),sigmaWater(2,find(sigmaTheoWater(2,:),1,'last')), 'ro')
-plot(zGeoWater(3,end),sigmaWater(3,end), 'o','color',[1,0.7,0])
-
-plot(zGeoWater(1,find(zGeoWater(1,:),1,'last')),sigmaTheoWater(1,find(sigmaTheoWater(1,:),1,'last')), '*','color',[0.7,0,1])
-plot(zGeoWater(2,find(zGeoWater(2,:),1,'last')),sigmaTheoWater(2,find(sigmaTheoWater(2,:),1,'last')), 'r*')
-plot(zGeoWater(3,end),sigmaTheoWater(3,end), '*','color',[1,0.7,0])
-% plot(zGeoLinear1,sigmaTheoWaterSimple,'gx')
-
-plot(zGeoWater(1,1:find(zGeoWater(1,:),1,'last')), powerFitFun(coeffFitSigmaTheoWater(1,:),zGeoWater(1,1:find(sigmaTheoWater(1,:),1,'last'))),'color',[0.7,0,1]) % purple
-plot(zGeoWater(2,1:find(zGeoWater(2,:),1,'last')), powerFitFun(coeffFitSigmaTheoWater(2,:),zGeoWater(2,1:find(sigmaTheoWater(2,:),1,'last'))),'r')
-plot(zGeoWater(3,1:end), powerFitFun(coeffFitSigmaTheoWater(3,:),zGeoWater(3,1:end)),'color',[1,0.7,0]) % orange
-
 xlabel('z_g_e_o water [mm]')
 ylabel('\sigma [mm] in water')
 ylim([0,5])
 grid on, grid minor
 box on
-legend('base data','base data','base data','theoretical','theoretical','theoretical',...
+plot(zGeoWater(1,find(zGeoWater(1,:),1,'last')),sigmaWater(1,find(sigmaTheoWater(1,:),1,'last')), 'o','color',[.7,0,1]) % purple
+plot(zGeoWater(2,find(zGeoWater(2,:),1,'last')),sigmaWater(2,find(sigmaTheoWater(2,:),1,'last')), 'ro')
+plot(zGeoWater(3,find(zGeoWater(3,:),1,'last')),sigmaWater(3,find(sigmaTheoWater(3,:),1,'last')), 'o','color',[1,.7,0]) % orange
+plot(zGeoWater(4,end),sigmaWater(4,end), 'o','color',[.5,.5,0]) % olive
+
+plot(zGeoWater(1,find(zGeoWater(1,:),1,'last')),sigmaTheoWater(1,find(sigmaTheoWater(1,:),1,'last')), '*','color',[.7,0,1])
+plot(zGeoWater(2,find(zGeoWater(2,:),1,'last')),sigmaTheoWater(2,find(sigmaTheoWater(2,:),1,'last')), 'r*')
+plot(zGeoWater(3,find(zGeoWater(3,:),1,'last')),sigmaTheoWater(3,find(sigmaTheoWater(3,:),1,'last')), '*','color',[1,.7,0])
+plot(zGeoWater(4,end),sigmaTheoWater(4,end), '*','color',[.5,.5,0])
+% plot(zGeoLinear1,sigmaTheoWaterSimple,'gx')
+
+plot(zGeoWater(1,1:find(zGeoWater(1,:),1,'last')), powerFitFun(coeffFitSigmaTheoWater(1,:),zGeoWater(1,1:find(sigmaTheoWater(1,:),1,'last'))),'color',[.7,0,1])
+plot(zGeoWater(2,1:find(zGeoWater(2,:),1,'last')), powerFitFun(coeffFitSigmaTheoWater(2,:),zGeoWater(2,1:find(sigmaTheoWater(2,:),1,'last'))),'r')
+plot(zGeoWater(3,1:find(zGeoWater(3,:),1,'last')), powerFitFun(coeffFitSigmaTheoWater(3,:),zGeoWater(3,1:find(sigmaTheoWater(3,:),1,'last'))),'color',[1,.7,0])
+plot(zGeoWater(4,1:end), powerFitFun(coeffFitSigmaTheoWater(4,:),zGeoWater(4,1:end)),'color',[.5,.5,0])
+
+legend('base data','base data','base data','base data',...
+    'theoretical','theoretical','theoretical','theoretical',...
     'location','northwest')
 
 if saveFigs
-    savefig(waterTest, 'C:\Matlab\Analysis phantom degradation\sigma_analysis\waterTest')
+    savefig(waterTest,['C:\Matlab\Analysis phantom degradation\sigma_analysis\waterTest_' num2str(length(breastThickness)) 'breastThicknesses.fig'])
 end

@@ -40,7 +40,7 @@ depths = baseData.depths + baseData.offset;
 % convert from MeV cm^2/g per primary to Gy mm^2 per 1e6 primaries
 conversionFactor = 1.6021766208e-02;
 
-if ~isfield(baseData,'sigma')
+if ~isfield(baseData,'sigma') && ~isstruct(baseData.Z)
     
     % interpolate depth dose, sigmas, and weights    
     X = matRad_interp1(depths,[conversionFactor*baseData.Z baseData.sigma1 baseData.weight baseData.sigma2],radDepths);
@@ -59,7 +59,7 @@ if ~isfield(baseData,'sigma')
 
     dose = X(:,1).*L;
 	
-	if exist('heteroCorrDepths','var') 	% nargin == 5
+    if exist('heteroCorrDepths','var') 	% nargin == 5
         warning('calcParticleDoseBixel: heterogeneity correction not yet implemented for these basedata')
     end
 

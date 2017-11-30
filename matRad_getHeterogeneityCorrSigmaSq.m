@@ -29,7 +29,7 @@ function sigmaSq = matRad_getHeterogeneityCorrSigmaSq(WET,Pmod)
 
 if nargin < 2
     Pmod = 256; % [µm]
-    fprintf('Default value for modulation power used: Pmod = 256 µm.\n');
+%     fprintf('Default value for modulation power used: Pmod = 256 µm.\n');
 end
 
 sigmaSq = Pmod/1000 * WET;
