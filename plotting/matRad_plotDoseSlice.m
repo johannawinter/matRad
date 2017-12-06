@@ -72,9 +72,10 @@ maxDose = max(doseCube(:));
 doseHandle = image('CData',dose_rgb,'Parent',axesHandle);
 
 % define and set alpha mask
-if ~isempty(threshold)
-    mask = alpha * (dose_slice < window(2) & dose_slice > window(1) & abs(dose_slice) > threshold*maxDose);
+if ~isempty(threshold) && window(1) > 0  
+    mask = alpha * (dose_slice < window(2) & dose_slice > window(1) & abs(dose_slice) > threshold * maxDose);
 else
+% if dose differences are shown window(1) is smaller zero -> thus do not apply low dose threshold
     mask = alpha * (dose_slice < window(2) & dose_slice > window(1));
 end
 set(doseHandle,'AlphaData',mask);
