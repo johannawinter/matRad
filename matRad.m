@@ -45,10 +45,6 @@ pln.runSequencing   = false; % 1/true: run sequencing, 0/false: don't / will be 
 pln.runDAO          = false; % 1/true: run DAO, 0/false: don't / will be ignored for particles
 pln.machine         = 'HIT_APM';
 
-%% active hetero correction for some tissue...
-% cst{2,5}.HeterogeneityCorrection = 'Lung';
-% cst{3,5}.HeterogeneityCorrection = 'Lung';
-% cst{14,5}.HeterogeneityCorrection = 'Lung';
 
 %% generate steering file
 stf = matRad_generateStf(ct,cst,pln);

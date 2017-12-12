@@ -11,7 +11,7 @@ PmodMin = 150;      % modulation power
 PmodPhan = 256;
 PmodMax = 750;
 
-breastThickness = [70,110,150,200]; % 70 / 110 / 150 / 200    % [mm]
+breastThickness = [70 110 150]; % 70 / 110 / 150 / 200    % [mm]
 lungThickness = 100;                                % [mm]
 geoThickness = breastThickness + lungThickness;
 
@@ -216,8 +216,8 @@ end
 sigmaLungMinCombi = sqrt(matRad_getHeterogeneityCorrSigmaSq(zGeoLung*rho,PmodMin));
 sigmaLungMaxCombi = sqrt(matRad_getHeterogeneityCorrSigmaSq(zGeoLung*rho,PmodMax));
 
-sigmaCombiMin = sqrt(sigmaLungMinCombi.^2 + sigmaRSLung(1,:).^2);
-sigmaCombiMax = sqrt(sigmaLungMaxCombi.^2 + sigmaRSLung(1,:).^2);
+sigmaCombiMin = sqrt(sigmaLungMinCombi.^2 + sigmaTheoRSLung(2,:).^2);
+sigmaCombiMax = sqrt(sigmaLungMaxCombi.^2 + sigmaTheoRSLung(2,:).^2);
 
 
 %% plot sigmas - with breast in front of lung
@@ -235,17 +235,17 @@ plot(zGeoLungHetero, sigmaLungMax, 'b--')
 plot(zGeoLung, sigmaRSLung(1,:), 'o','color',[.7,0,1])     % purple
 plot(zGeoLung, sigmaRSLung(2,:), 'ro')
 plot(zGeoLung, sigmaRSLung(3,:), 'o','color',[1,.7,0])     % orange
-plot(zGeoLung, sigmaRSLung(4,:), 'o','color',[.5,.5,0])	% olive
+% plot(zGeoLung, sigmaRSLung(4,:), 'o','color',[.5,.5,0])	% olive
 
 plot(zGeoLung, sigmaTheoRSLung(1,:),'*','color',[.7,0,1])	% purple
 plot(zGeoLung, sigmaTheoRSLung(2,:),'r*')
 plot(zGeoLung, sigmaTheoRSLung(3,:),'*','color',[1,.7,0])	% orange
-plot(zGeoLung, sigmaTheoRSLung(4,:),'*','color',[.5,.5,0])	% olive
+% plot(zGeoLung, sigmaTheoRSLung(4,:),'*','color',[.5,.5,0])	% olive
 
 plot(zGeoLung, powerFitFun(coeffFitSigmaTheoRSLung(1,:),zGeoLung),'color',[.7,0,1])     % purple
 plot(zGeoLung, powerFitFun(coeffFitSigmaTheoRSLung(2,:),zGeoLung),'r')
 plot(zGeoLung, powerFitFun(coeffFitSigmaTheoRSLung(3,:),zGeoLung),'color',[1,.7,0])     % orange
-plot(zGeoLung, powerFitFun(coeffFitSigmaTheoRSLung(4,:),zGeoLung),'color',[.5,.5,0])	% olive
+% plot(zGeoLung, powerFitFun(coeffFitSigmaTheoRSLung(4,:),zGeoLung),'color',[.5,.5,0])	% olive
 
 plot(zGeoLung, sigmaCombiMin ,'k:')
 plot(zGeoLung, sigmaCombiMax ,'k:')
@@ -257,7 +257,7 @@ plot(xIntersectMax(2),yIntersectMax(2),'kx','Linewidth',2,'MarkerSize',16)
 plot(xIntersectMin(3),yIntersectMin(3),'kx','Linewidth',2,'MarkerSize',16)
 plot(xIntersectMax(3),yIntersectMax(3),'kx','Linewidth',2,'MarkerSize',16)
 % plot(xIntersectMin(4),yIntersectMin(4),'kx','Linewidth',2,'MarkerSize',16)
-plot(xIntersectMax(4),yIntersectMax(4),'kx','Linewidth',2,'MarkerSize',16)
+% plot(xIntersectMax(4),yIntersectMax(4),'kx','Linewidth',2,'MarkerSize',16)
 
 ax1 = gca;
 set(ax1,'XMinorTick','on')
@@ -269,16 +269,13 @@ legend(ax1,'heterogeneity - P_m_o_d_,_m_i_n = 150 µm',...
     'heterogeneity - P_m_o_d_,_p_h_a_n_t_o_m = 256 µm','heterogeneity - P_m_o_d_,_m_a_x = 750 µm',...
     ['RS - water thickness ' num2str(breastThickness(1)) ' mm'],...
     ['RS - water thickness ' num2str(breastThickness(2)) ' mm'],...
-    ['RS - water thickness ' num2str(breastThickness(3)) ' mm'],...
-    ['RS - water thickness ' num2str(breastThickness(4)) ' mm'],...
+    ['RS - water thickness ' num2str(breastThickness(3)) ' mm'],... %     ['RS - water thickness ' num2str(breastThickness(4)) ' mm'],...
     ['RS (theoretical)  - water thickness ' num2str(breastThickness(1)) ' mm'],...
     ['RS (theoretical)  - water thickness ' num2str(breastThickness(2)) ' mm'],...
-    ['RS (theoretical)  - water thickness ' num2str(breastThickness(3)) ' mm'],...
-    ['RS (theoretical)  - water thickness ' num2str(breastThickness(4)) ' mm'],...
+    ['RS (theoretical)  - water thickness ' num2str(breastThickness(3)) ' mm'],... %     ['RS (theoretical)  - water thickness ' num2str(breastThickness(4)) ' mm'],...
     ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(1,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(1,2),3)],...
     ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(2,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(2,2),3)],...
-    ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(3,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(3,2),3)],...
-    ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(4,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(4,2),3)],...
+    ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(3,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(3,2),3)],... %     ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(4,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(4,2),3)],...
     'combination RS (70 mm) with P_m_o_d_,_m_i_n','combination RS (70 mm) with P_m_o_d_,_m_a_x',...
     'location','northwest')
 

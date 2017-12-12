@@ -6,8 +6,8 @@ close all
 load PHANTOM_for_falloffs.mat
 
 breastThickness = 70;   % [mm]
-targetThickness = 80;   % [mm]
-lungGeoThickness = 60; %[5 17 40 60 80 100];	% [mm]
+targetThickness = 40;   % [mm]
+lungGeoThickness = [5 10 17 30 40 50 60 70 80 90 100];	% [mm]
 % Pmod = 256;             % [µm]
 
 plotDD = 1;           % true / false
@@ -76,7 +76,7 @@ resultGUI.physicalDose_noHeterogeneity = resultGUI.physicalDose;
 
 % create depth dose curves (DD)
 coords_matRad = 1:1:250;       % [mm*2]
-coords_spline = .05:.05:250;       % [mm*2]
+coords_spline = .05:.0005:250;       % [mm*2]
 
 dd_0 = resultGUI.physicalDose_noHeterogeneity(round(pln.isoCenter(2)/2), :, round(pln.isoCenter(3)/2));
 dd_0_spline = spline(coords_matRad,dd_0,coords_spline);
@@ -136,8 +136,8 @@ if plotDD
     grid on, grid minor
     box on
     
-%     savefig(dd,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DD_breastThickness' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
-     savefig(dd,['DD_breastThickness' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
+    savefig(dd,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DD_breastThickness' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
+%     savefig(dd,['DD_breastThickness' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
 end
 
 % calculate falloff 80%-20% [mm]
@@ -174,12 +174,12 @@ resultGUI.physicalDose_absDiffHeteroHomo = absDiffCube;
 
 
 %% save results
-% save(['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\results_breastThickness_' ...
-%     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h))],...
-%     'ct','cst','pln','resultGUI','stf','z8020','DeltaD95','-v7.3')
-save(['results_breastThickness_' ...
+save(['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\results_breastThickness_' ...
     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h))],...
     'ct','cst','pln','resultGUI','stf','z8020','DeltaD95','-v7.3')
+% save(['results_breastThickness_' ...
+%     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h))],...
+%     'ct','cst','pln','resultGUI','stf','z8020','DeltaD95','-v7.3')
 
 
 %% include DVH comparison no lung vs. lung
@@ -203,22 +203,32 @@ matRad_showQualityIndicators(qi_0);
 subplot(313)
 matRad_showQualityIndicators(qi_lung);
 
-% savefig(dvhFig,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
-savefig(dvhFig,['DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
+savefig(dvhFig,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
+% savefig(dvhFig,['DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
 
 end
 
 
-
 %% compare falloffs and DeltaD95
 % clear
+% close all
+% 
 % breastThickness = 30;   % [mm]
 % targetThickness = 40;   % [mm]
-% lungGeoThickness = [2 7 20 40 60 80 100];	% [mm]
+% lungGeoThickness = [2 7 20 30 40 50 60 70 80 90 100];	% [mm]
+% 
+% % breastThickness = 30;   % [mm]
+% % targetThickness = 80;   % [mm]
+% % lungGeoThickness = [5 10 17 30 40 50 60 70 80 90]; % 100];	% [mm]
 % 
 % % breastThickness = 70;   % [mm]
 % % targetThickness = 40;   % [mm]
-% % lungGeoThickness = [5 17 40 60 80 100];	% [mm]
+% % lungGeoThickness = [5 10 17 30 40 50 60 70 80 90 100];	% [mm]
+% 
+% % breastThickness = 70;   % [mm]
+% % targetThickness = 80;   % [mm]
+% % lungGeoThickness = [5 15 31 40]; % 50 60 70 80 90 100];	% [mm]
+% 
 % 
 % for h = 1:length(lungGeoThickness)
 %     results(h) = load(['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\breast' ...
@@ -231,7 +241,7 @@ end
 % hold on
 % title(['DeltaD95 for p+ on ' num2str(breastThickness) ' mm breast wall and ' num2str(targetThickness) ' mm target size'])
 % for h = 1:length(lungGeoThickness)
-%     plot(results(h).DeltaD95(:,1), results(h).DeltaD95(:,2),'x')
+%     plot(results(h).DeltaD95(:,1), results(h).DeltaD95(:,2),'bx')
 % end
 % xlabel('z_g_e_o lung [mm]')
 % ylabel('DeltaD95 [mm]')
@@ -239,14 +249,90 @@ end
 % grid on
 % box on
 % 
-% fc = figure;
+% fdc = figure;
 % hold on
 % title(['falloff widening by swtiching on heterogeneity in the lung for p+ on ' num2str(breastThickness) ' mm breast wall and ' num2str(targetThickness) ' mm target size'])
 % for h = 1:length(lungGeoThickness)
-%     plot(results(h).z8020(:,1), results(h).z8020(:,2)-results(h).z8020(1,2),'x')
+%     plot(results(h).z8020(:,1), results(h).z8020(:,2)-results(h).z8020(1,2),'bx')
 % end
 % xlabel('z_g_e_o lung [mm]')
 % ylabel('80% - 20% [mm]')
 % % legend(' ','location','northwest')
 % grid on
 % box on
+% 
+% fc = figure;
+% hold on
+% title(['falloff for p+ on ' num2str(breastThickness) ' mm breast wall and ' num2str(targetThickness) ' mm target size'])
+% for h = 1:length(lungGeoThickness)
+%     plot(results(h).z8020(:,1), results(h).z8020(:,2),'bx')
+% end
+% xlabel('z_g_e_o lung [mm]')
+% ylabel('80% - 20% [mm]')
+% % legend(' ','location','northwest')
+% grid on
+% box on
+% 
+% 
+% savefig(dc,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DeltaD95Comparison_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '.fig'])
+% savefig(fdc,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\falloffDifferenceComparison_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '.fig'])
+% savefig(fc,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\falloffComparison_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '.fig'])
+
+
+%% weight analysis
+% load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\breast30_target40\results_breastThickness_30_targetThickness_40_lungThickness_50')
+% numRays = size(stf.ray,2);
+% numEnergies = size(stf.ray(1).energy,2);
+% weightArray_50 = reshape(resultGUI.w,[numEnergies,numRays]);
+% 
+% load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\breast30_target40\results_breastThickness_30_targetThickness_40_lungThickness_60')
+% numRays = size(stf.ray,2);
+% numEnergies = size(stf.ray(1).energy,2);
+% weightArray_60 = reshape(resultGUI.w,[numEnergies,numRays]);
+% 
+% load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\breast30_target40\results_breastThickness_30_targetThickness_40_lungThickness_70')
+% numRays = size(stf.ray,2);
+% numEnergies = size(stf.ray(1).energy,2);
+% weightArray_70 = reshape(resultGUI.w,[numEnergies,numRays]);
+% 
+% load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\breast30_target40\results_breastThickness_30_targetThickness_40_lungThickness_80')
+% numRays = size(stf.ray,2);
+% numEnergies = size(stf.ray(1).energy,2);
+% weightArray_80 = reshape(resultGUI.w,[numEnergies,numRays]);
+% 
+% load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\breast30_target40\results_breastThickness_30_targetThickness_40_lungThickness_90')
+% numRays = size(stf.ray,2);
+% numEnergies = size(stf.ray(1).energy,2);
+% weightArray_90 = reshape(resultGUI.w,[numEnergies,numRays]);
+% 
+% 
+% figure; semilogy(weightArray_60(:,1:10));axis([0 45 10^(-1) 10^3])
+% figure; semilogy(weightArray_60(:,11:20));axis([0 45 10^(-1) 10^3])
+% figure; semilogy(weightArray_60(:,21:30));axis([0 45 10^(-1) 10^3])
+% figure; semilogy(weightArray_60(:,31:40));axis([0 45 10^(-1) 10^3])
+% figure; semilogy(weightArray_60(:,41:50));axis([0 45 10^(-1) 10^3])
+% figure; semilogy(weightArray_60(:,51:60));axis([0 45 10^(-1) 10^3])
+% figure; semilogy(weightArray_60(:,61:70));axis([0 45 10^(-1) 10^3])
+% figure; semilogy(weightArray_60(:,71:end));axis([0 45 10^(-1) 10^3])
+% 
+% 
+% figure
+% hold on
+% semilogy(mean(weightArray_50,2));
+% semilogy(mean(weightArray_60,2));
+% semilogy(mean(weightArray_70,2));
+% semilogy(mean(weightArray_80,2));
+% semilogy(mean(weightArray_90,2));
+% legend('50 mm lung','60 mm lung','70 mm lung','80 mm lung','90 mm lung','location','northwest')
+% 
+% figure
+% hold on
+% plot(mean(weightArray_50,2));
+% plot(mean(weightArray_60,2));
+% plot(mean(weightArray_70,2));
+% plot(mean(weightArray_80,2));
+% plot(mean(weightArray_90,2));
+% xlabel('energy index')
+% ylabel('weight')
+% legend('50 mm lung','60 mm lung','70 mm lung','80 mm lung','90 mm lung','location','northwest')
+
