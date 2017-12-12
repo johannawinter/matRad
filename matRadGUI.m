@@ -38,7 +38,7 @@ function varargout = matRadGUI(varargin)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % abort for octave
-if exist('OCTAVE_VERSION','builtin')
+if exist('OCTAVE_VERSION','builtin');
     fprintf('matRad GUI not available for Octave.\n');
     return;
 end
@@ -704,7 +704,7 @@ try
     pause(0.3);
 
     %% get cst from table
-    if ~getCstTable(handles)
+    if ~getCstTable(handles);
         return
     end
     % read plan from gui and save it to workspace
@@ -719,7 +719,7 @@ try
         handles = showWarning(handles,warndlg('number of gantryAngles != number of couchAngles')); 
     end
     %%
-    if ~checkRadiationComposition(handles)
+    if ~checkRadiationComposition(handles);
         fileName = [pln.radiationMode '_' pln.machine];
         handles = showError(handles,errordlg(['Could not find the following machine file: ' fileName ]));
         guidata(hObject,handles);
@@ -1801,7 +1801,12 @@ end
 
 % assign color if color assignment is not already present or inconsistent
 if colorAssigned == false
-  colors = colorcube(size(cst,1));
+  m         = 64;
+  colorStep = ceil(m/size(cst,1));
+  colors    = colorcube(colorStep*size(cst,1));
+  % spread individual VOI colors in the colorcube color palette
+  colors    = colors(1:colorStep:end,:);
+  
   for i = 1:size(cst,1)
     cst{i,5}.visibleColor = colors(i,:);
   end
@@ -2944,7 +2949,7 @@ selection = questdlg('Do you really want to close matRad?',...
 
 %BackgroundColor',[0.5 0.5 0.5]
  switch selection
-   case 'Yes'
+   case 'Yes',
      delete(hObject);
    case 'No'
      return
