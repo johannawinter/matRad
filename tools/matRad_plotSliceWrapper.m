@@ -54,7 +54,7 @@ function [hCMap,hDose,hCt,hContour,hIsoDose] = matRad_plotSliceWrapper(axesHandl
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %Handle the argument list
-if ~exist('tresh','var') || isempty(thresh)
+if ~exist('thresh','var') || isempty(thresh)
     thresh = [];
 end
 if ~exist('alpha','var') || isempty(alpha)
@@ -105,12 +105,17 @@ end
 hContour = matRad_plotVoiContourSlice(axesHandle,cst,ct.cube,cubeIdx,voiSelection,plane,slice,contourColorMap,varargin{:});
 
 if boolPlotLegend
-   visibleOnSlice = (~cellfun(@isempty,hContour));
-   hContourTmp    = cellfun(@(X) X(1),hContour(visibleOnSlice),'UniformOutput',false);
-   hLegend        =  legend(axesHandle,[hContourTmp{:}],[cst(visibleOnSlice,2)],'AutoUpdate','off');
-   set(hLegend,'Box','Off');
-   set(hLegend,'TextColor',[1 1 1]);
-   set(hLegend,'FontSize',12);
+	visibleOnSlice = (~cellfun(@isempty,hContour));
+    ixLegend = find(voiSelection);
+    hContourTmp    = cellfun(@(X) X(1),hContour(visibleOnSlice),'UniformOutput',false);
+    if ~isempty(voiSelection)
+        hLegend        =  legend(axesHandle,[hContourTmp{:}],[cst(ixLegend(visibleOnSlice),2)],'AutoUpdate','off');
+    else
+        hLegend        =  legend(axesHandle,[hContourTmp{:}],[cst(visibleOnSlice,2)],'AutoUpdate','off');
+    end
+    set(hLegend,'Box','Off');
+    set(hLegend,'TextColor',[1 1 1]);
+    set(hLegend,'FontSize',12);
 end
 
 axis(axesHandle,'tight');

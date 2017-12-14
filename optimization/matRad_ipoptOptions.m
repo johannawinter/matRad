@@ -39,7 +39,7 @@ options.ipopt.acceptable_compl_inf_tol      = 1e10; % (Acc5)
 options.ipopt.acceptable_obj_change_tol     = 1e-3; % (Acc6), Solved To Acceptable Level if (Acc1),...,(Acc6) fullfiled
 
 options.ipopt.max_iter                      = 500;
-options.ipopt.max_cpu_time                  = 3000;
+options.ipopt.max_cpu_time                  = 6000;
 
 % Barrier Parameter (C.6)
 options.ipopt.mu_strategy = 'adaptive';
