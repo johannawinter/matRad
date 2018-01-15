@@ -1,4 +1,9 @@
-% comparison of sigma due to range straggeling and due to heterogeneity over z_geo
+% Comparison of sigma due to range straggeling and due to heterogeneity over z_geo
+% with range straggling derived from base data and from Bortfeld's theory; 
+% theoretical straggling sigma used for plotting; 
+% fit theoretical range straggling sigma; 
+% get intersections between straggling and heterogeneity sigma;
+% test fit to base data for water by plotting line dose profiles
 
 clear
 
@@ -189,13 +194,12 @@ end
 %%%
 
 
-%% fits
+%% fit theoretical range straggling sigma
 powerFitFun = @(x,xdata)x(1)*xdata.^x(2)+x(3);   % ydata = x(1)*xdata^.x(2) + x(3)
 % for i = 1:length(breastThickness)
 %     coeffFitSigmaRSLung(i,:) = lsqcurvefit(powerFitFun,[0.0001, 1, 0],zGeoLung,sigmaRSLung(i,:))
 % end
 
-% fit theoretical range straggeling sigma
 for i = 1:length(breastThickness)
     coeffFitSigmaTheoRSLung(i,:) = lsqcurvefit(powerFitFun,[0.0001, 1, 0],zGeoLung,sigmaTheoRSLung(i,:))
 end

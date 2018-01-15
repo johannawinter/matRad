@@ -1,4 +1,4 @@
-% Analyse falloff and Delta D95 of DD for a specific compbination of 
+% Analyse falloff and Delta D95 of DD curves for a specific compbination of 
 % breast wall thickness, target size and lung thickness
 
 clear
@@ -7,7 +7,7 @@ load PHANTOM_for_falloffs.mat
 
 breastThickness = 70;   % [mm]
 targetThickness = 80;   % [mm]
-lungGeoThickness = [50];	% [mm]
+lungGeoThickness = [50 60 70 80 90 100];	% [mm]
 % Pmod = 256;             % [µm]
 
 plotDD = 1;           % true / false
@@ -136,8 +136,8 @@ if plotDD
     grid on, grid minor
     box on
     
-%     savefig(dd,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DD_breastThickness' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
-    savefig(dd,['DD_breastThickness' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
+    savefig(dd,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DD_breastThickness' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
+%     savefig(dd,['DD_breastThickness' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
 end
 
 % calculate falloff 80%-20% [mm]
@@ -174,12 +174,12 @@ resultGUI.physicalDose_absDiffHeteroHomo = absDiffCube;
 
 
 %% save results
-% save(['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\results_breastThickness_' ...
-%     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h))],...
-%     'ct','cst','pln','resultGUI','stf','z8020','DeltaD95','-v7.3')
-save(['results_breastThickness_' ...
+save(['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\results_breastThickness_' ...
     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h))],...
     'ct','cst','pln','resultGUI','stf','z8020','DeltaD95','-v7.3')
+% save(['results_breastThickness_' ...
+%     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h))],...
+%     'ct','cst','pln','resultGUI','stf','z8020','DeltaD95','-v7.3')
 
 
 %% include DVH comparison no lung vs. lung
@@ -203,8 +203,8 @@ matRad_showQualityIndicators(qi_0);
 subplot(313)
 matRad_showQualityIndicators(qi_lung);
 
-% savefig(dvhFig,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
-savefig(dvhFig,['DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
+savefig(dvhFig,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
+% savefig(dvhFig,['DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
 
 end
 

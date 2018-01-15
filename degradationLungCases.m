@@ -1,14 +1,15 @@
-% Compare treatment plan without and with considering degradation in lung
-% tissue
+% Comparison of treatment plan without and with considering degradation in 
+% lung tissue
 
+%% recalculation with matRad for homogeneous lung
 clear
 close all
 % load('C:\Matlab\matrad\lungPlans\S00002_ID-20171201_2x2x2_doseGrid.mat')
 % load('C:\Matlab\matrad\lungPlans\H03368_ID-20171201_2x2x2.mat')
 % load('C:\Matlab\matrad\lungPlans\H03368_1field_ID-20171201_2x2x2.mat')
 % load('C:\Matlab\matrad\lungPlans\S00001_ID-20171201_2x2x2.mat')
-% load('C:\Matlab\matrad\lungPlans\S00003_Protons_2Fields_ID-20171205_2x2x2.mat')
-load('C:\Matlab\matrad\lungPlans\S00003_Protons_3Fields_ID-20171205_2x2x2.mat')
+load('C:\Matlab\matrad\lungPlans\S00003_Protons_2Fields_ID-20171205_2x2x2.mat')
+% load('C:\Matlab\matrad\lungPlans\S00003_Protons_3Fields_ID-20171205_2x2x2.mat')
 saveFigs = 1;
 
 % set machine
@@ -23,6 +24,7 @@ resultGUI.matRadRecalc = resultGUI_recalc.RBExDose;
 resultGUI.diff_matRadRecalc_original = resultGUI.matRadRecalc - resultGUI.RBExDose;
 
 
+%% recalculation with heterogeneous lung
 % add heterogeneity correction to cst structure for lung
 for i = 1:size(cst,1)
    isLung = contains(cst{i,2},'lung','IgnoreCase',true);
@@ -70,7 +72,7 @@ title(['matRad-recalculated plan (z = ' num2str(slice*2) ')'])
 % axis([100 200 50 150])      % patient S00002
 % axis([50 175 50 175])       % patient H03368_2fields / _1field
 % axis([50 175 75 175])       % patient S00001
-axis([75 200 75 200])       % patient S00003_3fields
+axis([75 200 75 200])       % patient S00003
 
 % doseWindow = [0 max(resultGUI.matRadHeteroRecalc(:))];
 doseFig(2) = figure; 
@@ -153,10 +155,10 @@ axis([75 200 75 200])       % patient S00003
 %% include DVH and QI comparison homogeneous lung vs. heterogeneous lung
 % set contours to invisible for DVH plot
 
-% for i = [1 2 3 5 6 7 9 10 11 12 14 15]      % for patient S00002
-% for i = [1 5 6 7 12 14 15]                  % for patient H03368
-% for i = [1 2 5 6 7 8 9 11 15 16 17 18]      % for patient S00001
-for i = [1 2 5 8 9 13 14 16 17 18]
+% for i = [1 2 3 5 6 7 9 10 11 12 14 15]      % patient S00002
+% for i = [1 5 6 7 12 14 15]                  % patient H03368
+% for i = [1 2 5 6 7 8 9 11 15 16 17 18]      % patient S00001
+for i = [1 2 5 8 9 13 14 16 17 18]          % patient S00003
     cst{i,5}.Visible = 0;
 end
 
