@@ -46,7 +46,7 @@ if ~isfield(baseData,'sigma') && ~isstruct(baseData.Z)
     X = matRad_interp1(depths,[conversionFactor*baseData.Z baseData.sigma1 baseData.weight baseData.sigma2],radDepths);
     
     % set dose for query > tabulated depth dose values to zero
-    X(radDepths >= max(depths),1) = 0;
+    X(radDepths > max(depths),1) = 0;
         
     % compute lateral sigmas
     sigmaSq_Narr = X(:,2).^2 + sigmaIni_sq;
@@ -65,7 +65,7 @@ if ~isfield(baseData,'sigma') && ~isstruct(baseData.Z)
 
 elseif ~isfield(baseData,'sigma') && isstruct(baseData.Z)
 
-    % interpolate narrow sigma, weights, and broad sigma    
+    % interpolate sigmas and weights   
     X = matRad_interp1(depths,[baseData.sigma1 baseData.weight baseData.sigma2],radDepths);
     
     % compute lateral sigmas
@@ -84,7 +84,7 @@ elseif ~isfield(baseData,'sigma') && isstruct(baseData.Z)
     
     % add sigma if heterogeneity correction wanted
     if exist('heteroCorrDepths','var') 	% nargin = 5
-        [~,lungDepthAtBraggPeakIx] = min(abs(radialDist_sq+(radDepths-baseData.peakPos).^2)); % radDepths.^2-baseData.peakPos.^2));
+        [~,lungDepthAtBraggPeakIx] = min(abs(radialDist_sq+(radDepths-baseData.peakPos).^2));
         lungDepthAtBraggPeak = heteroCorrDepths(lungDepthAtBraggPeakIx);
         ellSq = ones(numel(radDepths),1)* (baseData.Z.width'.^2 + matRad_getHeterogeneityCorrSigmaSq(lungDepthAtBraggPeak));
     else
