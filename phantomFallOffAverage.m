@@ -1,5 +1,6 @@
-% calculation of DeltaD95 / falloff and averaging over several depth dose
-% curves around central ray
+% Calculation of DeltaD95 / falloff over several depth dose curves to get 
+% average and standard deviation of DeltaD95 and falloff;
+% depth dose curves around central ray over whole target width
 
 clear
 close all
@@ -8,12 +9,12 @@ close all
 % breastThickness = 30;
 % targetThickness = 40;
 % lungGeoThickness = [2 7 20 30 40 50 60 70 80 90 100];
-% breastThickness = 30;
-% targetThickness = 80;
-% lungGeoThickness = [5 10 17 30 40 50 60 70 80 90];
-breastThickness = 70;
-targetThickness = 40;
+breastThickness = 30;
+targetThickness = 80;
 lungGeoThickness = [5 10 17 30 40 50 60 70 80 90 100];
+% breastThickness = 70;
+% targetThickness = 40;
+% lungGeoThickness = [5 10 17 30 40 50 60 70 80 90 100];
 % breastThickness = 70;
 % targetThickness = 80;
 % lungGeoThickness = [5 10 20 31 40 50 60 70 80 90 100];
@@ -21,15 +22,14 @@ lungGeoThickness = [5 10 17 30 40 50 60 70 80 90 100];
 
 % load precomputed results
 for h = 1:length(lungGeoThickness)
-    result(h) = load(['C:\Users\Johanna\Documents\MATLAB\Daten\phantom simulations\fallOff_D95_accordingToSigmaAnalysis\breast'...
+    result(h) = load(['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\breast'...
         num2str(breastThickness) '_target' num2str(targetThickness) ...
         '\results_breastThickness_' num2str(breastThickness) ...
         '_targetThickness_' num2str(targetThickness) ...
         '_lungThickness_' num2str(lungGeoThickness(h)) '.mat']);
 end
 
-%% compute depth dose curves around central ray over whole target width
-% homogeneous tissue
+%% get DeltaD95 and falloff of depth dose curves for homogeneous tissue
 
 % define coordinates
 coords_matRad = 1:1:250;            % [mm*2]
@@ -39,8 +39,6 @@ D95 = 2 * .95;                      % nominal dose = 2 Gy
 R80 = 2 * .8;
 R20 = 2 * .2;
 
-
-% no heterogeneity
 % define number of depth dose curves that lie in the target volume
 numberDDcurves = targetThickness/2-3;
 
@@ -51,14 +49,14 @@ for h = 1:length(lungGeoThickness)
     % get dose distribution
     doseHomo = result(h).resultGUI.physicalDose_noHeterogeneity;
     
-    % calculate 18 DD around central ray
+    % calculate DDs around central ray
     for i = 1:numberDDcurves
         tempIx = -round(numberDDcurves/2)+i;
         
         dd_0(i,:) = doseHomo(centralRay.x+tempIx, :, centralRay.z+tempIx);
         dd_0_spline(i,:) = spline(coords_matRad,dd_0(i,:),coords_spline);
         
-        %%% test
+        %%% test spline
         %     figure
         %     hold on
         %     plot(coords_matRad,dd_0(17,:),'x')
@@ -76,7 +74,7 @@ for h = 1:length(lungGeoThickness)
         %     DeltaD95_0(i,1) = 0.0001;
         %     DeltaD95_0(i,2) = 0;
         
-        % falloff
+        % calculate falloff each
         [~,ix_R80_behind] = min(abs(dd_0_spline(i,ix_peak:end)-R80));
         ix_R80 = ix_R80_behind + ix_peak - 1;
         coord_R80 = coords_spline(ix_R80);
@@ -98,7 +96,7 @@ for h = 1:length(lungGeoThickness)
 end
 
 
-%% different lung thicknesses
+%% get DeltaD95 and falloff of DD curves for different lung thicknesses
 for h = 1:length(lungGeoThickness)
     
     % get central ray
@@ -115,7 +113,7 @@ for h = 1:length(lungGeoThickness)
         dd(i,:) = doseLung(centralRay.x+tempIx, :, centralRay.z+tempIx);
         dd_spline(i,:) = spline(coords_matRad,dd(i,:),coords_spline);
         
-        %%% test
+        %%% test spline
 %         figure
 %         hold on
 %         plot(coords_matRad,dd(8,:),'x')
@@ -123,7 +121,7 @@ for h = 1:length(lungGeoThickness)
 %         axis([0 100 0 2.2])
         %%%
         
-        % comupte Dalta D95 each
+        % comupte Delta D95 each
         [~,ix_peak] = max(dd_spline(i,:));
         
         [~,ix_D95_behind] = min(abs(dd_spline(i,ix_peak:end)-D95));

@@ -100,7 +100,11 @@ elseif isequal(pln.bioOptimization,'const_RBExD') && strcmp(pln.radiationMode,'p
 end
 
 % Only take voxels inside patient.
-V = [cst{:,4}];
+if calcDoseDirect
+    V = [cst{:,4}];
+else
+    V = [cst{2,4}];
+end
 V = unique(vertcat(V{:}));
 
 % Convert CT subscripts to linear indices.

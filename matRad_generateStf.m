@@ -296,7 +296,7 @@ for i = 1:length(pln.gantryAngles)
         if strcmp(machine.meta.machine,'Generic')
             longitudinalSpotSpacing = 1.5; % enforce all entries to be used
         else
-            longitudinalSpotSpacing = 1;   % default value for all other treatment machines
+            longitudinalSpotSpacing = 3;   % default value for all other treatment machines
         end
         
         tolerance              = longitudinalSpotSpacing/10;

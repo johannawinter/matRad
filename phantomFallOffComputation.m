@@ -2,12 +2,22 @@
 % breast wall thickness, target size and lung thickness
 
 clear
-close all
+% close all
 load PHANTOM_for_falloffs.mat
 
-breastThickness = 70;   % [mm]
-targetThickness = 80;   % [mm]
-lungGeoThickness = [50 60 70 80 90 100];	% [mm]
+breastThickness = 30;   % [mm]
+targetThickness = 40;   % [mm]
+lungGeoThickness = [2 7 20 30 40 50 60 70 80 90 100];	% [mm]
+% breastThickness = 30;
+% targetThickness = 80;
+% lungGeoThickness = [5 10 17 30 40 50 60 70 80 90 100];
+% breastThickness = 70;
+% targetThickness = 40;
+% lungGeoThickness = [5 10 17 30 40 50 60 70 80 90 100];
+% breastThickness = 70;
+% targetThickness = 80;
+% lungGeoThickness = [5 10 20 31 40 50 60 70 80 90 100];
+
 % Pmod = 256;             % [µm]
 
 plotDD = 1;           % true / false
@@ -71,6 +81,7 @@ ct.cube{1}(cst{1,4}{1}) = 1;
 
 %% optimization without lung heterogeneity
 matRad;
+resultGUI = matRad_calcDoseDirect(ct,stf,pln,cst,resultGUI.w);
 
 resultGUI.physicalDose_noHeterogeneity = resultGUI.physicalDose;
 
@@ -277,62 +288,4 @@ end
 % savefig(dc,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DeltaD95Comparison_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '.fig'])
 % savefig(fdc,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\falloffDifferenceComparison_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '.fig'])
 % savefig(fc,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\falloffComparison_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '.fig'])
-
-
-%% weight analysis
-% load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\breast30_target40\results_breastThickness_30_targetThickness_40_lungThickness_50')
-% numRays = size(stf.ray,2);
-% numEnergies = size(stf.ray(1).energy,2);
-% weightArray_50 = reshape(resultGUI.w,[numEnergies,numRays]);
-% 
-% load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\breast30_target40\results_breastThickness_30_targetThickness_40_lungThickness_60')
-% numRays = size(stf.ray,2);
-% numEnergies = size(stf.ray(1).energy,2);
-% weightArray_60 = reshape(resultGUI.w,[numEnergies,numRays]);
-% 
-% load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\breast30_target40\results_breastThickness_30_targetThickness_40_lungThickness_70')
-% numRays = size(stf.ray,2);
-% numEnergies = size(stf.ray(1).energy,2);
-% weightArray_70 = reshape(resultGUI.w,[numEnergies,numRays]);
-% 
-% load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\breast30_target40\results_breastThickness_30_targetThickness_40_lungThickness_80')
-% numRays = size(stf.ray,2);
-% numEnergies = size(stf.ray(1).energy,2);
-% weightArray_80 = reshape(resultGUI.w,[numEnergies,numRays]);
-% 
-% load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\breast30_target40\results_breastThickness_30_targetThickness_40_lungThickness_90')
-% numRays = size(stf.ray,2);
-% numEnergies = size(stf.ray(1).energy,2);
-% weightArray_90 = reshape(resultGUI.w,[numEnergies,numRays]);
-% 
-% 
-% figure; semilogy(weightArray_60(:,1:10));axis([0 45 10^(-1) 10^3])
-% figure; semilogy(weightArray_60(:,11:20));axis([0 45 10^(-1) 10^3])
-% figure; semilogy(weightArray_60(:,21:30));axis([0 45 10^(-1) 10^3])
-% figure; semilogy(weightArray_60(:,31:40));axis([0 45 10^(-1) 10^3])
-% figure; semilogy(weightArray_60(:,41:50));axis([0 45 10^(-1) 10^3])
-% figure; semilogy(weightArray_60(:,51:60));axis([0 45 10^(-1) 10^3])
-% figure; semilogy(weightArray_60(:,61:70));axis([0 45 10^(-1) 10^3])
-% figure; semilogy(weightArray_60(:,71:end));axis([0 45 10^(-1) 10^3])
-% 
-% 
-% figure
-% hold on
-% semilogy(mean(weightArray_50,2));
-% semilogy(mean(weightArray_60,2));
-% semilogy(mean(weightArray_70,2));
-% semilogy(mean(weightArray_80,2));
-% semilogy(mean(weightArray_90,2));
-% legend('50 mm lung','60 mm lung','70 mm lung','80 mm lung','90 mm lung','location','northwest')
-% 
-% figure
-% hold on
-% plot(mean(weightArray_50,2));
-% plot(mean(weightArray_60,2));
-% plot(mean(weightArray_70,2));
-% plot(mean(weightArray_80,2));
-% plot(mean(weightArray_90,2));
-% xlabel('energy index')
-% ylabel('weight')
-% legend('50 mm lung','60 mm lung','70 mm lung','80 mm lung','90 mm lung','location','northwest')
 
