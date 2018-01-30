@@ -278,8 +278,20 @@ handles.DijCalcWarning = false;
 
 % set slice slider
 if handles.State > 0
+    if evalin('base','exist(''pln'',''var'')')
+        currPln = evalin('base','pln');
+        if handles.plane == 1
+            currSlice = ceil(currPln.isoCenter(1,2)/ct.resolution.x);
+        elseif handles.plane == 2
+            currSlice = ceil(currPln.isoCenter(1,1)/ct.resolution.y);
+        elseif handles.plane == 3
+            currSlice = ceil(currPln.isoCenter(1,3)/ct.resolution.z);
+        end 
+    else % no pln -> no isocenter -> use middle
+        currSlice = ceil(ct.cubeDim(handles.plane)/2);
+    end
     set(handles.sliderSlice,'Min',1,'Max',ct.cubeDim(handles.plane),...
-            'Value',ceil(ct.cubeDim(handles.plane)/2),...
+            'Value',currSlice,...
             'SliderStep',[1/(ct.cubeDim(handles.plane)-1) 1/(ct.cubeDim(handles.plane)-1)]);      
     
     % define context menu for structures
@@ -599,6 +611,7 @@ switch RadIdentifier
         
         set(handles.btnRunSequencing,'Enable','on');
         set(handles.btnRunDAO,'Enable','on');
+        set(handles.radiobutton3Dconf,'Enable','on');
         set(handles.txtSequencing,'Enable','on');
         set(handles.editSequencingLevel,'Enable','on');
         
@@ -614,6 +627,7 @@ switch RadIdentifier
         set(handles.btnSetTissue,'Enable','off');
         set(handles.btnRunSequencing,'Enable','off');
         set(handles.btnRunDAO,'Enable','off');
+        set(handles.radiobutton3Dconf,'Enable','off');
         set(handles.txtSequencing,'Enable','off');
         set(handles.editSequencingLevel,'Enable','off');
         
@@ -627,6 +641,7 @@ switch RadIdentifier
         
         set(handles.btnRunSequencing,'Enable','off');
         set(handles.btnRunDAO,'Enable','off');
+        set(handles.radiobutton3Dconf,'Enable','off');
         set(handles.txtSequencing,'Enable','off');
         set(handles.editSequencingLevel,'Enable','off');
 end
@@ -748,9 +763,15 @@ end
 
 % generate steering file
 try 
+    currPln = evalin('base','pln');
+    % if we run 3d conf opt -> hijack runDao to trigger computation of
+    % connected bixels
+    if strcmp(pln.radiationMode,'photons') && get(handles.radiobutton3Dconf,'Value')
+       currPln.runDAO = true; 
+    end
     stf = matRad_generateStf(evalin('base','ct'),...
                                      evalin('base','cst'),...
-                                     evalin('base','pln'));
+                                     currPln);
     assignin('base','stf',stf);
 catch ME
     handles = showError(handles,{'CalcDoseCallback: Error in steering file generation!',ME.message}); 
@@ -1464,7 +1485,10 @@ try
 
         switch choice
             case 'Cancel'
-                return
+                set(Figures, 'pointer', 'arrow');
+                set(InterfaceObj,'Enable','on');
+                guidata(hObject,handles);
+                return;
             case 'Calculate dij again and optimize'
                 handles.DijCalcWarning = false;
                 btnCalcDose_Callback(hObject, eventdata, handles)      
@@ -1477,13 +1501,37 @@ try
     ct  = evalin('base','ct');
     
     % optimize
-    [resultGUIcurrentRun,ipoptInfo] = matRad_fluenceOptimization(evalin('base','dij'),evalin('base','cst'),pln);
+    if get(handles.radiobutton3Dconf,'Value') && strcmp(handles.Modalities{get(handles.popupRadMode,'Value')},'photons')
+        % conformal plan if photons and 3d conformal
+        if ~matRad_checkForConnectedBixelRows(evalin('base','stf'))
+            error('disconnetced dose influence data in BEV - run dose calculation again with consistent settings');
+        end
+        [resultGUIcurrentRun,ipoptInfo] = matRad_fluenceOptimization(matRad_collapseDij(evalin('base','dij')),evalin('base','cst'),pln);
+        resultGUIcurrentRun.w = resultGUIcurrentRun.w * ones(evalin('base','dij.totalNumOfBixels'),1);
+        resultGUIcurrentRun.wUnsequenced = resultGUIcurrentRun.w;
+    else
+        if pln.runDAO
+        if ~matRad_checkForConnectedBixelRows(evalin('base','stf'))
+            error('disconnetced dose influence data in BEV - run dose calculation again with consistent settings');
+        end
+        end
+        
+        [resultGUIcurrentRun,ipoptInfo] = matRad_fluenceOptimization(evalin('base','dij'),evalin('base','cst'),pln);
+    end
     
     %if resultGUI already exists then overwrite the "standard" fields
     AllVarNames = evalin('base','who');
     if  ismember('resultGUI',AllVarNames)
         resultGUI = evalin('base','resultGUI');
         sNames = fieldnames(resultGUIcurrentRun);
+        oldNames = fieldnames(resultGUI);
+        if(length(oldNames) > length(sNames))
+            for j = 1:length(oldNames)
+            if strfind(oldNames{j}, 'beam')
+                resultGUI = rmfield(resultGUI, oldNames{j});
+            end
+            end
+        end
         for j = 1:length(sNames)
             resultGUI.(sNames{j}) = resultGUIcurrentRun.(sNames{j});
         end
@@ -2435,9 +2483,11 @@ end
 %% enable stratification level input if radiation mode is set to photons
 if strcmp(pln.radiationMode,'photons')
     set(handles.txtSequencing,'Enable','on');
+    set(handles.radiobutton3Dconf,'Enable','on');
     set(handles.editSequencingLevel,'Enable','on');
 else
     set(handles.txtSequencing,'Enable','off');
+    set(handles.radiobutton3Dconf,'Enable','off');
     set(handles.editSequencingLevel,'Enable','off');
 end
 
@@ -4162,3 +4212,35 @@ set(hObject,'Value',1);
 
 
 guidata(hObject,handles);
+
+
+% --- Executes on button press in radiobutton3Dconf.
+function radiobutton3Dconf_Callback(hObject, eventdata, handles)
+% hObject    handle to radiobutton3Dconf (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radiobutton3Dconf
+
+function x = matRad_checkForConnectedBixelRows(stf)
+
+x = true;
+
+for i = 1:size(stf,2)
+    
+    bixelPos = reshape([stf(i).ray.rayPos_bev],3,[]);
+   
+    rowCoords = unique(bixelPos(3,:));
+    
+    for j = 1:numel(rowCoords)
+        
+        increments = diff(bixelPos(1,rowCoords(j) == bixelPos(3,:)));
+        
+        % if we find one not connected row -> return false
+        if numel(unique(increments)) > 1
+            x = false;
+            return;
+        end
+    end
+    
+end

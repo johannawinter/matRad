@@ -8,7 +8,7 @@ function [ machine ] = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf,
 %
 % input
 %   machine:         machine base data file
-%   CutOffLevel:     cut off level - number between 0 and 1
+%   cutOffLevel:     cut off level - number between 0 and 1
 %   visBool:         toggle visualization (optional)
 %
 % output
@@ -54,7 +54,7 @@ dr             = (vX(2:end) - vX(1:end-1))';
 radialDist_sq  = r_mid.^2;
 
 % number of depth points for which a lateral cutoff is determined
-numDepthVal       = 35; 
+numDepthVal    = 35; 
 
 % helper function for energy selection
 round2 = @(a,b)round(a*10^b)/10^b;
@@ -133,25 +133,21 @@ for energyIx = vEnergiesIx
     % get indices for which a lateral cutoff should be calculated
     cumIntEnergy = cumtrapz(machine.data(energyIx).depths,idd_org);
     
-    peakTailRelation   = 0.5;
-    numDepthValToPeak  = ceil(numDepthVal*peakTailRelation);                                                                          % number of depth values from 0 to peak position
-    numDepthValTail    = ceil(numDepthVal*(1-peakTailRelation));                                                                      % number of depth values behind peak position
-    energyStepsToPeak  = cumIntEnergy(peakIxOrg)/numDepthValToPeak;
-    energyStepsTail    = (cumIntEnergy(end)-cumIntEnergy(peakIxOrg))/numDepthValTail;
-    % make sure to include 0, peak position and end position
-    vEnergySteps       = unique([0:energyStepsToPeak:cumIntEnergy(peakIxOrg) cumIntEnergy(peakIxOrg) ...
-                                 cumIntEnergy(peakIxOrg+1):energyStepsTail:cumIntEnergy(end) cumIntEnergy(end)]);
+    if strcmp(machine.meta.radiationMode,'protons')
+        vEnergySteps        = 0:(cumIntEnergy(end)/numDepthVal):cumIntEnergy(end);
+    else
+        peakTailRelation   = 0.5;
+        numDepthValToPeak  = ceil(numDepthVal*peakTailRelation);                                                                          % number of depth values from 0 to peak position
+        numDepthValTail    = ceil(numDepthVal*(1-peakTailRelation));                                                                      % number of depth values behind peak position
+        energyStepsToPeak  = cumIntEnergy(peakIxOrg)/numDepthValToPeak;
+        energyStepsTail    = (cumIntEnergy(end)-cumIntEnergy(peakIxOrg))/numDepthValTail;
+        vEnergySteps       = [0:energyStepsToPeak:cumIntEnergy(peakIxOrg) cumIntEnergy(peakIxOrg+1):energyStepsTail:cumIntEnergy(end)];
+    end
     
     [cumIntEnergy,ix] = unique(cumIntEnergy);
     depthValues       = matRad_interp1(cumIntEnergy,machine.data(energyIx).depths(ix),vEnergySteps);
-
-    if isstruct(machine.data(energyIx).Z)
-        idd = sumGauss(depthValues,machine.data(energyIx).Z.mean,...
-                                   machine.data(energyIx).Z.width.^2,...
-                                   machine.data(energyIx).Z.weight) * conversionFactor;
-    else
-        idd  = matRad_interp1(machine.data(energyIx).depths,machine.data(energyIx).Z,depthValues) * conversionFactor; 
-    end
+    idd               = matRad_interp1(machine.data(energyIx).depths,idd_org,depthValues);          
+    [~,peakIx]        = max(idd); 
     
     cnt = cnt +1 ;
     % % calculate dose in spot
@@ -172,8 +168,8 @@ for energyIx = vEnergiesIx
             dose_r = matRad_calcParticleDoseBixel(depthValues(j) + baseData.offset, radialDist_sq, largestSigmaSq4uniqueEnergies(cnt), baseData);
 
             cumArea = cumsum(2*pi.*r_mid.*dose_r.*dr);
-            relativeTolerance = 0.5; %in [%]
-            if abs((cumArea(end)./(idd(j)))-1)*100 > relativeTolerance
+            relativeThreshold = 0.5; %in [%]
+            if abs((cumArea(end)./(idd(j)))-1)*100 > relativeThreshold && (cumArea(end) > relativeThreshold * idd(peakIx))
                 warning('LateralParticleCutOff: shell integration is wrong')
             end
 
@@ -191,10 +187,7 @@ for energyIx = vEnergiesIx
         end
     end    
 end    
-
-
-
-            
+          
 %% visualization
 if visBool
     
@@ -261,15 +254,7 @@ if visBool
     end
     
     % obtain maximum dose
-    if isstruct(machine.data(energyIx).Z)
-        idd = sumGauss(depthValues,machine.data(energyIx).Z.mean,...
-                                   machine.data(energyIx).Z.width.^2,...
-                                   machine.data(energyIx).Z.weight) * conversionFactor;
-    else
-        idd  = matRad_interp1(machine.data(energyIx).depths,machine.data(energyIx).Z,depthValues) * conversionFactor; 
-    end
-    
-    [~,peakixDepth] = max(idd); 
+    [~,peakixDepth] = max(machine.data(energyIx).Z); 
     dosePeakPos = matRad_calcParticleDoseBixel(machine.data(energyIx).depths(peakixDepth), 0, sigmaIni_sq, baseData);   
     
     vLevelsDose = dosePeakPos.*[0.01 0.05 0.1 0.9];
@@ -302,11 +287,7 @@ if visBool
     legend({'original IDD',['cut off IDD at ' num2str(cutOffLevel) '%'],'cut off IDD with compensation'},'Location','northwest'),
     xlabel('z [mm]'),ylabel('[MeV cm^2 /(g * primary)]'),set(gca,'FontSize',12)     
            
-    if isstruct(entry.Z)
-        totEnergy        = trapz(machine.data(energyIx).depths,machine.data(energyIx).Z.doseAPM*conversionFactor) ;
-    else
-        totEnergy        = trapz(machine.data(energyIx).depths,machine.data(energyIx).Z*conversionFactor) ;
-    end
+    totEnergy        = trapz(machine.data(energyIx).depths,machine.data(energyIx).Z*conversionFactor) ;
     totEnergyCutOff  = trapz(radDepths,vDoseInt * TmpCompFac) ;
     relDiff          =  ((totEnergy/totEnergyCutOff)-1)*100;   
     title(['rel diff of integral dose ' num2str(relDiff) '%']);
@@ -345,3 +326,4 @@ end
 
 
 end
+
