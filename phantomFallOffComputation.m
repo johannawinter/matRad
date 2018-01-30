@@ -7,16 +7,16 @@ load PHANTOM_for_falloffs.mat
 
 breastThickness = 30;   % [mm]
 targetThickness = 40;   % [mm]
-lungGeoThickness = [2 7 20 30 40 50 60 70 80 90 100];	% [mm]
+lungGeoThickness = [17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100]; % [2 7 20 30 40 50 60 70 80 90 100];	% [mm]
 % breastThickness = 30;
 % targetThickness = 80;
-% lungGeoThickness = [5 10 17 30 40 50 60 70 80 90 100];
+% lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100]; % [5 10 17 30 40 50 60 70 80 90 100];
 % breastThickness = 70;
 % targetThickness = 40;
-% lungGeoThickness = [5 10 17 30 40 50 60 70 80 90 100];
+% lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100]; % [5 10 17 30 40 50 60 70 80 90 100];
 % breastThickness = 70;
 % targetThickness = 80;
-% lungGeoThickness = [5 10 20 31 40 50 60 70 80 90 100];
+% lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100]; % [5 10 20 31 40 50 60 70 80 90 100];
 
 % Pmod = 256;             % [µm]
 
@@ -77,6 +77,28 @@ cst{1,4}{1} = ix;
 cst{1,7} = [];
 
 ct.cube{1}(cst{1,4}{1}) = 1;
+
+% add margin around target for optimization
+margin = 10;    % [mm]
+vMargin.x = margin;
+vMargin.y = margin;
+vMargin.z = margin;
+% assign ones to target voxels
+target = cst{2,4}{:};
+targetMask = zeros(ct.cubeDim);
+targetMask(target) = 1;
+% add margin
+targetEnlargedVoi = matRad_addMargin(targetMask,cst,ct.resolution,vMargin,true);
+targetEnlarged = find(targetEnlargedVoi>0);
+% assign enlarged target to cst
+cst{5,1} = 4;
+cst{5,2} = ['TargetMargin' num2str(margin) 'mm'];
+cst{5,3} = 'OAR';
+cst{5,4}{1} = targetEnlarged;
+cst{5,5} = cst{4,5};      % same as Lung
+cst{5,6} = cst{1,6};
+cst{5,6}.dose = 50;
+cst{5,6}.penalty = 40;
 
 
 %% optimization without lung heterogeneity
@@ -139,7 +161,8 @@ if plotDD
     plot(coords_spline*2,dd_lung_spline,'r')
     plot([y1target*2,y1target*2],[0,2.3],'k')
     plot([y2target*2,y2target*2],[0,2.3],'k')
-    legend('without heterogeneity','spline','with lung heterogeneity','spline','target boundary','location','northeast')
+    legend('without heterogeneity','spline','with lung heterogeneity','spline','target boundary',...
+        'location','northeast')
 %     legend('without heterogeneity','with lung heterogeneity','target boundary','location','north')
     xlabel('depth in water [mm]')
     ylabel('dose [Gy]')
@@ -147,8 +170,12 @@ if plotDD
     grid on, grid minor
     box on
     
-    savefig(dd,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DD_breastThickness' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
-%     savefig(dd,['DD_breastThickness' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
+    savefig(dd,...
+        ['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DD_breastThickness' ...
+        num2str(breastThickness) '_targetThickness_' num2str(targetThickness) ...
+        '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
+%     savefig(dd,['DD_breastThickness' num2str(breastThickness) '_targetThickness_' ...
+%     num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
 end
 
 % calculate falloff 80%-20% [mm]
@@ -186,10 +213,12 @@ resultGUI.physicalDose_absDiffHeteroHomo = absDiffCube;
 
 %% save results
 save(['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\results_breastThickness_' ...
-    num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h))],...
+    num2str(breastThickness) '_targetThickness_' num2str(targetThickness) ...
+    '_lungThickness_' num2str(lungGeoThickness(h))],...
     'ct','cst','pln','resultGUI','stf','z8020','DeltaD95','-v7.3')
 % save(['results_breastThickness_' ...
-%     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h))],...
+%     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) ...
+%     '_lungThickness_' num2str(lungGeoThickness(h))],...
 %     'ct','cst','pln','resultGUI','stf','z8020','DeltaD95','-v7.3')
 
 
@@ -214,8 +243,13 @@ matRad_showQualityIndicators(qi_0);
 subplot(313)
 matRad_showQualityIndicators(qi_lung);
 
-savefig(dvhFig,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
-% savefig(dvhFig,['DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
+savefig(dvhFig,...
+    ['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DVH_breastThickness_' ...
+    num2str(breastThickness) '_targetThickness_' num2str(targetThickness) ...
+    '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
+% savefig(dvhFig,...
+%     ['DVH_breastThickness_' num2str(breastThickness) '_targetThickness_' ...
+%     num2str(targetThickness) '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
 
 end
 
@@ -250,7 +284,8 @@ end
 % 
 % dc = figure;
 % hold on
-% title(['DeltaD95 for p+ on ' num2str(breastThickness) ' mm breast wall and ' num2str(targetThickness) ' mm target size'])
+% title(['DeltaD95 for p+ on ' num2str(breastThickness) ' mm breast wall and ' ...
+%     num2str(targetThickness) ' mm target size'])
 % for h = 1:length(lungGeoThickness)
 %     plot(results(h).DeltaD95(:,1), results(h).DeltaD95(:,2),'bx')
 % end
@@ -262,7 +297,9 @@ end
 % 
 % fdc = figure;
 % hold on
-% title(['falloff widening by swtiching on heterogeneity in the lung for p+ on ' num2str(breastThickness) ' mm breast wall and ' num2str(targetThickness) ' mm target size'])
+% title(['falloff widening by swtiching on heterogeneity in the lung for p+ on ' ...
+%     num2str(breastThickness) ' mm breast wall and ' num2str(targetThickness) ...
+%     ' mm target size'])
 % for h = 1:length(lungGeoThickness)
 %     plot(results(h).z8020(:,1), results(h).z8020(:,2)-results(h).z8020(1,2),'bx')
 % end
@@ -274,7 +311,8 @@ end
 % 
 % fc = figure;
 % hold on
-% title(['falloff for p+ on ' num2str(breastThickness) ' mm breast wall and ' num2str(targetThickness) ' mm target size'])
+% title(['falloff for p+ on ' num2str(breastThickness) ' mm breast wall and ' ...
+%     num2str(targetThickness) ' mm target size'])
 % for h = 1:length(lungGeoThickness)
 %     plot(results(h).z8020(:,1), results(h).z8020(:,2),'bx')
 % end
@@ -285,7 +323,13 @@ end
 % box on
 % 
 % 
-% savefig(dc,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DeltaD95Comparison_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '.fig'])
-% savefig(fdc,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\falloffDifferenceComparison_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '.fig'])
-% savefig(fc,['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\falloffComparison_breastThickness_' num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '.fig'])
+% savefig(dc,...
+%     ['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\DeltaD95Comparison_breastThickness_' ...
+%     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '.fig'])
+% savefig(fdc,...
+%     ['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\falloffDifferenceComparison_breastThickness_' ...
+%     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '.fig'])
+% savefig(fc,...
+%     ['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\falloffComparison_breastThickness_' ...
+%     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) '.fig'])
 

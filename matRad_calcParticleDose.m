@@ -103,7 +103,7 @@ end
 if calcDoseDirect
     V = [cst{:,4}];
 else
-    V = [cst{2,4}];
+    V = [cst{5,4}];
 end
 V = unique(vertcat(V{:}));
 

@@ -6,16 +6,16 @@ close all
 
 breastThickness = 30;       % [mm]
 targetThickness = 40;       % [mm]
-lungGeoThickness = [2 7 20 30 40 50 60 70 80 90 100]; % [mm]
+lungGeoThickness = [2 5 7 10 12 15 17 20 22 45 47 50 52 55]; % [2 10 20 30 40 50 60 70 80 90 100]; % [mm]
 % breastThickness = 30;
 % targetThickness = 80;
-% lungGeoThickness = [5 10 17 30 40 50 60 70 80 90]; % 100]; % [mm]
+% lungGeoThickness = [2 5 7 10 12 15 17 42 45 47 50 82 85 87 90]; % [2 10 20 30 40 50 60 70 80 90 100] % [mm]
 % breastThickness = 70;       % [mm]
 % targetThickness = 40;       % [mm]
-% lungGeoThickness = [5 10 17 30 40 50 60 70 80 90 100]; % [mm]
+% lungGeoThickness = [2 5 7 10 12 15 17 20 22 50 52 55 57 60 87 90 92 95 97]; % [2 10 20 30 40 50 60 70 80 90 100]; % [mm]
 % breastThickness = 70;
 % targetThickness = 80;
-% lungGeoThickness = [5 10 20 31 40]; % 50 60 70 80 90 100]; % [mm]
+% lungGeoThickness = [2 5 7 10 12 15 17 20 22 35 37 40 42 45 47 50 52 90 92 95 97]; % [2 10 20 30 40 50 60 70 80 90 100]; % [mm]
 
 rho = .306;                 % [g/cm^3] lung density
 
@@ -34,6 +34,7 @@ for i = 1:length(lungGeoThickness)
     % load machine
     fileName = [pln.radiationMode '_' pln.machine];
     load(['C:\Matlab\matrad\' fileName]);
+    offset = machine.data(1).offset;                % offset to add to depth dose curves due to BAMS 
     
     % get all available energies from machine file
     availableEnergies = zeros(1,size(machine.data,2));
@@ -166,7 +167,7 @@ for i = 1:length(lungGeoThickness)
         num2str(lungGeoThickness(i)) ' mm geometrical lung'])
     hold on
     for j = 1:size(weightedDoseCentralRay,1)
-        plot(z(j,:),weightedDoseCentralRay(j,:)/max(weightedDoseCentralRay(:)))
+        plot(z(j,:) + offset, weightedDoseCentralRay(j,:)/max(weightedDoseCentralRay(:)))
     end
     doseSumPlot = plot(coords_water,doseSumCentralRay/max(doseSumCentralRay(:)),'+k--');
     targetStartPlot = plot([startTarget startTarget],[0 2.5],'k-','linewidth',2);
@@ -195,7 +196,7 @@ for i = 1:length(lungGeoThickness)
         ' mm target, ' num2str(lungGeoThickness(i)) ' mm geometrical lung'])
     hold on
     for j = 1:size(weightedDoseAllRays,1)
-        plot(z(j,:),weightedDoseAllRays(j,:)/max(weightedDoseAllRays(:)));
+        plot(z(j,:) + offset, weightedDoseAllRays(j,:)/max(weightedDoseAllRays(:)));
     end
     doseSumAllRaysPlot = plot(coords_water,doseSumAllRays/max(doseSumAllRays(:)),'+k--');
     targetStartPlot = plot([startTarget startTarget],[0 2.5],'k-','linewidth',2);

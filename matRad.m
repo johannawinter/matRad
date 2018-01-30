@@ -26,8 +26,6 @@
 % load PROSTATE.mat
 % load LIVER.mat
 % load BOXPHANTOM.mat
-% load Lung-HIT-ID20160720-adj.mat
-% load Lung-HIT-ID20160720-RTplan2.mat
 
 % meta information for treatment plan
 pln.bixelWidth      = 5; % [mm] / also corresponds to lateral spot spacing for particles
@@ -50,7 +48,7 @@ pln.machine         = 'HIT_APM';
 stf = matRad_generateStf(ct,cst,pln);
 
 %%% for RicphantomFallOffs
-stf = matRad_computeSSD(stf,ct);
+% stf = matRad_computeSSD(stf,ct);
 %%%
 
 %% dose calculation
