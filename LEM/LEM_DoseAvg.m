@@ -24,7 +24,14 @@ load('dEdx.mat');
 
 MatSPCfiles = dir([PathToSPC '*.mat']);
 for iEnergy = 1:length(MatSPCfiles)
-   DataSPC(iEnergy) = load([PathToSPC filesep MatSPCfiles(iEnergy).name]);
+    
+    DataSPC(iEnergy) =  load([PathToSPC MatSPCfiles(iEnergy).name]);
+    
+%     load([PathToSPC MatSPCfiles(iEnergy).name]);
+%     caFieldanmes = fieldnames(SPC.data);
+%     for i = 1:numel(caFieldanmes)
+%         DataSPC(iEnergy).(caFieldanmes{i,1}) = SPC.data.(caFieldanmes{i,1}); 
+%     end
 end
 
 Realization = 1;
@@ -57,7 +64,7 @@ for jCell = 1:tissue.Realisations
       DepthBetaD_ion  = zeros(length(vDepth),1);
       dose_Z          = zeros(length(vDepth),1);
         
-      for ixDepth = 1:length(vDepth); 
+      for ixDepth = 1:length(vDepth)
         
         Fluence                = (DataSPC(iEnergy).SPC.data(ixDepth).(Particle).N);
         SP_interp              = interp1(dEdx.(Particle).Energy,dEdx.(Particle).dEdx,...

@@ -19,19 +19,19 @@ clc
 clear
 close all
 %% define paths paths
-matRadDir = ['C:\Users\wieserh\Documents\matRad'];
-TRiPdir = 'E:\TRiP98DATA_HIT-20131120';
+matRadDir = ['C:\Users\wieserh\Documents\matlab\matRad'];
+TRiPdir = 'C:\Users\wieserh\Documents\TRiP98DATA_HIT-20131120';
 addpath(matRadDir);
 
 %% if biological base data does not exist - create it
-if ~exist('RBEinitial.mat','file') || ~exist('metadEdx.mat','file') ||  ~exist('dEdx.mat','file')
+if ~exist('RBE.mat','file') || ~exist('metadEdx.mat','file') ||  ~exist('dEdx.mat','file')
     RBEinitial       = matRad_readRBE(TRiPdir);
     [metadEdx,dEdx]  = matRad_readdEdx(TRiPdir);
-    save('RBEinitial','RBEinitial')
+    save('RBE','RBE')
     save('metadEdx','metadEdx');
     save('dEdx','dEdx');
 else
-    load('RBEinitial');
+    load('RBE');
     load('dEdx');
     load('metadEdx');
 end
@@ -42,7 +42,7 @@ end
 
 %% set meta parameters
 visBool           = 0;
-Particle          = 'C';  % choose a particle type
+Particle          = 'H';  % choose a particle type {'H','He','Li','Be','B','C'};
 MaterialRho       = 1;
 vNumParticles     = [1];   % number of one random traversal - multiple travelersals is not yet implemented
 % number of energy values for which cell survival should be calculated  
@@ -108,7 +108,7 @@ for IdxE =  1:length(vEnergy)
         ExpSurvival(IdxE).alpha_TEorg   =  (1-AvgCellSurvival2)*N_TE(IdxE);
 
         % this code is only here for validation
-        alpha_target                  = interp1(RBEinitial(1).(Particle).Energy,RBEinitial(1).(Particle).RBE * RBEinitial(1).alpha,vEnergy(IdxE));
+        alpha_target                  = interp1(RBE(1).(Particle).Energy,RBE(1).(Particle).RBE * RBE(1).alpha,vEnergy(IdxE));
         ExpSurvival(Cnt).N_TE_target  = alpha_target/(1-S_TE);
         
         ExpSurvival(IdxE).NumPart      = NumParticles;
@@ -194,7 +194,7 @@ Cnt = 1;
 
  for IdxE = 1:length(vEnergy)
 
-    [~,idx] = min(abs(dEdx.(Particle).Energy-vEnergy(IdxE)));
+    [~,idx]      = min(abs(dEdx.(Particle).Energy-vEnergy(IdxE)));
     LET_MeVcm2_g = dEdx.(Particle).dEdx(idx);
     
     for IdxPart = 1:length(vNumParticles)
@@ -240,22 +240,19 @@ Cnt = 1;
  end  
  
  %% plot alpha
-[~,ABratioIdx] = min(abs(([RBEinitial.alpha]./ [RBEinitial.beta]) - tissue.sAlphaBetaRatio));
+[~,ABratioIdx] = min(abs(([RBE.alpha]./ [RBE.beta]) - tissue.sAlphaBetaRatio));
 
-alpha_z     = RBEinitial(ABratioIdx).(Particle).RBE * RBEinitial(1).alpha;
-[alpha_D,~] = matRad_rapidScholz(RBEinitial,dEdx,Particle,tissue,RBEinitial(ABratioIdx).(Particle).Energy,alpha_z,[])
+alpha_z     = RBE(ABratioIdx).(Particle).RBE * RBE(1).alpha;
+[alpha_D,~] = matRad_rapidScholz(RBE,dEdx,Particle,tissue,RBE(ABratioIdx).(Particle).Energy,alpha_z,[])
 
 figure, set(gcf,'Color',[1 1 1]); 
-plot(RBEinitial(ABratioIdx).(Particle).Energy,alpha_z,'r-','LineWidth',4),hold on
-plot(RBEinitial(ABratioIdx).(Particle).Energy,alpha_D,'b-','LineWidth',4),hold on
+plot(RBE(ABratioIdx).(Particle).Energy,alpha_z,'r-','LineWidth',4),hold on
+plot(RBE(ABratioIdx).(Particle).Energy,alpha_D,'b-','LineWidth',4),hold on
 plot([ExpSurvivalCentTrav.Energy],[ExpSurvivalCentTrav.alpha_z],'k-.','LineWidth',3),hold on
 plot([ExpSurvival.Energy],[ExpSurvival.alpha_TE],'k--','LineWidth',4),hold on
 
-
-
-
 % self validation - convert alpha_z to alpha_ion
-[alpha_ionRS,beta_ionRS] = matRad_rapidScholz( RBEinitial,dEdx,Particle,tissue,[ExpSurvival.Energy],[ExpSurvivalCentTrav.alpha_z],[ExpSurvivalCentTrav.beta_z]);
+[alpha_ionRS,beta_ionRS] = matRad_rapidScholz( RBE,dEdx,Particle,tissue,[ExpSurvival.Energy],[ExpSurvivalCentTrav.alpha_z],[ExpSurvivalCentTrav.beta_z]);
 plot([ExpSurvival.Energy],alpha_ionRS,'go','LineWidth',3),hold on
 
 legend({'TRiP $$\alpha_z$$','TRiP $$\alpha_D$$','$$\alpha_z$$ only central traversal','$$\alpha_D$$ full calculation','$$\alpha_D$$ RapidScholz based on $$\alpha_z$$'},'Interpreter','Latex')

@@ -18,8 +18,8 @@ clc
 clear
 close all
 
-matRadDir = ['C:\Users\wieserh\Documents\matRad'];
-TRiPdir   = 'E:\TRiP98DATA_HIT-20131120';
+matRadDir = ['C:\Users\wieserh\Documents\matlab\matRad'];
+TRiPdir   = 'C:\Users\wieserh\Documents\TRiP98DATA_HIT-20131120';
 addpath(matRadDir);
 
 
@@ -31,10 +31,24 @@ addpath(matRadDir);
 % save('metadEdx','metadEdx');
 % save('dEdx','dEdx');
 
-
 load('RBE');
 load('dEdx');
 load('metadEdx');
+
+%%
+FLAG_PLOT       = false;
+FLAG_SAVE       = true; 
+foldername      = 'bioUCT';
+defaultFontSize = 16;
+exportPath      = [pwd filesep 'LEM' filesep 'expFigures' filesep foldername];   
+color           = colorspecs();   
+addpath(exportPath) ; showInfoFlag = false; addpath('LEM'); addpath(['APM' filesep 'expFigures']); 
+
+extraAxisAptions = ['title style={font=\normalsize},'...
+                    'xlabel style={font=\normalsize},'...
+                    'ylabel style={font=\normalsize},',...
+                    'legend style={font=\normalsize},',...
+                    'ticklabel style={font=\small},'];
 
 %% define tiusse
 tissue.sAlphaX         = 0.1;  %Gy-1
@@ -44,7 +58,7 @@ tissue.RadiusTarget_um = 5; % µm
 tissue.sAlphaBetaRatio = tissue.sAlphaX / tissue.sBetaX;
 
 %% define uncertainties
-tissue.Realisations = 50;
+tissue.Realisations = 1;
 
 tissue.sAlphaXvar   = tissue.sAlphaX*0;%;0.1;
 tissue.vAlphaUct    = ((randn(tissue.Realisations,1)*tissue.sAlphaXvar) + tissue.sAlphaX);
@@ -59,10 +73,9 @@ tissue.sDcutVar     = tissue.sDcut*0;
 tissue.vDcutUct     = ((randn(tissue.Realisations,1)*tissue.sDcutVar) + tissue.sDcut);
 tissue.sDcutNom     = tissue.sDcut;
 
-tissue.sRnucVar     = tissue.RadiusTarget_um*0.2;
+tissue.sRnucVar     = tissue.RadiusTarget_um*0;
 tissue.vRnucUct     = ((randn(tissue.Realisations,1)*tissue.sRnucVar) + tissue.RadiusTarget_um); 
 tissue.sRnucNom     = tissue.RadiusTarget_um;
-
 
 
 %% set meta parameters
@@ -70,7 +83,6 @@ visBool           = 0;
 Particle          = {'H','He','Li','Be','B','C'};
 MaterialRho       = 1;
 vNumParticles     = [1];   
-
 
 % initialize some variables
 for IdxPart = 1:size(Particle,2)
@@ -127,7 +139,7 @@ for IdxReal = 1:tissue.Realisations
      
      % apply rapid scholz algorithm
      [UctDataAlphaD.(Particle{IdxPart})(IdxReal,:),UctDataBetaD.(Particle{IdxPart})(IdxReal,:) ] =...
-                matRad_rapidScholz(RBEinitial,dEdx,Particle{IdxPart},tissue,vEnergy,UctDataAlphaZ.(Particle{IdxPart})(IdxReal,:),...
+                matRad_rapidScholz(RBE,dEdx,Particle{IdxPart},tissue,vEnergy,UctDataAlphaZ.(Particle{IdxPart})(IdxReal,:),...
                 UctDataBetaZ.(Particle{IdxPart})(IdxReal,:));   
  
      waitbar(IdxReal/(tissue.Realisations*size(Particle,2)));
@@ -144,115 +156,136 @@ end
 end
 close(h)
 
-%% Plot a specific particle
-CurrentParticle = 'C';
-for j = 1:2
-    if j == 1
-        UctDataAlphaLoop = UctDataAlphaZ.(CurrentParticle);
-    elseif j == 2
-        UctDataAlphaLoop = UctDataAlphaD.(CurrentParticle);
-    end
-    figure('units','normalized','outerposition',[0 0 1 1]),set(gcf,'Color',[1 1 1]) ,hold on
-    set(gca,'xscale','log'),
-    H(1) = shadedErrorBar(vEnergy,UctDataAlphaLoop,{@mean, @(x) 2*std(x)}, '-r',0);
-    H(2) = shadedErrorBar(vEnergy,UctDataAlphaLoop,{@mean, @(x) 1*std(x)}, '-g',0);
-    H(3) = shadedErrorBar(vEnergy,UctDataAlphaLoop,{@mean, @(x) 0.5*std(x)}, '-b',0);
-    grid on,grid minor
-    legend([H(3).mainLine, H.patch], '\mu','2\sigma','\sigma','0.5\sigma');
-    xlabel('energy in MeV/u','Interpreter','Latex');
-    if j  == 1
-         ylabel('$$ \alpha_z$$  in $$Gy^{-1}$$','Interpreter','Latex');
-    elseif j == 2
-         ylabel('$$ \alpha_D$$  in $$Gy^{-1}$$','Interpreter','Latex');
-    end
-    title(['particle: ',CurrentParticle ', $\alpha_x=$' num2str(tissue.sAlphaX) ', $\beta_x=$' num2str(tissue.sBetaX) ', $r_{nuc}=$' num2str(tissue.RadiusTarget_um) '$\mu m$'],'Interpreter','Latex');
-    set(gca,'FontSize',26)
+%% plot a specific particle
+if FLAG_PLOT
+    CurrentParticle = 'C';
+    for j = 1:2
+        if j == 1
+            UctDataAlphaLoop = UctDataAlphaZ.(CurrentParticle);
+        elseif j == 2
+            UctDataAlphaLoop = UctDataAlphaD.(CurrentParticle);
+        end
+        figure('units','normalized','outerposition',[0 0 1 1]),set(gcf,'Color',[1 1 1]) ,hold on
+        set(gca,'xscale','log'),
+        H(1) = shadedErrorBar(vEnergy,UctDataAlphaLoop,{@mean, @(x) 2*std(x)}, '-r',0);
+        H(2) = shadedErrorBar(vEnergy,UctDataAlphaLoop,{@mean, @(x) 1*std(x)}, '-g',0);
+        H(3) = shadedErrorBar(vEnergy,UctDataAlphaLoop,{@mean, @(x) 0.5*std(x)}, '-b',0);
+        grid on,grid minor
+        legend([H(3).mainLine, H.patch], '\mu','2\sigma','\sigma','0.5\sigma');
+        xlabel('energy in MeV/u','Interpreter','Latex');
+        if j  == 1
+             ylabel('$$ \alpha_z$$  in $$Gy^{-1}$$','Interpreter','Latex');
+        elseif j == 2
+             ylabel('$$ \alpha_D$$  in $$Gy^{-1}$$','Interpreter','Latex');
+        end
+        title(['particle: ',CurrentParticle ', $\alpha_x=$' num2str(tissue.sAlphaX) ', $\beta_x=$' num2str(tissue.sBetaX) ', $r_{nuc}=$' num2str(tissue.RadiusTarget_um) '$\mu m$'],'Interpreter','Latex');
+        set(gca,'FontSize',26)
 
-%     if ~isequal(Scenario,'All')
-%         posBig = get(gca, 'Position');hold on;
-%         subFig(1) = axes('Position',[0.55 0.55 0.2 0.3]);
-%         hist(subFig(1),vReal,round(tissue.Realisations/4))
-%         set(subFig(1),'xlim',[min(vReal) max(vReal)])
-%         set(subFig(1),'FontSize',15)
-%         
-%         subFig2(1) = axes('Position',[0.2 0.2 0.2 0.1]);
-%         
-%         %plot(subFig2(1),vEnergy,corr(tissue.UCT,UctDataAlphaLoop)),
-%         set(subFig2(1),'XScale','log'),grid on, 
-%     end
-%     if ~isequal(Scenario,'All')
-%         title(subFig(1),[param '; N=' num2str(tissue.Realisations) ' ; $\mu$=' num2str(Mean)  '; $\sigma$=' num2str(Var)],'Interpreter','Latex','FontSize',20);
-%         title(subFig2(1),'correlation');
-%     end
+        newStr = strrep(num2str(tissue.sAlphaXvar),'.','_');
+        if j == 1
+            filename  = ['alpha_z_uct' newStr '.tex'];
+        elseif j == 2
+            filename  = ['alpha_D_uct' newStr '.tex'];
+        end
+        latexPath = [exportPath filesep filename];
+
+        if FLAG_SAVE && exist('matlab2tikz','file') == 2
+            cleanfigure;
+            matlab2tikz([latexPath],'height', '12cm', 'width', '21cm','showInfo',showInfoFlag,'standalone', true,...
+                'extraaxisoptions',extraAxisAptions);         
+
+            currPath = pwd; cd(exportPath);
+            if ispc  
+                 command = sprintf('pdflatex %s',filename);
+            elseif ismac
+                 command = sprintf('/Library/Tex/texbin/pdflatex %s',[filename]);
+            end
+            [status,cmdout] = system(command); cd(currPath);
+            if status > 0
+                warning(['couldnt compile pdf: ' cmdout]);
+            end
+        end
+
+
+    end
+
 end
-
 
 
 %% apply dose averaging with spc files
-load('carbon_HIT_LEM.mat');
+load('carbon_HIT.mat');
 [machine,BioDataHIT] = LEM_DoseAvg(TRiPdir,machine,UctDataAlphaD,UctDataBetaD,vEnergy,tissue);
-save('BioDataHIT.mat','BioDataHIT');
-save('carbon_HIT_LEM.mat','machine');
+
+% plot HIT vs. myLEM
+machineOrg = load('carbon_HIT.mat');
+machineOrg = machineOrg.machine;
+ix = 198;
+vDepth    = machine.data(ix).depths'./machine.data(ix).peakPos;
+figure('units','normalized','outerposition',[0 0 1 1]),set(gcf,'Color',[1 1 1]) ,hold on
+plot(vDepth,machine.data(ix).alpha(:,1)),hold on
+plot(vDepth,machineOrg.data(ix).alpha(:,1)),hold on
+
+%save('BioDataHIT.mat','BioDataHIT');
+%save('carbon_HIT_LEM.mat','machine');
 
         
 %% plot depth depended dose averaged alpha and beta parameters  
-alpha_avg = machine.data(198).alpha';
-vDepth    = machine.data(198).depths';
-
+ix = 198;
+vDepth    = machine.data(ix).depths'./machine.data(ix).peakPos;
 figure('units','normalized','outerposition',[0 0 1 1]),set(gcf,'Color',[1 1 1]) ,hold on
+subplot(211),plot(vDepth,machine.data(ix).alpha)
+xlabel('z [mm]','Interpreter','Latex');grid on, grid minor
+ylabel('$Gy^{-1}$','Interpreter','Latex');
+title(['depth-dependend dose-averaged $\alpha$-profiles;',' C12, $E_0$=' num2str(machine.data(ix).energy)],'Interpreter','Latex')
+set(gca,'FontSize',20),set(gca,'YLim',[0 1.4]);
+
+subplot(212),hold on
+alpha_avg = machine.data(ix).alpha';
+
 H(1) = shadedErrorBar(vDepth,alpha_avg,{@mean, @(x) 2*std(x)}, '-r',0);
 H(2) = shadedErrorBar(vDepth,alpha_avg,{@mean, @(x) 1*std(x)}, '-g',0);
 H(3) = shadedErrorBar(vDepth,alpha_avg,{@mean, @(x) 0.5*std(x)}, '-b',0);
-grid on,grid minor
-legend([H(3).mainLine, H.patch], '\mu','2\sigma','\sigma','0.5\sigma');
+xlabel('z [mm]','Interpreter','Latex'),grid on,grid minor
+legend([H(3).mainLine, H.patch], {'\mu','2\sigma','\sigma','0.5\sigma'},'FontSize',16);
 xlabel('depth','Interpreter','Latex');
-ylabel('depth dependend dose averaged $$ \alpha$$  in $$Gy^{-1}$$','Interpreter','Latex');
-
-title(['pristine carbon ion beam 350MeV/u, $$ \alpha_x$$=0.1, $$ \beta_x$$=0.05,' ...
-    'Realizations = ' num2str(tissue.Realisations) ', $$\sigma({\alpha_x})=\sigma({\beta_x})=\sigma({D_{cut}})=\sigma({r_{nuc}})=25\%$$'],'Interpreter','Latex')
-
+ylabel('depth-depend dose-avg $$ \alpha$$  in $$Gy^{-1}$$','Interpreter','Latex');
  title(['pristine carbon ion beam 350MeV/u, $$ \alpha_x$$=0.1, $$ \beta_x$$=0.05,' ...
-    'Realizations = ' num2str(tissue.Realisations) ', $$\sigma({\alpha_x})=25\%$$'],'Interpreter','Latex')
-set(gca,'FontSize',20)
+    'Realizations = ' num2str(tissue.Realisations) ', $$\sigma({\alpha_x})=' num2str(tissue.sAlphaXvar*100) '\%$$'],'Interpreter','Latex')
+set(gca,'FontSize',20),set(gca,'YLim',[0 1.4]);
+
+filename  = ['doseAVG_alpha_profiles_cut' newStr '.tex'];
+latexPath = [exportPath filesep filename];
+
+if FLAG_SAVE && exist('matlab2tikz','file') == 2
+    cleanfigure;
+    matlab2tikz([latexPath],'height', '17cm', 'width', '21cm','showInfo',showInfoFlag,'standalone', true,...
+        'extraaxisoptions',extraAxisAptions);         
+
+    currPath = pwd; cd(exportPath);
+    if ispc  
+         command = sprintf('pdflatex %s',filename);
+    elseif ismac
+         command = sprintf('/Library/Tex/texbin/pdflatex %s',[filename]);
+    end
+    [status,cmdout] = system(command);
+    delete('*.aux');delete('*.log');
+    cd(currPath);
+    if status > 0
+        warning(['couldnt compile pdf: ' cmdout]);
+    end
+end
 
 
-%    load('DoseAvgAlpha.mat')
-%    hold on,plot(AlphaNom(:,1),AlphaNom(:,2),'k*')
-%   
-posBig = get(gca, 'Position');hold on;
-subFig(1) = axes('Position',[0.55 0.55 0.2 0.2]);
-
-plot(vDepth,std(alpha_avg,1),'LineWidth',3),grid on, grid minor
+% posBig = get(gca, 'Position');hold on;
+% subFig(1) = axes('Position',[0.6 0.25 0.15 0.15]);
+% set(subFig(1),'FontSize',12)
+figure('units','normalized','outerposition',[0 0 1 1]),set(gcf,'Color',[1 1 1]) ,hold on
+plot(vDepth,std(alpha_avg,1,1),'LineWidth',3),grid on, grid minor,hold on,
 title('std');
-set(subFig(1),'FontSize',16)
 
-figure,set(gcf,'Color',[1 1 1]) ,hold on
-Cnt =1;
-for i = 1:30:tissue.Realisations
- subplot(122),plot(vDepth,alpha_avg(i,:)./mean(alpha_avg)),hold on
-%        String{Cnt} = [num2str(fix(((tissue.vAlphaUct(i)/tissue.sAlphaX)-1)*100)) '%,'...
-%                       num2str(fix(((tissue.vBetaUct(i)/tissue.sBetaX	)-1)*100)) '%,'...
-%                       num2str(fix(((tissue.vDcutUct(i)/tissue.sDcut)-1)*100)) '%,'...
-%                       num2str(fix(((tissue.vRnucUct(i)/tissue.sRnucNom)-1)*100)) '%,'];
-   String{Cnt} = [num2str(fix(((tissue.vBetaUct(i)/tissue.sBetaX)-1)*100)) '%'];
 
-   Cnt = Cnt + 1;
-end
-    title(['realization divided by mean curve'],'Interpreter','Latex')  
-legend(String),    set(gca,'FontSize',20),grid on
-
-% plot example realisations
-Cnt =1;
-for i = 1:30:tissue.Realisations
-   subplot(121),plot(vDepth,alpha_avg(i,:)),hold on
-   Cnt = Cnt + 1;
-end
-  title(['pristine carbon ion beam 350MeV/u, $$ \alpha_x$$=0.1, $$ \beta_x$$=0.05,' ...
-   ' $$\sigma({\beta_x})=25\%$$'],'Interpreter','Latex')   
-plot(vDepth,mean(alpha_avg,1),'k','LineWidth',3),legend(String)   
-set(gca,'FontSize',20),grid on 
-
-    
+meanStd = mean(std(alpha_avg,1,1));
+plot(vDepth,meanStd*ones(numel(vDepth)),'LineWidth',3),grid on, grid minor,hold on,
 
 %% create 1D treatment plan
 %load('carbon_HIT_LEM.mat');
