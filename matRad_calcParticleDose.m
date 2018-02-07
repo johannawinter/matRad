@@ -100,11 +100,11 @@ elseif isequal(pln.bioOptimization,'const_RBExD') && strcmp(pln.radiationMode,'p
 end
 
 % Only take voxels inside patient.
-if calcDoseDirect
+% if calcDoseDirect
     V = [cst{:,4}];
-else
-    V = [cst{5,4}];
-end
+% else
+%     V = [cst{5,4}];         % only for my phantom analysis!
+% end
 V = unique(vertcat(V{:}));
 
 % Convert CT subscripts to linear indices.
