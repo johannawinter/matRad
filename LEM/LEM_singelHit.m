@@ -57,16 +57,20 @@ end
 %check if integration of radial dose results in the total delivered LET -
 %this only works if the particle track is completely inside the cell
 %nucleus
+
+if ImpactParameter + RadiusTrack_um > RadiusTarget_um
+   a = 2; 
+end
+    
 if numel(vRadiusGrid) > 1
 
-    dr = vRadiusGrid(2:end)-vRadiusGrid(1:end-1);
+    dr        = vRadiusGrid(2:end)-vRadiusGrid(1:end-1);
     dr(end+1) = dr(end);
     sDoseTot  = sum(2*pi.*vRadialDose.*vRadiusGrid.*dr);
     CONVERT_TO_Gy_um = 1.602*1e-2;
     LET_MeV_cm2_g_ref  = sDoseTot/CONVERT_TO_Gy_um;
-
     Diff =  abs(LET_MeV_cm2_g_ref-LET_MeVcm2_g) ;
-    Threshold = 0.02 * LET_MeVcm2_g;
+    Threshold = 0.01 * LET_MeVcm2_g;
 
     if Diff > Threshold && (ImpactParameter + RadiusTrack_um) < RadiusTarget_um
         warning(['LET on cell nucleus higher than expected DIFF = ' num2str(Diff)])  

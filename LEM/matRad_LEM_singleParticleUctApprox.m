@@ -16,7 +16,7 @@
 
 clc
 clear
-close all
+%close all
 
 matRadDir = ['C:\Users\wieserh\Documents\matlab\matRad'];
 TRiPdir   = 'C:\Users\wieserh\Documents\TRiP98DATA_HIT-20131120';
@@ -36,7 +36,7 @@ load('dEdx');
 load('metadEdx');
 
 %%
-FLAG_PLOT       = false;
+FLAG_PLOT       = true;
 FLAG_SAVE       = true; 
 foldername      = 'bioUCT';
 defaultFontSize = 16;
@@ -58,7 +58,7 @@ tissue.RadiusTarget_um = 5; % µm
 tissue.sAlphaBetaRatio = tissue.sAlphaX / tissue.sBetaX;
 
 %% define uncertainties
-tissue.Realisations = 1;
+tissue.Realisations = 2;
 
 tissue.sAlphaXvar   = tissue.sAlphaX*0;%;0.1;
 tissue.vAlphaUct    = ((randn(tissue.Realisations,1)*tissue.sAlphaXvar) + tissue.sAlphaX);
@@ -85,13 +85,25 @@ MaterialRho       = 1;
 vNumParticles     = [1];   
 
 % initialize some variables
-for IdxPart = 1:size(Particle,2)
-    vEnergy                           = dEdx.(Particle{IdxPart}).Energy;  
-    vEnergy                           = vEnergy(vEnergy>=0.2);
-    UctDataAlphaZ.(Particle{IdxPart}) = zeros(tissue.Realisations,length(vEnergy));
-    UctDataBetaZ.(Particle{IdxPart})  = zeros(tissue.Realisations,length(vEnergy));
-    UctDataAlphaD.(Particle{IdxPart}) = zeros(tissue.Realisations,length(vEnergy));
-    UctDataBetaD.(Particle{IdxPart})  = zeros(tissue.Realisations,length(vEnergy));
+for i = 1:tissue.Realisations
+    RBEown(i).filetype = 'RBE';
+    RBEown(i).alpha    = tissue.vAlphaUct(i);
+    RBEown(i).beta     = tissue.vBetaUct(i);
+    RBEown(i).cut      = tissue.vDcutUct(i);
+    RBEown(i).rnucleus = tissue.vRnucUct(i);
+    RBEown(i).particle = Particle;
+    RBEown(i).unit1    = RBE(1).unit1;
+    RBEown(i).unit2    = RBE(1).unit2;
+    
+    for IdxPart = 1:size(Particle,2)
+        vEnergy                              = dEdx.(Particle{IdxPart}).Energy;  
+        vEnergy                              = vEnergy(vEnergy>=0.2);
+        RBEown(i).(Particle{IdxPart}).Energy = zeros(1,length(vEnergy));
+        RBEown(i).(Particle{IdxPart}).RBE    = zeros(1,length(vEnergy));
+        RBEown(i).(Particle{IdxPart}).alphaZ = zeros(1,length(vEnergy));
+        RBEown(i).(Particle{IdxPart}).betaZ  = zeros(1,length(vEnergy));
+        RBEown(i).(Particle{IdxPart}).alphaD = zeros(1,length(vEnergy));
+    end
 end
 
 h =waitbar(0,'Please wait...');
@@ -133,15 +145,22 @@ for IdxReal = 1:tissue.Realisations
          alpha_z = vBioEffect/Dose_Gy; 
          Smax    = tissue.sAlphaX+(2*tissue.sBetaX)*tissue.sDcut;
          beta_z  = (Smax-alpha_z)/(2*tissue.sDcut); 
-         UctDataAlphaZ.(Particle{IdxPart})(IdxReal,IdxE) = alpha_z;      
-         UctDataBetaZ.(Particle{IdxPart})(IdxReal,IdxE)  = beta_z;    
+         
+         RBEown(IdxReal).(Particle{IdxPart}).Energy(IdxE) = vEnergy(IdxE);
+         RBEown(IdxReal).(Particle{IdxPart}).alphaZ(IdxE) = alpha_z; 
+         RBEown(IdxReal).(Particle{IdxPart}).betaZ(IdxE)  = beta_z; 
      end
      
      % apply rapid scholz algorithm
-     [UctDataAlphaD.(Particle{IdxPart})(IdxReal,:),UctDataBetaD.(Particle{IdxPart})(IdxReal,:) ] =...
-                matRad_rapidScholz(RBE,dEdx,Particle{IdxPart},tissue,vEnergy,UctDataAlphaZ.(Particle{IdxPart})(IdxReal,:),...
-                UctDataBetaZ.(Particle{IdxPart})(IdxReal,:));   
+     [alphaD,betaD] =...
+                matRad_rapidScholz(RBE,dEdx,Particle{IdxPart},tissue,vEnergy,...
+                RBEown(IdxReal).(Particle{IdxPart}).alphaZ,...
+                RBEown(IdxReal).(Particle{IdxPart}).betaZ);   
  
+     RBEown(IdxReal).(Particle{IdxPart}).alphaD = alphaD;
+     RBEown(IdxReal).(Particle{IdxPart}).betaD  = betaX;
+     RBEown(IdxReal).(Particle{IdxPart}).RBE    = RBEown(IdxReal).(Particle{IdxPart}).alphaZ./RBEown(IdxReal).alpha; 
+     
      waitbar(IdxReal/(tissue.Realisations*size(Particle,2)));
     
      if IdxReal == tissue.Realisations
@@ -160,16 +179,21 @@ close(h)
 if FLAG_PLOT
     CurrentParticle = 'C';
     for j = 1:2
-        if j == 1
-            UctDataAlphaLoop = UctDataAlphaZ.(CurrentParticle);
-        elseif j == 2
-            UctDataAlphaLoop = UctDataAlphaD.(CurrentParticle);
+        
+        uctData = zeros(tissue.Realisations,numel(vEnergy));
+        for i = 1:tissue.Realisations
+              if j == 1
+                  uctData(i,:) = RBEown(i).(CurrentParticle).alphaZ; 
+              elseif j == 2
+                  uctData(i,:) = RBEown(i).(CurrentParticle).alphaD; 
+              end
         end
+        
         figure('units','normalized','outerposition',[0 0 1 1]),set(gcf,'Color',[1 1 1]) ,hold on
         set(gca,'xscale','log'),
-        H(1) = shadedErrorBar(vEnergy,UctDataAlphaLoop,{@mean, @(x) 2*std(x)}, '-r',0);
-        H(2) = shadedErrorBar(vEnergy,UctDataAlphaLoop,{@mean, @(x) 1*std(x)}, '-g',0);
-        H(3) = shadedErrorBar(vEnergy,UctDataAlphaLoop,{@mean, @(x) 0.5*std(x)}, '-b',0);
+        H(1) = shadedErrorBar(vEnergy,uctData,{@mean, @(x) 2*std(x)}, '-r',0);
+        H(2) = shadedErrorBar(vEnergy,uctData,{@mean, @(x) 1*std(x)}, '-g',0);
+        H(3) = shadedErrorBar(vEnergy,uctData,{@mean, @(x) 0.5*std(x)}, '-b',0);
         grid on,grid minor
         legend([H(3).mainLine, H.patch], '\mu','2\sigma','\sigma','0.5\sigma');
         xlabel('energy in MeV/u','Interpreter','Latex');
@@ -206,27 +230,94 @@ if FLAG_PLOT
             end
         end
 
-
     end
 
 end
 
 
-%% apply dose averaging with spc files
+
+% figure,
+% plot(RBE(13).C.Energy,RBE(13).C.RBE),hold on, 
+% plot(RBEown(1).C.Energy,RBEown(1).C.RBE)
+% set(gca,'xScale','log')
+% 
+% figure,
+% plot(RBE(13).B.Energy,RBE(13).B.RBE),hold on, 
+% plot(RBEown(1).B.Energy,RBEown(1).B.RBE)
+% set(gca,'xScale','log')
+% figure,
+% plot(RBE(13).Be.Energy,RBE(13).Be.RBE),hold on, 
+% plot(RBEown(1).Be.Energy,RBEown(1).Be.RBE)
+% set(gca,'xScale','log')
+% figure,
+% plot(RBE(13).Li.Energy,RBE(13).Li.RBE),hold on, 
+% plot(RBEown(1).Li.Energy,RBEown(1).Li.RBE)
+% set(gca,'xScale','log')
+% figure,
+% plot(RBE(13).He.Energy,RBE(13).He.RBE),hold on, 
+% plot(RBEown(1).He.Energy,RBEown(1).He.RBE)
+% set(gca,'xScale','log')
+% 
+% figure,
+% plot(RBE(13).H.Energy,RBE(13).H.RBE),hold on, 
+% plot(RBEown(1).H.Energy,RBEown(1).H.RBE)
+% set(gca,'xScale','log')
+
+
+
+pathToSPCFiles = [TRiPdir filesep 'SPC' filesep '12C' filesep 'RF3MM'];
+[ BioDat ] = matRad_getDepthDoseAvgLQM(pathToSPCFiles,RBEown,0);
+%save('BioDataHIT.mat','BioDataHIT');
+
+RBEtest = RBE(13);
+[ BioDatatest ] = matRad_getDepthDoseAvgLQM(pathToSPCFiles,RBEtest,0);
+
+figure,
+plot(BioDat{1,1}(1).depths,BioDat{1,1}(14).alpha),hold on
+plot(BioDatatest{1,1}(1).depths,BioDatatest{1,1}(14).alpha),
+
+%% interpolate each entry in the ddd the corresponding depth alpha and depth beta curve
 load('carbon_HIT.mat');
-[machine,BioDataHIT] = LEM_DoseAvg(TRiPdir,machine,UctDataAlphaD,UctDataBetaD,vEnergy,tissue);
+ixCellLine = [1 2];
+[machine] = matRad_interpDepthDoseAvgData(machine, BioData ,false,ixCellLine, 0);
+
+
+ix = 198;
+vDepth    = machine.data(ix).depths'./machine.data(ix).peakPos;
+figure('units','normalized','outerposition',[0 0 1 1]),set(gcf,'Color',[1 1 1]) ,hold on
+plot(vDepth,machine.data(ix).alpha(:,1:tissue.Realisations),'b'),hold on
+
+machineOrg = load('carbon_HIT.mat');
+machineOrg = machineOrg.machine;
+plot(vDepth,machineOrg.data(ix).alpha(:,2),'r'),hold on
+
+
+%% apply dose averaging with spc files
+newStr = strrep(num2str(tissue.sAlphaXvar),'.','_');
+load('carbon_HIT.mat');
+[machine,BioDataHIT] = LEM_DoseAvg2(TRiPdir,machine,UctDataAlphaD,UctDataBetaD,vEnergy,tissue);
+
+ix = 198;
+vDepth    = machine.data(ix).depths'./machine.data(ix).peakPos;
+figure('units','normalized','outerposition',[0 0 1 1]),set(gcf,'Color',[1 1 1]) ,hold on
+plot(vDepth,machine.data(ix).alpha(:,1:tissue.Realisations),'b'),hold on
 
 % plot HIT vs. myLEM
 machineOrg = load('carbon_HIT.mat');
 machineOrg = machineOrg.machine;
-ix = 198;
-vDepth    = machine.data(ix).depths'./machine.data(ix).peakPos;
-figure('units','normalized','outerposition',[0 0 1 1]),set(gcf,'Color',[1 1 1]) ,hold on
-plot(vDepth,machine.data(ix).alpha(:,1)),hold on
-plot(vDepth,machineOrg.data(ix).alpha(:,1)),hold on
+plot(vDepth,machineOrg.data(ix).alpha(:,2),'r'),hold on
 
-%save('BioDataHIT.mat','BioDataHIT');
-%save('carbon_HIT_LEM.mat','machine');
+
+% figure,hold on
+% c = colorcube(100);grid on, grid minor
+% for i = 50
+%     
+%     plot(machineOrg.data(i).depths,machineOrg.data(i).alpha(:,2),'LineWidth',5)
+%     
+%     for j  = 1:1:tissue.Realisations
+%         plot(machine.data(i).depths,machine.data(i).alpha(:,j))
+%     end
+% end
 
         
 %% plot depth depended dose averaged alpha and beta parameters  
@@ -250,7 +341,7 @@ legend([H(3).mainLine, H.patch], {'\mu','2\sigma','\sigma','0.5\sigma'},'FontSiz
 xlabel('depth','Interpreter','Latex');
 ylabel('depth-depend dose-avg $$ \alpha$$  in $$Gy^{-1}$$','Interpreter','Latex');
  title(['pristine carbon ion beam 350MeV/u, $$ \alpha_x$$=0.1, $$ \beta_x$$=0.05,' ...
-    'Realizations = ' num2str(tissue.Realisations) ', $$\sigma({\alpha_x})=' num2str(tissue.sAlphaXvar*100) '\%$$'],'Interpreter','Latex')
+    'Realizations = ' num2str(tissue.Realisations) ', $$\sigma({\alpha_x})=' num2str((tissue.sAlphaXvar/tissue.sAlphaX)*100) '\%$$'],'Interpreter','Latex')
 set(gca,'FontSize',20),set(gca,'YLim',[0 1.4]);
 
 filename  = ['doseAVG_alpha_profiles_cut' newStr '.tex'];
@@ -281,18 +372,41 @@ end
 % set(subFig(1),'FontSize',12)
 figure('units','normalized','outerposition',[0 0 1 1]),set(gcf,'Color',[1 1 1]) ,hold on
 plot(vDepth,std(alpha_avg,1,1),'LineWidth',3),grid on, grid minor,hold on,
-title('std');
-
-
+title('$\sigma[\alpha_p]$','Interpreter','Latex');
+xlabel('depth','Interpreter','Latex');
+ylabel('$\sigma$[depth-depend dose-avg $$\alpha$$]','Interpreter','Latex');
 meanStd = mean(std(alpha_avg,1,1));
 plot(vDepth,meanStd*ones(numel(vDepth)),'LineWidth',3),grid on, grid minor,hold on,
+set(gca,'FontSize',16)
+
+filename  = ['var_alpha_profiles_cut' newStr '.tex'];
+latexPath = [exportPath filesep filename];
+
+if FLAG_SAVE && exist('matlab2tikz','file') == 2
+    cleanfigure;
+    matlab2tikz([latexPath],'height', '12cm', 'width', '21cm','showInfo',showInfoFlag,'standalone', true,...
+        'extraaxisoptions',extraAxisAptions);         
+
+    currPath = pwd; cd(exportPath);
+    if ispc  
+         command = sprintf('pdflatex %s',filename);
+    elseif ismac
+         command = sprintf('/Library/Tex/texbin/pdflatex %s',[filename]);
+    end
+    [status,cmdout] = system(command);
+    delete('*.aux');delete('*.log');
+    cd(currPath);
+    if status > 0
+        warning(['couldnt compile pdf: ' cmdout]);
+    end
+end
 
 %% create 1D treatment plan
 %load('carbon_HIT_LEM.mat');
 VoxelSize                  = 1;   %[mm]
 PatientLength              = 200; %[mm]
-TargetLength               = 51;  %[mm]
-TargetEntry                = 99;
+TargetLength               = 50;  %[mm]
+TargetEntry                = 100;
 Voxel.Position             = (VoxelSize/2):VoxelSize:PatientLength;
 Voxel.NumberOfVoxels       = numel(Voxel.Position);
 Voxel.IxNT                 = (Voxel.Position < TargetEntry) | (Voxel.Position > (TargetEntry + TargetLength));
@@ -301,82 +415,131 @@ Voxel.presDose(Voxel.IxNT) = 1;
 Voxel.presDose(Voxel.IxT)  = 3;
 Voxel.penalty(Voxel.IxNT)  = 10;
 Voxel.penalty(Voxel.IxT)   = 100;
-Voxel.presEffect = tissue.sAlphaXnom .* Voxel.presDose + tissue.sBetaXnom .* Voxel.presDose.^2; 
+Voxel.presEffect           = tissue.sAlphaXnom .* Voxel.presDose + tissue.sBetaXnom .* Voxel.presDose.^2; 
+margin                     = 10;
 
-availablePeakPos  = [machine.data.peakPos];
-availableEnergies = [machine.data.peakPos];
-Spot.Position     = availablePeakPos(availablePeakPos > TargetEntry & availablePeakPos < TargetEntry + TargetLength);
-Spot.IxEnergy     = find(availablePeakPos > TargetEntry & availablePeakPos < TargetEntry + TargetLength);
-Spot.NumOfSpots   = length(Spot.Position);
-Spot.Weights      = ones(Spot.NumOfSpots,1);
+availablePeakPos           = [machine.data.peakPos];
+availableEnergies          = [machine.data.peakPos];
+Spot.Position              = availablePeakPos(availablePeakPos > TargetEntry-margin & availablePeakPos < TargetEntry + TargetLength+margin);
+Spot.IxEnergy              = find(availablePeakPos > TargetEntry-margin & availablePeakPos < TargetEntry + TargetLength+margin);
+Spot.NumOfSpots            = length(Spot.Position);
+Spot.Weights               = ones(Spot.NumOfSpots,1);
 
 %% matRad world
-
 [pln,cst] = matRad_getDummy1D_Plan(Voxel,tissue);
 
 dij.totalNumOfBixels = Spot.NumOfSpots;
 dij.numOfVoxels      = Voxel.NumberOfVoxels;
 dij.dimensions       = [Voxel.NumberOfVoxels 1];
-dij.dose  = zeros(Voxel.NumberOfVoxels,Spot.NumOfSpots);
-dij.alpha = zeros(Voxel.NumberOfVoxels,Spot.NumOfSpots);
-dij.beta  = zeros(Voxel.NumberOfVoxels,Spot.NumOfSpots);
+dij.numOfScenarios   = 1;
+dij.numOfBeams       = 1;
+dij.beamNum          = 1;
 
 %% calculate mean scenario / nominal scenario
 for j = 1:Spot.NumOfSpots
-    baseEntry                = machine.data(Spot.IxEnergy(j));
-    ix                       = baseEntry.depths(end) > Voxel.Position;
-    dij.physicalDose(ix,j)   = interp1(baseEntry.depths,baseEntry.Z,Voxel.Position(ix),'linear');
-    dij.mAlphaDose(ix,j)     = (interp1(baseEntry.depths,mean(baseEntry.alpha,2),Voxel.Position(ix),'linear')) .* dij.physicalDose(ix,j)' ;
-    dij.mSqrtBetaDose(ix,j)  = sqrt(interp1(baseEntry.depths,mean(baseEntry.beta,2),Voxel.Position(ix),'linear')) .* dij.physicalDose(ix,j)';
+    baseEntryOrg                = machine.data(Spot.IxEnergy(j));
+    ix                          = baseEntryOrg.depths(end) > Voxel.Position;
+    dij.physicalDose{1}(ix,j)   = interp1(baseEntryOrg.depths,baseEntryOrg.Z,Voxel.Position(ix),'linear');
+    dij.mAlphaDose{1}(ix,j)     = (interp1(baseEntryOrg.depths,mean(baseEntryOrg.alpha,2),Voxel.Position(ix),'linear'))    .* dij.physicalDose{1}(ix,j)';
+    dij.mSqrtBetaDose{1}(ix,j)  = sqrt(interp1(baseEntryOrg.depths,mean(baseEntryOrg.beta,2),Voxel.Position(ix),'linear')) .* dij.physicalDose{1}(ix,j)';
 end
 
-addpath('C:\Users\wieserh\Documents\matRad')
 resultGUI = matRad_fluenceOptimization(dij,cst,pln);
 
-for i = 1:tissue.Realisations
-    for j = 1:Spot.NumOfSpots
-        baseEntry                   = machine.data(Spot.IxEnergy(j));
-        ix                          = baseEntry.depths(end) > Voxel.Position;
-        dijUCT.physicalDose(ix,j)   = interp1(baseEntry.depths,baseEntry.Z,Voxel.Position(ix),'linear');
-        dijUCT.mAlphaDose(ix,j)     = (interp1(baseEntry.depths,baseEntry.alpha(:,i),Voxel.Position(ix),'linear')) .* dij.physicalDose(ix,j)' ;
-        dijUCT.mSqrtBetaDose(ix,j)  = sqrt(interp1(baseEntry.depths,baseEntry.beta(:,i),Voxel.Position(ix),'linear')) .* dij.physicalDose(ix,j)';
-    end  
+figure,grid on, grid minor
+plot(resultGUI.RBExDose),hold on
+plot(resultGUI.physicalDose),
+plot(resultGUI.effect)
+
+
+for i = 1:1:tissue.Realisations
+    
+    dijUCT.totalNumOfBixels = Spot.NumOfSpots;
+    dijUCT.numOfVoxels      = Voxel.NumberOfVoxels;
     dijUCT.dimensions       = [Voxel.NumberOfVoxels 1];
-    cst{1,5}.alphaX         = tissue.vAlphaUct(i);
-    cst{2,5}.alphaX         = tissue.vAlphaUct(i);
-    cst{1,5}.betaX          = tissue.vBetaUct(i);
-    cst{2,5}.betaX          = tissue.vBetaUct(i);
+    dijUCT.numOfScenarios = 1;
+    dijUCT.numOfBeams     = 1;
+    dijUCT.beamNum        = 1;
+    cstUCT                = cst;
     
-    UCTresultGUI(i)         = matRad_calcCubes(resultGUI.w,dijUCT,cst);
+    for j = 1:Spot.NumOfSpots
+        baseEntry                      = machine.data(Spot.IxEnergy(j));
+        ix                             = baseEntry.depths(end) > Voxel.Position;
+        dijUCT.physicalDose{1}(ix,j)   = dij.physicalDose{1}(ix,j)';
+        dijUCT.mAlphaDose{1}(ix,j)     = (interp1(baseEntry.depths,baseEntry.alpha(:,i),Voxel.Position(ix),'linear'))    .* dij.physicalDose{1}(ix,j)' ;
+        dijUCT.mSqrtBetaDose{1}(ix,j)  = sqrt(interp1(baseEntry.depths,baseEntry.beta(:,i),Voxel.Position(ix),'linear')) .* dij.physicalDose{1}(ix,j)';
+    end  
     
+    dijUCT.dimensions       = [Voxel.NumberOfVoxels 1];
+    
+    cstUCT{1,5}.alphaX  = baseEntry.alphaX(i);
+    cstUCT{2,5}.alphaX   = baseEntry.alphaX(i);
+    cstUCT{1,5}.betaX    = baseEntry.betaX(i);
+    cstUCT{2,5}.betaX    = baseEntry.betaX(i);
+    resultGUI_UCT(i)     = matRad_calcCubes(resultGUI.w,dijUCT,cstUCT);
+    %clear dijUCT   
 end
 
 
+
+
+RBExD    = resultGUI_UCT.RBExDose;
+RBExDref = resultGUI.RBExDose;
+
+dose    = resultGUI_UCT.physicalDose;
+doseref = resultGUI.physicalDose;
+
+alpha    = resultGUI_UCT.alpha;
+alpharef = resultGUI.alpha;
+
+figure,
+plot(RBExD,'r'),hold on
+plot(RBExDref,'r:')
+plot(dose,'k')
+plot(doseref,'k:')
+plot(alpha,'b')
+plot(alpharef,'b:')
+
+
+
+yLimitRBE = [0 3.5];
+boxTargetX = [TargetEntry  TargetEntry+TargetLength  TargetEntry+TargetLength       TargetEntry ];
+boxTargetY = [0            0                         yLimitRBE(2)                yLimitRBE(2)];
 figure('units','normalized','outerposition',[0 0 1 1]),set(gcf,'Color',[1 1 1]) ,hold on
-H(1) = shadedErrorBar(Voxel.Position,[UCTresultGUI.RBExDose]',{@mean, @(x) 2*std(x)}, '-r',0);
-H(2) = shadedErrorBar(Voxel.Position,[UCTresultGUI.RBExDose]',{@mean, @(x) 1*std(x)}, '-g',0);
-H(3) = shadedErrorBar(Voxel.Position,[UCTresultGUI.RBExDose]',{@mean, @(x) 0.5*std(x)}, '-b',0);
-grid on,grid minor
-legend([H(3).mainLine, H.patch], '\mu','2\sigma','\sigma','0.5\sigma');
+p  = patch(boxTargetX,[0 0 yLimitRBE(2) yLimitRBE(2)],[.8 .8 .8]);set(p,'FaceAlpha',0.35,'LineStyle','none'),hold on;box on,
+H(1) = shadedErrorBar(Voxel.Position,[resultGUI_UCT.RBExDose]',{@mean, @(x) 2*std(x)}, '-r',0);
+H(2) = shadedErrorBar(Voxel.Position,[resultGUI_UCT.RBExDose]',{@mean, @(x) 1*std(x)}, '-g',0);
+H(3) = shadedErrorBar(Voxel.Position,[resultGUI_UCT.RBExDose]',{@mean, @(x) 0.5*std(x)}, '-b',0);hold on,
+Ha(1) = shadedErrorBar(Voxel.Position,[resultGUI_UCT.alpha]',{@mean, @(x) 2*std(x)}, '-r',0);
+Ha(2) = shadedErrorBar(Voxel.Position,[resultGUI_UCT.alpha]',{@mean, @(x) 1*std(x)}, '-g',0);
+Ha(3) = shadedErrorBar(Voxel.Position,[resultGUI_UCT.alpha]',{@mean, @(x) 0.5*std(x)}, '-b',0);hold on,
+h2 = plot(Voxel.Position,resultGUI.physicalDose,'k','LineWidth',2);grid on,grid minor
+legend([H(3).mainLine, H.patch, h2], {'$\mu$','$2\sigma$','$\sigma$','$0.5\sigma$','$d_{physical}$'},'Interpreter','Latex');
 xlabel('depth [mm]','Interpreter','Latex');
 ylabel('RBE x dose [Gy(RBE)]','Interpreter','Latex');
-title('C12 SOPB with varied $$\alpha_x$$ and $$\beta_x$$','Interpreter','Latex');
+title('C12 SOPB with varied $$\alpha_x$$','Interpreter','Latex');
 set(gca,'FontSize',20)
-hold on, plot(Voxel.Position,resultGUI.physicalDose,'k','LineWidth',2)
 
+filename  = ['C12_SOBP_cut' newStr '.tex'];
+latexPath = [exportPath filesep filename];
 
+if FLAG_SAVE && exist('matlab2tikz','file') == 2
+    cleanfigure;
+    matlab2tikz([latexPath],'height', '12cm', 'width', '21cm','showInfo',showInfoFlag,'standalone', true,...
+        'extraaxisoptions',extraAxisAptions);         
 
-
-figure,set(gcf,'Color',[1 1 1]), hold on
-Cnt = 1;
-for i = 1:8:tissue.Realisations
-    plot(Voxel.Position,[UCTresultGUI(i).RBExDose],'LineWidth',3);
-    str{Cnt} = [num2str(fix((1-(0.1./tissue.vAlphaUct(i))) * 100)) ' % ,' num2str(fix((1-(0.05./tissue.vBetaUct(i))) * 100)) ' % '];
-    Cnt = Cnt +1;
+    currPath = pwd; cd(exportPath);
+    if ispc  
+         command = sprintf('pdflatex %s',filename);
+    elseif ismac
+         command = sprintf('/Library/Tex/texbin/pdflatex %s',[filename]);
+    end
+    [status,cmdout] = system(command);
+    delete('*.aux');delete('*.log');
+    cd(currPath);
+    if status > 0
+        warning(['couldnt compile pdf: ' cmdout]);
+    end
 end
-
-legend(str),
-grid on, grid minor
-
     
     

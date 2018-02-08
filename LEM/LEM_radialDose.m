@@ -37,7 +37,7 @@ sRadiusMax_um = LEM_maxElectronRange(sEnergy,0);
 
 % lambda is a normalization constant which is adjusted so that the integral
 % over the whole track yields the LET
-rho = 1;
+rho     = 1;
 sLambda = 1/(pi*rho*(1+2*log(sRadiusMax_um/sRadiusMin_um))); 
 
 vRadialDose      = zeros(length(vRadiusGrid),1);

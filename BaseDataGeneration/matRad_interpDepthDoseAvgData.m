@@ -1,4 +1,4 @@
-function [ machine ] = matRad_interpDepthDoseAvgData( machine, sData,CNAOisUsed, visBool )
+function [ machine ] = matRad_interpDepthDoseAvgData( machine, sData,CNAOisUsed, vIxCellLines, visBool )
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad_interpDoseAvgBioData script
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -18,11 +18,23 @@ function [ machine ] = matRad_interpDepthDoseAvgData( machine, sData,CNAOisUsed,
 % required when CNAO data is used, as they are stored as dEdxA and
 % dEdxsqrtBeta. 
 
-h = waitbar(0,'Initializing waitbar...');
-NumCellLines = 23; %length(sData);
-Cnt = 1;
 
-for CntCell = 12:NumCellLines
+if ~exist('vIxCellLines','var')
+    vIxCellLines = 1:1:length(sData);
+    numCellLines = length(sData);
+else
+    numCellLines = length(vIxCellLines); 
+end
+
+
+
+
+
+Cnt          = 1;
+fprintf(['Interpolating base data for ' num2str(numCellLines) ' cell lines'])
+h = waitbar(0,'Initializing waitbar...');
+
+for CntCell = vIxCellLines
    
     % data need to be divided by the ddd in order to assess depth dose averaged 
     % alphas and betas
@@ -68,11 +80,11 @@ for CntCell = 12:NumCellLines
     
     for i = 1:length(machine.data)
         
-       E0 = machine.data(i).energy;
-       vE_SPC = [sData{1,CntCell}.energy];
-       [~,IdxAll]= sort(abs(vE_SPC-E0));
-       vIdx = sort(IdxAll(1:2));
-       vE = (vE_SPC(vIdx));
+       E0         = machine.data(i).energy;
+       vE_SPC     = [sData{1,CntCell}.energy];
+       [~,IdxAll] = sort(abs(vE_SPC-E0));
+       vIdx       = sort(IdxAll(1:2));
+       vE         = (vE_SPC(vIdx));
        
        vDepthLower = [sData{1,CntCell}(vIdx(1)).depths]./sData{1,CntCell}(vIdx(1)).peakPos;
        vDepthUpper = [sData{1,CntCell}(vIdx(2)).depths]./sData{1,CntCell}(vIdx(2)).peakPos;
@@ -85,18 +97,17 @@ for CntCell = 12:NumCellLines
              vDepth = unique(sort([vDepthLower vDepthUpper(AddIdx)]));
        end
      
-
+       vA = zeros (length(vDepth),1);
+       vB = zeros (length(vDepth),1);
+    
        for j = 1:length(vDepth)
     
-                vAlpha(1)  = interp1(vDepthLower,sData{1,CntCell}(vIdx(1)).alpha,vDepth(j));
-                vAlpha(2)  = interp1(vDepthUpper,sData{1,CntCell}(vIdx(2)).alpha,vDepth(j));
-                
-                vBeta(1)   = interp1(vDepthLower,sData{1,CntCell}(vIdx(1)).beta,vDepth(j));
-                vBeta(2)   = interp1(vDepthLower,sData{1,CntCell}(vIdx(2)).beta,vDepth(j));
-    
-           vA(j) = interp1(vE,vAlpha,E0);
-           vB(j) = interp1(vE,vBeta,E0);
-         
+          vAlpha(1)  = interp1(vDepthLower,sData{1,CntCell}(vIdx(1)).alpha,vDepth(j));
+          vAlpha(2)  = interp1(vDepthUpper,sData{1,CntCell}(vIdx(2)).alpha,vDepth(j));
+          vBeta(1)   = interp1(vDepthLower,sData{1,CntCell}(vIdx(1)).beta,vDepth(j));
+          vBeta(2)   = interp1(vDepthLower,sData{1,CntCell}(vIdx(2)).beta,vDepth(j));
+          vA(j) = interp1(vE,vAlpha,E0);
+          vB(j) = interp1(vE,vBeta,E0);
        end 
        
        interpPeakPos = interp1(vE,[sData{1,CntCell}(vIdx).peakPos],E0);
@@ -149,8 +160,8 @@ for CntCell = 12:NumCellLines
                   
         end
         
-        machine.data(1,i).alpha(:,Cnt)= interp1(vDepth.*interpPeakPos,vA,machine.data(1,i).depths,'linear','extrap');
-        machine.data(1,i).beta(:,Cnt) = interp1(vDepth.*interpPeakPos,vB,machine.data(1,i).depths,'linear','extrap');
+        machine.data(1,i).alpha(:,Cnt)  = interp1(vDepth.*interpPeakPos,vA,machine.data(1,i).depths,'linear','extrap');
+        machine.data(1,i).beta(:,Cnt)   = interp1(vDepth.*interpPeakPos,vB,machine.data(1,i).depths,'linear','extrap');
         machine.data(1,i).alphaX(1,Cnt) = sData{1,CntCell}.alphaX;
         machine.data(1,i).betaX(1,Cnt)  = sData{1,CntCell}.betaX;
         machine.data(1,i).alphaBetaRatio(:,Cnt) = unique([sData{1,CntCell}.alphaBetaRatio]);
@@ -162,7 +173,7 @@ for CntCell = 12:NumCellLines
         end      
     end
     Cnt = Cnt + 1;
-    waitbar(CntCell/NumCellLines,h,'interpolating ...');
+    waitbar(CntCell/numCellLines,h,'interpolating ...');
 end
 
 

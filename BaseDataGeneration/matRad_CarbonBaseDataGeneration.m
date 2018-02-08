@@ -28,8 +28,8 @@ close all
 
 %% set global path which is valid for all subsections
 
-pathTRiP   = '/Users/Hans-PeterWieser/Documents/Heidelberg/TRiP98DATA';
-matRadRoot = '/Users/Hans-PeterWieser/Documents/Heidelberg/matRad';
+pathTRiP   = 'C:\Users\wieserh\Documents\TRiP98DATA_HIT-20131120';
+matRadRoot = 'C:\Users\wieserh\Documents\matlab\matRad';
 
 %% define some meta information on how the base data set should be generated
 SisFocusIdx                 = 0;      % 0-> use no initalBeam, 1...7 determines the FocusIndex which should
@@ -84,7 +84,7 @@ save('RBE.mat','RBE');
 %% get dose averaged alpha and beta depth curves from the 37spc files, RBE
 % inital file and dEdx file using the rapidScholz algorithm
 pathToSPCFiles = [pathTRiP filesep 'SPC' filesep '12C' filesep 'RF3MM'];
-[ BioDataHIT ] = matRad_getDepthDoseAvgLQM(pathToSPCFiles,0);
+[ BioDataHIT ] = matRad_getDepthDoseAvgLQM(pathToSPCFiles,[],0);
 save('BioDataHIT.mat','BioDataHIT');
 
 %% interpolate each entry in the ddd the corresponding depth alpha and depth beta curve

@@ -155,8 +155,7 @@ plot(RBE(ixNormalTissue).C.Energy,RBE(ixNormalTissue).C.RBE * RBE(ixNormalTissue
 
 
 %%
-clc,clear,close all
-machineOrg = load('carbon_HIT.mat');
+machineOrg = load('carbon_HIT2.mat');
 machineOrg = machineOrg.machine;
 load('carbon_HIT_MYLEM.mat');
 
@@ -168,7 +167,7 @@ numAlpha = numel(ixAlphas);
 figure(),set(gcf,'Color',[1 1 1],'Units', 'normalized', 'Position', [0.1,0.1,0.8,0.8] ),
 for i = 1:numAlpha
     plot(machineOrg.data(ix).depths,machineOrg.data(ix).alpha(:,ixAlphas(i)),'LineWidth',2,'color',color.cube(i,:));grid on; hold on
-    plot(machine.data(ix).depths,machine.data(ix).alpha(:,ixAlphas(i)),'x','LineWidth',1,'color',color.cube(i,:));
+    plot(machine.data(ix).depths(1:2:end),machine.data(ix).alpha(1:2:end,ixAlphas(i)),'x','LineWidth',2,'color',color.cube(i,:));
 end
 
 xlabel('z[mm]','Interpreter','Latex');
@@ -198,7 +197,58 @@ end
 
 
 
+%% 
+filename  = ['LEM_comparisonRBEini_' machine.meta.machine '.tex'];
+latexPath = [exportPath filesep filename];
 
+RBE = load('RBE');
+RBE_HIT = RBE.RBE;
+load('RBE_LEM1.mat');
+
+part     = 'C';
+
+figure(),set(gcf,'Color',[1 1 1],'Units', 'normalized', 'Position', [0.1,0.1,0.8,0.8] )
+ixTissue = 1;
+h1 = plot(RBE(ixTissue).(part).Energy,RBE(ixTissue).(part).RBE,'LineWidth',2,'color',color.dkfzdB);hold on
+h2 = plot(RBE_HIT(ixTissue).(part).Energy,RBE_HIT(ixTissue).(part).RBE,'x','LineWidth',2,'color',color.dkfzdB); set(gca,'xScale','log'),grid on,grid minor,
+
+ixTissue = 3;
+h3 = plot(RBE(ixTissue).(part).Energy,RBE(ixTissue).(part).RBE,'LineWidth',2,'color',color.dre);hold on
+h4 = plot(RBE_HIT(ixTissue).(part).Energy,RBE_HIT(ixTissue).(part).RBE,'x','LineWidth',2,'color',color.dre); set(gca,'xScale','log'),grid on,grid minor,
+
+ixTissue = 5;
+h5 = plot(RBE(ixTissue).(part).Energy,RBE(ixTissue).(part).RBE,'LineWidth',2,'color',color.gre);,hold on
+h6 = plot(RBE_HIT(ixTissue).(part).Energy,RBE_HIT(ixTissue).(part).RBE,'x','LineWidth',2,'color',color.gre); set(gca,'xScale','log'),grid on,grid minor,
+
+legend([h1 h2 h3 h4 h5 h6],{'$\frac{\alpha_x}{\beta_x}=1$','$\frac{\alpha_x}{\beta_x}=1$; HIT',...
+                            '$\frac{\alpha_x}{\beta_x}=3$','$\frac{\alpha_x}{\beta_x}=3$; HIT',...
+                            '$\frac{\alpha_x}{\beta_x}=5$','$\frac{\alpha_x}{\beta_x}=5$; HIT'},'Interpreter','Latex')
+
+xlabel('energy [MeV]','Interpreter','Latex');
+ylabel('$RBE_{ini}$','Interpreter','Latex');
+title('$RBE_{ini}$ of carbon particles for different tissu types','Interpreter','Latex')
+set(gca,'FontSize',20)
+
+if FLAG_SAVE && exist('matlab2tikz','file') == 2
+    cleanfigure;
+    matlab2tikz([latexPath],'height', '16cm', 'width', '21cm','showInfo',showInfoFlag,'standalone', true,...
+        'extraaxisoptions',extraAxisAptions);         
+
+    currPath = pwd; cd(exportPath);
+    if ispc  
+         command = sprintf('pdflatex %s',filename);
+    elseif ismac
+         command = sprintf('/Library/Tex/texbin/pdflatex %s',[filename]);
+    end
+    [status,cmdout] = system(command);delete('*.aux');delete('*.log'); cd(currPath);
+    if status > 0
+        warning(['couldnt compile pdf: ' cmdout]);
+    end
+end
+
+
+
+%%
 
 
 

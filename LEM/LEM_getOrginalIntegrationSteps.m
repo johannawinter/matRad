@@ -16,23 +16,23 @@ function [ rGrid ] = LEM_getOrginalIntegrationSteps(r_min, r_max,visBool )
 
 
     rGrid = 0;
-	log_step_factor		= 1.005; % equals 0.5 %
-	lin_step_width  	= 0.003; % equals 5nm
-	r_trans         	= 0.50;  % transition between log and lin steps
+	log_step_factor		= 1.003; % equals 0.5 %
+	lin_step_width  	= 0.004; % equals 5nm
+	r_trans         	= 0.35;  % transition between log and lin steps
                                  % currently at 0.5 um
                                  
-    linGrid = [];
-    logGrid = [];
+    linGrid    = [];
+    logGrid    = [];
     logGrid(1) = r_min;
     
     %
-	if r_min < r_trans && r_trans < r_max
+   if r_min < r_trans && r_trans < r_max
          n_log_steps = floor(log(r_trans/r_min)/log(log_step_factor));
-    elseif r_min < r_trans && r_trans > r_max  
+   elseif r_min < r_trans && r_trans > r_max  
          n_log_steps = floor(log(r_max/r_min)/log(log_step_factor));
-    else 
+   else 
          n_log_steps = 0;
-    end
+   end
    % create log grid
    for j = 1 : n_log_steps
        logGrid(j+1) =  logGrid(j) * log_step_factor;

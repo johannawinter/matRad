@@ -1,4 +1,4 @@
-function [ sData ] = matRad_getDepthDoseAvgLQM(PathToSPC,visBool)
+function [ sData ] = matRad_getDepthDoseAvgLQM(PathToSPC,RBE,visBool)
 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad fucntion to generate depth depended dose averaged radiosensitivity parameter
@@ -32,7 +32,9 @@ function [ sData ] = matRad_getDepthDoseAvgLQM(PathToSPC,visBool)
 
 %% load data
 load('dEdx.mat');
-load('RBE.mat');
+if ~exist('RBE','var')
+    load('RBE.mat');
+end
 h = waitbar(0,'generating depth depended dose averaged alpha and beta curves (LQM) ...');
 
 %% get alphas and betas
@@ -85,7 +87,7 @@ for jCell = 1:length(RBE)
       beta_Z_rapid  = zeros(length(vDepth),1);
       dose_Z        = zeros(length(vDepth),1);
         
-      for ixDepth = 1:length(vDepth); 
+      for ixDepth = 1:length(vDepth)
         
         Fluence                = (SPC.data(ixDepth).(Particle).N);
         SP_interp              = interp1(dEdx.(Particle).Energy,dEdx.(Particle).dEdx,...

@@ -17,7 +17,8 @@
 
 clc
 clear
-close all
+%close all
+
 %% define paths paths
 matRadDir = ['C:\Users\wieserh\Documents\matlab\matRad'];
 TRiPdir = 'C:\Users\wieserh\Documents\TRiP98DATA_HIT-20131120';
@@ -25,7 +26,7 @@ addpath(matRadDir);
 
 %% if biological base data does not exist - create it
 if ~exist('RBE.mat','file') || ~exist('metadEdx.mat','file') ||  ~exist('dEdx.mat','file')
-    RBEinitial       = matRad_readRBE(TRiPdir);
+    RBE              = matRad_readRBE(TRiPdir);
     [metadEdx,dEdx]  = matRad_readdEdx(TRiPdir);
     save('RBE','RBE')
     save('metadEdx','metadEdx');
@@ -36,13 +37,12 @@ else
     load('metadEdx');
 end
 
-
 %% get tiusse parameters - LEM input
 [tissue] = LEM_getTissueParameter('V79'); % V79 % CHO
 
 %% set meta parameters
 visBool           = 0;
-Particle          = 'H';  % choose a particle type {'H','He','Li','Be','B','C'};
+Particle          = 'C';  % choose a particle type {'H','He','Li','Be','B','C'};
 MaterialRho       = 1;
 vNumParticles     = [1];   % number of one random traversal - multiple travelersals is not yet implemented
 % number of energy values for which cell survival should be calculated  
@@ -67,7 +67,7 @@ ExpSurvival = struct;
 
 %loop over all energies
 for IdxE =  1:length(vEnergy)
-        
+       
         NumParticles = 1;
         LET_MeVcm2_g = dEdx.(Particle).dEdx((dEdx.(Particle).Energy == vEnergy(IdxE)));   
         %determine the maximal range of delta electrons = ion track radius
@@ -125,7 +125,7 @@ for IdxE =  1:length(vEnergy)
                 title('cell suvival of one particle traversal','Interpreter','Latex')
                 strPlot1{IdxE} = ['expectecd survival: ' num2str(AvgCellSuvival)];
                 strPlot2{IdxE} = ...
-                    [ num2str(vEnergy(IdxE)) ' MeV; NumPart: ' num2str(vNumParticles(IdxPart)) '; Dose: ' num2str( Dose_Gy(IdxPart)) ];
+                    [ num2str(vEnergy(IdxE)) ' MeV; NumPart: ' num2str(vNumParticles(idxPart)) '; Dose: ' num2str( Dose_Gy(idxPart)) ];
 
                 subplot(122),plot(h,vImpactParameter,vBioEffect,'LineWidth',3),grid on, grid minor
                 xlabel('impact parameter in µm'),ylabel('biological effect of one particle');hold on
@@ -139,18 +139,25 @@ close(h);
 
 
 %% calculate cell survival just for one central traversal
+round2 = @(a,b)round(a*10^b)/10^b;
+
+
 Cnt                 = 1;
 ExpSurvivalCentTrav = struct;
 
  for IdxE = 1:length(vEnergy)
 
-    [~,idx] = min(abs(dEdx.(Particle).Energy-vEnergy(IdxE)));
+    if vEnergy(IdxE) > 300
+        a =2;
+    end
+    
+    idx          = find(round2(vEnergy(IdxE),4) == round2([dEdx.(Particle).Energy],4));
     LET_MeVcm2_g = dEdx.(Particle).dEdx(idx);
     
-    for IdxPart = 1:length(vNumParticles)
+    for idxPart = 1:length(vNumParticles)
 
         AreaTarget_cm2 = (pi*(tissue.RadiusTarget_um)^2)* 1e-8;
-        Dose_Gy(IdxE)  = LEM_LET2Dose(LET_MeVcm2_g, vNumParticles(IdxPart), AreaTarget_cm2); 
+        Dose_Gy(IdxE)  = LEM_LET2Dose(LET_MeVcm2_g, vNumParticles(idxPart), AreaTarget_cm2); 
   
         %determine the maximal range of delta electrons = ion track radius
         RadiusTrack_um = LEM_maxElectronRange(vEnergy(IdxE),0);
@@ -162,18 +169,18 @@ ExpSurvivalCentTrav = struct;
                                    RadiusTrack_um,tissue,...
                                    vEnergy(IdxE), ...
                                    dEdx.(Particle),....
-                                   vNumParticles(IdxPart),...
+                                   vNumParticles(idxPart),...
                                    LET_MeVcm2_g,visBool);
         
         % calculate the survival propability
         AvgCellSuvival = exp(-(vBioEffect));
 
-        ExpSurvivalCentTrav(Cnt).NumPart    = vNumParticles(IdxPart);
+        ExpSurvivalCentTrav(Cnt).NumPart    = vNumParticles(idxPart);
         ExpSurvivalCentTrav(Cnt).Dose       = Dose_Gy(IdxE);
         ExpSurvivalCentTrav(Cnt).S          = AvgCellSuvival;
         ExpSurvivalCentTrav(Cnt).Energy     = vEnergy(IdxE);
-        ExpSurvivalCentTrav(Cnt).alpha_z   = vBioEffect/Dose_Gy(IdxE);
-        ExpSurvivalCentTrav(Cnt).beta_z    = (tissue.Smax-ExpSurvivalCentTrav(Cnt).alpha_z)/(2*tissue.sDcut);
+        ExpSurvivalCentTrav(Cnt).alpha_z    = vBioEffect/Dose_Gy(IdxE);
+        ExpSurvivalCentTrav(Cnt).beta_z     = (tissue.Smax-ExpSurvivalCentTrav(Cnt).alpha_z)/(2*tissue.sDcut);
         
         ExpSurvivalCentTrav(Cnt).LET_MeVcm2_g = LET_MeVcm2_g;
                                              
@@ -197,9 +204,9 @@ Cnt = 1;
     [~,idx]      = min(abs(dEdx.(Particle).Energy-vEnergy(IdxE)));
     LET_MeVcm2_g = dEdx.(Particle).dEdx(idx);
     
-    for IdxPart = 1:length(vNumParticles)
+    for idxPart = 1:length(vNumParticles)
         
-        Dose_Gy(IdxE)  = LEM_LET2Dose(LET_MeVcm2_g, vNumParticles(IdxPart), pi*((tissue.RadiusTarget_um*1e-4)^2)); 
+        Dose_Gy(IdxE)  = LEM_LET2Dose(LET_MeVcm2_g, vNumParticles(idxPart), pi*((tissue.RadiusTarget_um*1e-4)^2)); 
         N_te(IdxE)     = LEM_Dose2CntHits(Dose_Gy(IdxE),LET_MeVcm2_g,pi*((tissue.RadiusTarget_um*1e-4)^2));
 
         %determine the maximal range of delta electrons = ion track radius
@@ -220,14 +227,14 @@ Cnt = 1;
                                             RadiusTrack_um,tissue,...
                                             vEnergy(IdxE), ...
                                             dEdx.(Particle),....
-                                            vNumParticles(IdxPart),...
+                                            vNumParticles(idxPart),...
                                             LET_MeVcm2_g,visBool);
         end
 
         % calculate the survival propability
         AvgCellSuvival = exp(-mean(vBioEffect));
 
-        ExpSurvivalMonteCarlo(Cnt).NumPart    = vNumParticles(IdxPart);
+        ExpSurvivalMonteCarlo(Cnt).NumPart    = vNumParticles(idxPart);
         ExpSurvivalMonteCarlo(Cnt).Dose       = Dose_Gy(IdxE);
         ExpSurvivalMonteCarlo(Cnt).S          = AvgCellSuvival;
         ExpSurvivalMonteCarlo(Cnt).Energy     = vEnergy(IdxE);
@@ -243,7 +250,15 @@ Cnt = 1;
 [~,ABratioIdx] = min(abs(([RBE.alpha]./ [RBE.beta]) - tissue.sAlphaBetaRatio));
 
 alpha_z     = RBE(ABratioIdx).(Particle).RBE * RBE(1).alpha;
-[alpha_D,~] = matRad_rapidScholz(RBE,dEdx,Particle,tissue,RBE(ABratioIdx).(Particle).Energy,alpha_z,[])
+[alpha_D,~] = matRad_rapidScholz(RBE,dEdx,Particle,tissue,RBE(ABratioIdx).(Particle).Energy,alpha_z,[]);
+
+
+
+figure, set(gcf,'Color',[1 1 1]); 
+plot(RBE(ABratioIdx).(Particle).Energy,alpha_z,'r-','LineWidth',4),hold on
+plot([ExpSurvival.Energy],[ExpSurvivalCentTrav.alpha_z],'bx','LineWidth',2),hold on,
+%plot([ExpSurvival.Energy],[ExpSurvival.alpha_TE],'kx','LineWidth',2)
+grid on, grid minor,set(gca,'xScale','log')
 
 figure, set(gcf,'Color',[1 1 1]); 
 plot(RBE(ABratioIdx).(Particle).Energy,alpha_z,'r-','LineWidth',4),hold on
@@ -353,9 +368,9 @@ legend({'analytical','MC','central traversal'})
 %     [~,idx] = min(abs(dEdx.(Particle).Energy-vEnergy(IdxE)));
 %     LET_MeVcm2_g = dEdx.(Particle).dEdx(idx);
 %     
-%     for IdxPart = 1:length(vNumParticles)
+%     for idxPart = 1:length(vNumParticles)
 %         
-%         Dose_Gy(IdxE)  = LEM_LET2Dose(LET_MeVcm2_g, vNumParticles(IdxPart), pi*((tissue.RadiusTarget_um*1e-4)^2)); 
+%         Dose_Gy(IdxE)  = LEM_LET2Dose(LET_MeVcm2_g, vNumParticles(idxPart), pi*((tissue.RadiusTarget_um*1e-4)^2)); 
 %         N_te(IdxE)     = LEM_Dose2CntHits(Dose_Gy(IdxE),LET_MeVcm2_g,pi*((tissue.RadiusTarget_um*1e-4)^2));
 % 
 %         %initialize bio effet vector
@@ -367,7 +382,7 @@ legend({'analytical','MC','central traversal'})
 %         UpperLim = tissue.RadiusTarget_um + RadiusTrack_um ;
 %         LowerLim = 0;
 %         vImpactParameter = [];
-%         for j = 1:vNumParticles(IdxPart)
+%         for j = 1:vNumParticles(idxPart)
 %             vImpactParameter(:,j) = ( UpperLim - LowerLim) .* rand(CntRuns,1) + LowerLim;
 %         end
 %         % assess for each spatial configuration(impact parameter) the
@@ -375,13 +390,13 @@ legend({'analytical','MC','central traversal'})
 %         for i = 1:length(vImpactParameter)
 %          vBioEffect(i) = LEM_multipleHIT( vImpactParameter(i,:), tissue.RadiusTarget_um, ...
 %                                         RadiusTrack_um,tissue,vEnergy(IdxE), ...
-%                                         dEdx.(Particle),vNumParticles(IdxPart),0);
+%                                         dEdx.(Particle),vNumParticles(idxPart),0);
 %         end
 % 
 %         % calculate the survival propability
 %         AvgCellSuvival = exp(-mean(vBioEffect));
 % 
-%         ExpSurvivalMonteCarlo(Cnt).NumPart = vNumParticles(IdxPart);
+%         ExpSurvivalMonteCarlo(Cnt).NumPart = vNumParticles(idxPart);
 %         ExpSurvivalMonteCarlo(Cnt).Dose    = Dose_Gy(IdxE);
 %         ExpSurvivalMonteCarlo(Cnt).S       = AvgCellSuvival;
 %         ExpSurvivalMonteCarlo(Cnt).Energy  = vEnergy(IdxE);

@@ -18,7 +18,7 @@ function [ alpha_ion_rapid,beta_ion_rapid ] = matRad_rapidScholz(RBE,dEdx,Partic
       Anuc = (pi*(tissue.RadiusTarget_um^2))/(10000^2); 
       Smax = tissue.sAlphaX+(2*tissue.sBetaX)*tissue.sDcut;
       
-      [val,idx] = min(abs(([RBE.alpha]./[RBE.beta]-tissue.sAlphaBetaRatio)));
+      [val,idx] = min(abs(([tissue.sAlphaX]./[tissue.sBetaX]-tissue.sAlphaBetaRatio)));
       RBEcellLine = RBE(idx);
       if nargin < 6
           alpha_ion = (RBEcellLine.(Particle).RBE.*tissue.sAlphaX);
@@ -34,7 +34,7 @@ function [ alpha_ion_rapid,beta_ion_rapid ] = matRad_rapidScholz(RBE,dEdx,Partic
       alpha_ion_rapid = (1-S1)./d1;
       if nargin > 6 && ~isempty(beta_ion)
           f = alpha_ion_rapid./alpha_ion;
-          beta_ion_rapid=(f.^2).*beta_ion;
+          beta_ion_rapid = (f.^2) .* beta_ion;
       else
           beta_ion_rapid = [];
       end
