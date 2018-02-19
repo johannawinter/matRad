@@ -39,6 +39,9 @@ function [voiContourHandles] = matRad_plotVoiContourSlice(axesHandle,cst,ct,ctIn
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+addpath('tools')
+[env, ~] = matRad_getEnvironment();
+
 % overwrite colormap
 if exist('cMap', 'var') && ~isempty(cMap)
     cMapScale = size(cMap,1)-1;
@@ -55,6 +58,13 @@ if isempty(selection) || numel(selection) ~= size(cst,1)
 end
 
 voiContourHandles = cell(0);
+switch env
+    case 'MATLAB'
+        voiContourHandles = gobjects(0);
+    case 'OCTAVE'
+        voiContourHandles = [];
+end
+
 
 for s = 1:size(cst,1)
     
@@ -65,11 +75,7 @@ for s = 1:size(cst,1)
             C = cst{s,7}{slice,plane};
         else
             %If we do not have precomputed contours available, then compute them
-            if ~isstruct(ct)
-                mask = zeros(size(ct{ctIndex}));
-            else
-                mask = zeros(ct.cubeDim);
-            end
+            mask = zeros(size(ct{ctIndex}));
             mask(cst{s,4}{ctIndex}) = 1;
             
             if plane == 1 && any(any(mask(slice,:,:) > 0))
@@ -82,8 +88,15 @@ for s = 1:size(cst,1)
         end
         
         % plot precalculated contourc data
-        tmpLineHandle = gobjects(0);
-        if any(C(:))
+        
+         switch env
+            case 'MATLAB'
+                tmpLineHandle = gobjects(0);
+            case 'OCTAVE'
+                tmpLineHandle = [];
+         end
+
+         if any(C(:))
             lower = 1; % lower marks the beginning of a section
             while lower-1 ~= size(C,2)
                 hold on
@@ -95,14 +108,14 @@ for s = 1:size(cst,1)
                 lower = lower+steps+1;
             end
             voiContourHandles{end+1} = tmpLineHandle;
-        else
+         else
             % create empty line object
             voiContourHandles{end+1} = {};
-        end     
+         end     
 
-            
-        
+               
     end
 end
+
 
 end
