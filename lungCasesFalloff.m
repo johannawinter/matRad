@@ -13,7 +13,7 @@ testPlots = 1;
 load('C:\Matlab\HIT-Lung\H03368\1_field\results_1fields_P256')
 % load('C:\Matlab\HIT-Lung\S00003\2_fields\results_2fields_P256')
 % load('C:\Matlab\HIT-Lung\S00002\results_3fields_P256')
-% load('C:\Matlab\HIT-Lung\S00001\results_3fields_P256.mat')
+% load('C:\Matlab\HIT-Lung\S00001\results_3fields_P256')
 
 patientID = 'H03368';
 % patientID = 'S00003';
