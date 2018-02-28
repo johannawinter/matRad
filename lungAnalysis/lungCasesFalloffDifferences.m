@@ -53,6 +53,9 @@ for i = 1:size(z8020,1)         % loop over all patients / plans
         if ~isempty(z8020{i,j})
             tmp = cat(3, z8020{i,j}.z8020(:,3), -z8020{i,j}.z8020(:,2));        % hetero - matRad
             deltaZ8020{i,j} = sum(tmp,3,'omitnan');
+            
+            % remove 0-values as they come from NaNs in z8020
+            deltaZ8020{i,j}(deltaZ8020{i,j} == 0) = NaN;
         end
     end
 end

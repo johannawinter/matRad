@@ -9,8 +9,10 @@ close all
 
 %% prepare patient data
 % load treatment case with all dose distributions, only 1 field
-load('C:\Matlab\HIT-Lung\H03368\1_field\results_1fields_P256')
+% load('C:\Matlab\HIT-Lung\H03368\1_field\results_1fields_P256')
+% load('C:\Matlab\HIT-Lung\H03368\1_field\ctGrid\results_1fields_P256')
 % load('C:\Matlab\HIT-Lung\H03368\2_fields\results_2fields_P256')
+load('C:\Matlab\HIT-Lung\H03368\2_fields\ctGrid\results_2fields_P256')
 % load('C:\Matlab\HIT-Lung\S00003\2_fields\results_2fields_P256')
 % load('C:\Matlab\HIT-Lung\S00003\3_fields\results_3fields_P256')
 % load('C:\Matlab\HIT-Lung\S00002\results_3fields_P256')
@@ -41,9 +43,9 @@ end
 
 % get dose cubes
 if completeDoseDistribution
-    doseCube{1} = resultGUI.RBExDose;           % Original
-    doseCube{2} = resultGUI.matRadRecalc;       % Recalculated
-    doseCube{3} = resultGUI.matRadHeteroRecalc; % Heterogeneity Correction
+    doseCube{1} = resultGUI.RBExDose;                       % Original
+    doseCube{2} = resultGUI.matRadRecalc_RBExDose;          % Recalculated
+    doseCube{3} = resultGUI.matRadHeteroRecalc_RBExDose;	% Heterogeneity Correction
 else
     doseCube{1} = resultGUI.RBExDose_BEAM_4;     % Original for patient S00002
     warning('Falloff analysis for separate beams not implemented yet.')
@@ -251,7 +253,7 @@ save(['C:\Matlab\HIT-Lung_falloff\' patientID '\results_falloff'],...
     'patientID','beam','cst','ct','pln','resultGUI','stf',...
     'lungCube','doseCube',...
     'coordsInterpRad','ddInterpRadValue',...
-    'prescDose','z8020','cutRays')
+    'prescDose','z8020','cutRays','-v7.3')
 
 save(['C:\Matlab\HIT-Lung_falloff\' patientID '\z8020'],...
     'z8020')
@@ -261,68 +263,66 @@ savefig(cutRaysFig, ['C:\Matlab\HIT-Lung_falloff\' patientID '\cutRays.fig'])
 savefig(histogramFig, ['C:\Matlab\HIT-Lung_falloff\' patientID '\falloffHistogram.fig'])
 
 
-
-
 %% Analysis 
-%% find chest thickness, lung thickness and target size along central ray
-% find ray corresponding to isocenter
-cnt = 1;
-for i = 1:length(stf(beam).ray)
-    if abs(stf(beam).ray(i).rayPos_bev) <= [.1 .1 .1]
-        isocenterRay(cnt) = i;
-        cnt = cnt + 1;
-    end
-end
-
-% perform Siddon ray tracing along central ray
-[~,l,rho,~,ix] = matRad_siddonRayTracer(stf(beam).isoCenter, ...
-    ct.resolution, ...
-    stf(beam).sourcePoint, ...
-    stf(beam).ray(isocenterRay).targetPoint, ...
-    [{ct.cube{1}},{lungCube},{doseCube{1}},{doseCube{2}},{doseCube{3}}]);
-
-% Calculate geometrical, radiological and lung depth
-geomDepth = cumsum(l) - l/2;
-
-d = [0 l.*rho{1}];
-radDepth = cumsum(d(1:end-1));
-
-dLung = [0 l.*rho{2}];
-lungDepth = cumsum(dLung(1:end-1));
-
-
-% plot geom depth and geom lung depth vs. rad depth
-geomDepthRadFig = figure;
-title(['Geometrical depth vs. radiological depth along central ray ' num2str(isocenterRay)])
-hold on
-plot(radDepth,geomDepth)
-plot(radDepth,lungDepth)
-legend('geom depth','geom lung depth')
-xlabel('radiological depth [mm]')
-ylabel('geometrical depth [mm]')
-grid on
-grid minor
-box on
-
-
-% asses target and CTV coordinates
-tmpPrior = intmax;
-tmpSize = 0;
-for i = 1:size(cst,1)
-    if strcmp(cst{i,2},'PTV')
-        linIdxPtv = cst{i,4}{1};
-    elseif strfind(cst{i,2},'PTV') > 0
-        linIdxPtv = cst{i,4}{1};
-    end
-end
-
-% plot PTV boundaries
-mPtvCube = zeros(ct.cubeDim);
-mPtvCube(linIdxPtv) = 1;
-vProfilePtv = mPtvCube(ix);
-radPtvEntry = radDepth(find(vProfilePtv,1));
-radPtvExit  = radDepth(find(vProfilePtv,1,'last'));
-radPtvSize  = radPtvExit - radPtvEntry
-
-plot([radPtvEntry radPtvEntry],[0 600],'k--')
-plot([radPtvExit radPtvExit],[0 600],'k--')
+% %% find chest thickness, lung thickness and target size along central ray
+% % find ray corresponding to isocenter
+% cnt = 1;
+% for i = 1:length(stf(beam).ray)
+%     if abs(stf(beam).ray(i).rayPos_bev) <= [.1 .1 .1]
+%         isocenterRay(cnt) = i;
+%         cnt = cnt + 1;
+%     end
+% end
+% 
+% % perform Siddon ray tracing along central ray
+% [~,l,rho,~,ix] = matRad_siddonRayTracer(stf(beam).isoCenter, ...
+%     ct.resolution, ...
+%     stf(beam).sourcePoint, ...
+%     stf(beam).ray(isocenterRay).targetPoint, ...
+%     [{ct.cube{1}},{lungCube},{doseCube{1}},{doseCube{2}},{doseCube{3}}]);
+% 
+% % Calculate geometrical, radiological and lung depth
+% geomDepth = cumsum(l) - l/2;
+% 
+% d = [0 l.*rho{1}];
+% radDepth = cumsum(d(1:end-1));
+% 
+% dLung = [0 l.*rho{2}];
+% lungDepth = cumsum(dLung(1:end-1));
+% 
+% 
+% % plot geom depth and geom lung depth vs. rad depth
+% geomDepthRadFig = figure;
+% title(['Geometrical depth vs. radiological depth along central ray ' num2str(isocenterRay)])
+% hold on
+% plot(radDepth,geomDepth)
+% plot(radDepth,lungDepth)
+% legend('geom depth','geom lung depth')
+% xlabel('radiological depth [mm]')
+% ylabel('geometrical depth [mm]')
+% grid on
+% grid minor
+% box on
+% 
+% 
+% % asses target and CTV coordinates
+% tmpPrior = intmax;
+% tmpSize = 0;
+% for i = 1:size(cst,1)
+%     if strcmp(cst{i,2},'PTV')
+%         linIdxPtv = cst{i,4}{1};
+%     elseif strfind(cst{i,2},'PTV') > 0
+%         linIdxPtv = cst{i,4}{1};
+%     end
+% end
+% 
+% % plot PTV boundaries
+% mPtvCube = zeros(ct.cubeDim);
+% mPtvCube(linIdxPtv) = 1;
+% vProfilePtv = mPtvCube(ix);
+% radPtvEntry = radDepth(find(vProfilePtv,1));
+% radPtvExit  = radDepth(find(vProfilePtv,1,'last'));
+% radPtvSize  = radPtvExit - radPtvEntry
+% 
+% plot([radPtvEntry radPtvEntry],[0 600],'k--')
+% plot([radPtvExit radPtvExit],[0 600],'k--')
