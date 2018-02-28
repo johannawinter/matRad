@@ -102,8 +102,8 @@ cst{5,6}.penalty = 40;
 
 
 %% optimization without lung heterogeneity
-matRad;
-resultGUI = matRad_calcDoseDirect(ct,stf,pln,cst,resultGUI.w);
+matRad
+% resultGUI = matRad_calcDoseDirect(ct,stf,pln,cst,resultGUI.w);
 
 resultGUI.physicalDose_noHeterogeneity = resultGUI.physicalDose;
 
@@ -111,7 +111,7 @@ resultGUI.physicalDose_noHeterogeneity = resultGUI.physicalDose;
 coords_matRad = 1:1:250;       % [mm*2]
 coords_spline = .05:.0005:250;       % [mm*2]
 
-dd_0 = resultGUI.physicalDose_noHeterogeneity(round(pln.isoCenter(2)/2), :, round(pln.isoCenter(3)/2));
+dd_0 = resultGUI.physicalDose_noHeterogeneity(round(pln.propStf.isoCenter(2)/2), :, round(pln.propStf.isoCenter(3)/2));
 dd_0_spline = spline(coords_matRad,dd_0,coords_spline);
 
 % calculate falloff 80%-20%
@@ -146,7 +146,7 @@ cst{4,5}.HeterogeneityCorrection = 'Lung';
 resultGUI_lung = matRad_calcDoseDirect(ct,stf,pln,cst,resultGUI.w);
 resultGUI.physicalDose_Lung = resultGUI_lung.physicalDose;
 
-dd_lung = resultGUI.physicalDose_Lung(round(pln.isoCenter(2)/2), :, round(pln.isoCenter(3)/2));
+dd_lung = resultGUI.physicalDose_Lung(round(pln.propStf.isoCenter(2)/2), :, round(pln.propStf.isoCenter(3)/2));
 dd_lung_spline = spline(coords_matRad,dd_lung,coords_spline);
 
 if plotDD
