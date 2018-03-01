@@ -11,21 +11,25 @@ close all
 % load treatment case with all dose distributions, only 1 field
 % load('C:\Matlab\HIT-Lung\H03368\1_field\results_1fields_P256')
 % load('C:\Matlab\HIT-Lung\H03368\1_field\ctGrid\results_1fields_P256')
+% load('C:\Matlab\HIT-Lung\H03368\1_field\doseGrid\results_1fields_P256')
 % load('C:\Matlab\HIT-Lung\H03368\2_fields\results_2fields_P256')
-load('C:\Matlab\HIT-Lung\H03368\2_fields\ctGrid\results_2fields_P256')
+% load('C:\Matlab\HIT-Lung\H03368\2_fields\ctGrid\results_2fields_P256')
+% load('C:\Matlab\HIT-Lung\H03368\2_fields\doseGrid\results_2fields_P256')
 % load('C:\Matlab\HIT-Lung\S00003\2_fields\results_2fields_P256')
 % load('C:\Matlab\HIT-Lung\S00003\3_fields\results_3fields_P256')
 % load('C:\Matlab\HIT-Lung\S00002\results_3fields_P256')
 % load('C:\Matlab\HIT-Lung\S00001\results_3fields_P256')
 % load('C:\Matlab\HIT-Lung\H04889\results_2fields_P256')
+load('C:\Matlab\HIT-Lung\S00004\results_3fields_P256')
 
-patientID = 'H03368';
+% patientID = 'H03368';
 % patientID = 'S00003';
 % patientID = 'S00002';
 % patientID = 'S00001';
 % patientID = 'H04889';
+patientID = 'S00004';
 
-beam = 1;                       % choose which field to be analyzed
+beam = 3;                       % choose which field to be analyzed
 completeDoseDistribution = 1;   % chose if falloff of complete dose distribution should be analyzed (1) or not (0)
 
 % get ct cube
@@ -215,9 +219,9 @@ histogramFig = figure;
 subplot(311)
 hold on
 histogram(z8020(:,1),'binWidth',1)
-plot([z8020median(1) z8020median(1)], [0 20],'r','Linewidth',2)
-title(['Histogram for falloff values, case ' patientID ', 1 field, original dose'])
-% title(['Histogram for falloff values, case ' patientID ', beam ' num2str(beam) ', original dose'])
+plot([z8020median(1) z8020median(1)], [0 40],'r','Linewidth',2)
+% title(['Histogram for falloff values, case ' patientID ', 1 field, original dose'])
+title(['Histogram for falloff values, case ' patientID ', beam ' num2str(beam) ', original dose'])
 legend('falloff values', ['median = ' num2str(z8020median(1),'%.1f') ' mm'])
 xlim([0 ceil(max(z8020(:)))])
 xticks(0:2:ceil(max(z8020(:))))
@@ -227,7 +231,7 @@ ylabel('counts')
 subplot(312)
 hold on
 histogram(z8020(:,2),'binWidth',1)
-plot([z8020median(2) z8020median(2)], [0 20],'r','Linewidth',2)
+plot([z8020median(2) z8020median(2)], [0 40],'r','Linewidth',2)
 title('matRad recalculated dose')
 legend('falloff values', ['median = ' num2str(z8020median(2),'%.1f') ' mm'])
 xlim([0 ceil(max(z8020(:)))])
@@ -238,7 +242,7 @@ ylabel('counts')
 subplot(313)
 hold on
 histogram(z8020(:,3),'binWidth',1)
-plot([z8020median(3) z8020median(3)], [0 20],'r','Linewidth',2)
+plot([z8020median(3) z8020median(3)], [0 40],'r','Linewidth',2)
 title('matRad recalculated dose with heterogeneity correction')
 legend('falloff values', ['median = ' num2str(z8020median(3),'%.1f') ' mm'])
 xlim([0 ceil(max(z8020(:)))])
