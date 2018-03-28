@@ -58,9 +58,9 @@ tissue.RadiusTarget_um = 5; % µm
 tissue.sAlphaBetaRatio = tissue.sAlphaX / tissue.sBetaX;
 
 %% define uncertainties
-tissue.Realisations = 2;
+tissue.Realisations = 25;
 
-tissue.sAlphaXvar   = tissue.sAlphaX*0;%;0.1;
+tissue.sAlphaXvar   = tissue.sAlphaX*0.5;%;0.1;
 tissue.vAlphaUct    = ((randn(tissue.Realisations,1)*tissue.sAlphaXvar) + tissue.sAlphaX);
 tissue.sAlphaXnom   = tissue.sAlphaX;
 %hist(tissue.vAlphaUct);
@@ -158,7 +158,7 @@ for IdxReal = 1:tissue.Realisations
                 RBEown(IdxReal).(Particle{IdxPart}).betaZ);   
  
      RBEown(IdxReal).(Particle{IdxPart}).alphaD = alphaD;
-     RBEown(IdxReal).(Particle{IdxPart}).betaD  = betaX;
+     RBEown(IdxReal).(Particle{IdxPart}).betaD  = betaD;
      RBEown(IdxReal).(Particle{IdxPart}).RBE    = RBEown(IdxReal).(Particle{IdxPart}).alphaZ./RBEown(IdxReal).alpha; 
      
      waitbar(IdxReal/(tissue.Realisations*size(Particle,2)));
@@ -278,14 +278,13 @@ plot(BioDatatest{1,1}(1).depths,BioDatatest{1,1}(14).alpha),
 
 %% interpolate each entry in the ddd the corresponding depth alpha and depth beta curve
 load('carbon_HIT.mat');
-ixCellLine = [1 2];
-[machine] = matRad_interpDepthDoseAvgData(machine, BioData ,false,ixCellLine, 0);
-
+ixCellLine = [1:tissue.Realisations];
+[machine] = matRad_interpDepthDoseAvgData(machine, BioDat ,false,ixCellLine, 0);
 
 ix = 198;
 vDepth    = machine.data(ix).depths'./machine.data(ix).peakPos;
 figure('units','normalized','outerposition',[0 0 1 1]),set(gcf,'Color',[1 1 1]) ,hold on
-plot(vDepth,machine.data(ix).alpha(:,1:tissue.Realisations),'b'),hold on
+plot(vDepth,machine.data(ix).alpha(:,ixCellLine),'b'),hold on
 
 machineOrg = load('carbon_HIT.mat');
 machineOrg = machineOrg.machine;
@@ -295,7 +294,7 @@ plot(vDepth,machineOrg.data(ix).alpha(:,2),'r'),hold on
 %% apply dose averaging with spc files
 newStr = strrep(num2str(tissue.sAlphaXvar),'.','_');
 load('carbon_HIT.mat');
-[machine,BioDataHIT] = LEM_DoseAvg2(TRiPdir,machine,UctDataAlphaD,UctDataBetaD,vEnergy,tissue);
+[machine,BioDataHIT] = LEM_DoseAvg2(TRiPdir,machine,RBEown,vEnergy,tissue);
 
 ix = 198;
 vDepth    = machine.data(ix).depths'./machine.data(ix).peakPos;
