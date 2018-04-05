@@ -21,7 +21,6 @@ load('C:\Matlab\HIT-Lung\H03368\1_field\results_1fields_P256')
 % load('C:\Matlab\HIT-Lung\S00001\results_3fields_P256')
 % load('C:\Matlab\HIT-Lung\H04889\results_2fields_P256')
 % load('C:\Matlab\HIT-Lung\S00004\results_3fields_P256')
-% load('C:\Matlab\HIT-Lung\S000005\results_5fields_P256')
 
 patientID = 'H03368';
 % patientID = 'S00003';
@@ -29,10 +28,8 @@ patientID = 'H03368';
 % patientID = 'S00001';
 % patientID = 'H04889';
 % patientID = 'S00004';
-% patientID = 'S000005';
 
-for b = 1:size(stf,2)
-beam = b;                       % choose which field to be analyzed
+beam = 1;                       % choose which field to be analyzed
 completeDoseDistribution = 1;   % chose if falloff of complete dose distribution should be analyzed (1) or not (0)
 
 % get ct cube
@@ -96,77 +93,59 @@ for h = 1:size(stf(beam).ray,2)
         stf(beam).ray(h).targetPoint, ...
         [{ctCube},{lungCube},{doseCube{1}},{doseCube{2}},{doseCube{3}}]);
     
-    % Calculate geometrical, radiological and lung depth, 
-    % and linearly interpolate them
+    % Calculate geometrical, radiological and lung depth
     geomDepth = cumsum(l) - l/2;
-%     geomDepthInterp = matRad_interp1([1:length(geomDepth)]', geomDepth', [1:0.0001:length(geomDepth)]'); 
-
-    radDepth = cumsum(l.*rho{1}) - l.*rho{1}/2;
-%     radDepthInterp = matRad_interp1([1:length(radDepth)]', radDepth', [1:0.0001:length(radDepth)]'); 
     
-    lungDepth = cumsum(l.*rho{2}) - l.*rho{2}/2;
-%     lungDepthInterp = matRad_interp1([1:length(lungDepth)]', lungDepth', [1:0.0001:length(lungDepth)]'); 
-
+    d = [0 l.*rho{1}];
+    radDepth = cumsum(d(1:end-1));
+    
+    dLung = [0 l.*rho{2}];
+    lungDepth = cumsum(dLung(1:end-1));
+    
     % calculate depth dose curves for all dose cubes
     dd{1} = rho{3};     % Original
     dd{2} = rho{4};     % Recalc
     dd{3} = rho{5};     % Hetero
     
-%     % create dd curve for linearly interpolated geometrical coordinates
-%     coordsInterpRad{h} = radDepthInterp; %%% just renaming
-%     ddInterpRad = cell(1,3);
-%     for i = 1:length(ddInterpRad)
-%         ddInterpRad{i} = matRad_interp1(radDepth', dd{i}', coordsInterpRad{h}');
-%     end
-%     ddInterpRadValue{h} = ddInterpRad;
+    % create dd curve for linearly interpolated geometrical coordinates
+    coordsInterpRad(h,:) = linspace(radDepth(1),radDepth(end),5000);
+    ddInterpRad = cell(1,3);
+    for i = 1:length(ddInterpRad)
+        ddInterpRad{i} = matRad_interp1(radDepth', dd{i}', coordsInterpRad(h,:)');
+    end
+    ddInterpRadValue{h} = ddInterpRad;
 
     
     %% find distal falloff z80%-20%
         
-    for i = 1:size(dd,2)
+    for i = 1:length(ddInterpRad)
         
 %         % get peak value
 %         peakValue(i) = max(dd{i});
 %         R80(i) = peakValue(i) * .8;
 %         R20(i) = peakValue(i) * .2;
         
-        % only use rays for falloff analysis that reach at least 95 % of
+        % only use rays for falloff analysis that reach at least 90 % of
         % prescription dose; remember cut out rays
-        if max(dd{i}) < .95 * prescDose
+        if max(dd{i}) < .9 * prescDose
             cutRays(h,i) = 1;
         else
             
-%             % get interpolated coordinates for peak, R80, R20
-%             [~,ixPeakInterp(i)] = min(abs(ddInterpRad{i} - max(dd{i})));
-%             
-%             [~,ixR80behind] = min(abs(ddInterpRad{i}(ixPeakInterp(i):end)-R80));
-%             ixR80 = ixR80behind + ixPeakInterp(i) - 1;
-%             coordR80Interp(i) = coordsInterpRad{h}(ixR80);
-%             
-%             [~,ixR20behind] = min(abs(ddInterpRad{i}(ixPeakInterp(i):end)-R20));
-%             ixR20 = ixR20behind + ixPeakInterp(i) - 1;
-%             coordR20Interp(i) = coordsInterpRad{h}(ixR20);
-%             
-%             % calculate z8020
-%             z8020Interp(i) = (coordR20Interp(i)-coordR80Interp(i));
-%             z8020(h,i) = z8020Interp(i);
+            % get interpolated coordinates for peak, R80, R20
+            [~,ixPeakInterp(i)] = min(abs(ddInterpRad{i} - max(dd{i})));
             
-            % find indices for region to search for z8020
-            [~,ixPeak(i)] = max(dd{i});
-            ixFirstBelow20 = find(dd{i}(ixPeak(i):end) < R20,1) + ixPeak(i)-1;
-            ixLastAbove80 = find(dd{i}(ixPeak(i):end) > R80,1,'last') + ixPeak(i)-1;
+            [~,ixR80behind] = min(abs(ddInterpRad{i}(ixPeakInterp(i):end)-R80));
+            ixR80 = ixR80behind + ixPeakInterp(i) - 1;
+            coordR80Interp(i) = coordsInterpRad(h,ixR80);
             
-            try
-                % find coordinates for R80 and R20
-                coordR80(i) = matRad_interp1(dd{i}(ixFirstBelow20:-1:ixLastAbove80)', ...
-                    radDepth(ixFirstBelow20:-1:ixLastAbove80)', R80);
-                coordR20(i) = matRad_interp1(dd{i}(ixFirstBelow20:-1:ixLastAbove80)', ...
-                    radDepth(ixFirstBelow20:-1:ixLastAbove80)', R20);
-                
-                % calculate z8020
-                z8020(h,i) = (coordR20(i)-coordR80(i));
-            catch
-            end
+            [~,ixR20behind] = min(abs(ddInterpRad{i}(ixPeakInterp(i):end)-R20));
+            ixR20 = ixR20behind + ixPeakInterp(i) - 1;
+            coordR20Interp(i) = coordsInterpRad(h,ixR20);
+            
+            % calculate z8020
+            z8020Interp(i) = (coordR20Interp(i)-coordR80Interp(i));
+            z8020(h,i) = z8020Interp(i);
+            
         end
     end
 end
@@ -176,8 +155,8 @@ end
 cutRaysFig = figure;
 
 subplot (311)
-% title(['Rays in beam''s eye view, case ' patientID ', 1 field, original dose'])   % just one field
-title(['Rays in beam''s eye view, case ' patientID ', beam ' num2str(beam) ', original dose'])
+title(['Rays in beam''s eye view, case ' patientID ', 1 field, original dose'])
+% title(['Rays in beam''s eye view, case ' patientID ', beam ' num2str(beam) ', original dose'])
 hold on
 for i = 1:size(cutRays,1)
     if cutRays(i,1)
@@ -187,9 +166,9 @@ for i = 1:size(cutRays,1)
     end
 end
 try
-    legend([cutLine,usedLine],'cut rays','rays above 95%')
+    legend([cutLine,usedLine],'cut rays','rays above 90%')
 catch
-    legend(usedLine,'rays above 95%')
+    legend(usedLine,'rays above 90%')
 end
 xlabel('x [mm]')
 ylabel('z [mm]')
@@ -205,9 +184,9 @@ for i = 1:size(cutRays,1)
     end
 end
 try
-    legend([cutLine,usedLine],'cut rays','rays above 95%')
+    legend([cutLine,usedLine],'cut rays','rays above 90%')
 catch
-    legend(usedLine,'rays above 95%')
+    legend(usedLine,'rays above 90%')
 end
 xlabel('x [mm]')
 ylabel('z [mm]')
@@ -223,9 +202,9 @@ for i = 1:size(cutRays,1)
     end
 end
 try
-    legend([cutLine,usedLine],'cut rays','rays above 95%')
+    legend([cutLine,usedLine],'cut rays','rays above 90%')
 catch
-    legend(usedLine,'rays above 95%')
+    legend(usedLine,'rays above 90%')
 end
 xlabel('x [mm]')
 ylabel('z [mm]')
@@ -240,7 +219,7 @@ histogramFig = figure;
 subplot(311)
 hold on
 histogram(z8020(:,1),'binWidth',1)
-plot([z8020median(1) z8020median(1)], [0 30],'r','Linewidth',2)
+plot([z8020median(1) z8020median(1)], [0 40],'r','Linewidth',2)
 % title(['Histogram for falloff values, case ' patientID ', 1 field, original dose'])
 title(['Histogram for falloff values, case ' patientID ', beam ' num2str(beam) ', original dose'])
 legend('falloff values', ['median = ' num2str(z8020median(1),'%.1f') ' mm'])
@@ -252,7 +231,7 @@ ylabel('counts')
 subplot(312)
 hold on
 histogram(z8020(:,2),'binWidth',1)
-plot([z8020median(2) z8020median(2)], [0 30],'r','Linewidth',2)
+plot([z8020median(2) z8020median(2)], [0 40],'r','Linewidth',2)
 title('matRad recalculated dose')
 legend('falloff values', ['median = ' num2str(z8020median(2),'%.1f') ' mm'])
 xlim([0 ceil(max(z8020(:)))])
@@ -263,7 +242,7 @@ ylabel('counts')
 subplot(313)
 hold on
 histogram(z8020(:,3),'binWidth',1)
-plot([z8020median(3) z8020median(3)], [0 30],'r','Linewidth',2)
+plot([z8020median(3) z8020median(3)], [0 40],'r','Linewidth',2)
 title('matRad recalculated dose with heterogeneity correction')
 legend('falloff values', ['median = ' num2str(z8020median(3),'%.1f') ' mm'])
 xlim([0 ceil(max(z8020(:)))])
@@ -274,26 +253,19 @@ ylabel('counts')
 
 
 %% save results
-fprintf('Saving results...')
-% \beam' num2str(beam) '
-save(['C:\Matlab\HIT-Lung_falloff\' patientID '\beam' num2str(beam) '\results_falloff'],...
+save(['C:\Matlab\HIT-Lung_falloff\' patientID '\results_falloff'],...
     'patientID','beam','cst','ct','pln','resultGUI','stf',...
-    'lungCube','doseCube', ... %'coordsInterpRad','ddInterpRadValue',...
+    'lungCube','doseCube',...
+    'coordsInterpRad','ddInterpRadValue',...
     'prescDose','z8020','cutRays','-v7.3')
 
-save(['C:\Matlab\HIT-Lung_falloff\' patientID '\beam' num2str(beam) '\z8020'],...
+save(['C:\Matlab\HIT-Lung_falloff\' patientID '\z8020'],...
     'z8020')
 
-savefig(cutRaysFig, ...
-    ['C:\Matlab\HIT-Lung_falloff\' patientID '\beam' num2str(beam) '\cutRays.fig'])
+savefig(cutRaysFig, ['C:\Matlab\HIT-Lung_falloff\' patientID '\cutRays.fig'])
 
-savefig(histogramFig, ...
-    ['C:\Matlab\HIT-Lung_falloff\' patientID '\beam' num2str(beam) '\falloffHistogram.fig'])
+savefig(histogramFig, ['C:\Matlab\HIT-Lung_falloff\' patientID '\falloffHistogram.fig'])
 
-fprintf(' done.\n')
-
-
-end
 
 %% Analysis 
 % %% find chest thickness, lung thickness and target size along central ray
@@ -358,4 +330,3 @@ end
 % 
 % plot([radPtvEntry radPtvEntry],[0 600],'k--')
 % plot([radPtvExit radPtvExit],[0 600],'k--')
-

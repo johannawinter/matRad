@@ -52,14 +52,14 @@ corrcoeff = [r3040(2,1); r3080(2,1); r7040(2,1); r7080(2,1)];
 p = [pMx3040(2,1); pMx3080(2,1); pMx7040(2,1); pMx7080(2,1)];
 
 
-% create scatter plot for all setups
+%% create scatter plot for all setups
 contributionFig = figure;
 title('Contribution of second highest energy to falloff variation')
 hold on
-scatter(relPeakHeightSecond3040,residualsLinearFit3040,'filled')
-scatter(relPeakHeightSecond3080,residualsLinearFit3080,'filled')
-scatter(relPeakHeightSecond7040,residualsLinearFit7040,'filled')
-scatter(relPeakHeightSecond7080,residualsLinearFit7080,'filled')
+scatter(relPeakHeightSecond3040,residualsLinearFit3040,'+')
+scatter(relPeakHeightSecond3080,residualsLinearFit3080,'x')
+scatter(relPeakHeightSecond7040,residualsLinearFit7040,'filled','s')
+scatter(relPeakHeightSecond7080,residualsLinearFit7080,'filled','d')
 plot([.2 1],[0 0],'--','color',[.5 .5 .5])
 legend(['chest 30 mm, target 40 mm, corr coeff = ' num2str(corrcoeff(1),3) ', p = ' num2str(p(1),3)], ...
     ['chest 30 mm, target 80 mm, corr coeff = ' num2str(corrcoeff(2),3) ', p = ' num2str(p(2),3)], ...
@@ -71,7 +71,7 @@ ylabel('z8020 residuals from linear fit [mm]')
 
 
 %% save results and figure
-save('C:\Matlab\Analysis phantom degradation\weight_analysis\contributionCovarianceResults',...
+save('C:\Matlab\Analysis phantom degradation\weight_analysis\contributionCorrelationResults',...
     'residualsLinearFit3040','residualsLinearFit3080','residualsLinearFit7040','residualsLinearFit7080',...
     'relPeakHeightSecond3040','relPeakHeightSecond3080','relPeakHeightSecond7040','relPeakHeightSecond7080',...
     'corrcoeff','p')

@@ -225,3 +225,33 @@ savefig(falloffD95errFig,...
     ['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\falloffD95errbar_breast' ...
     num2str(breastThickness) '_target' num2str(targetThickness) '.fig'])
 
+
+
+
+%% plot all errorbars in one plot
+% load results
+res3040 = load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\errorbar_results_breast30mm_target40mm.mat');
+res3080 = load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\errorbar_results_breast30mm_target80mm.mat');
+res7040 = load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\errorbar_results_breast70mm_target40mm.mat');
+res7080 = load('C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\errorbar_results_breast70mm_target80mm.mat');
+
+falloffD95errAllFig = figure;
+title(['Delta D95 (dashed) and falloff z_{80-20} (solid) comparison - averaged over all rays through target'])
+hold on
+errorbar(res3040.lungGeoThickness,res3040.mean_DeltaD95,res3040.std_DeltaD95,'--b')
+errorbar(res3080.lungGeoThickness,res3080.mean_DeltaD95,res3080.std_DeltaD95,'--r')
+errorbar(res7040.lungGeoThickness,res7040.mean_DeltaD95,res7040.std_DeltaD95,'--','color',[1 .8 0])
+errorbar(res7080.lungGeoThickness,res7080.mean_DeltaD95,res7080.std_DeltaD95,'--c')
+errorbar(res3040.lungGeoThickness,res3040.mean_z8020,res3040.std_z8020,'-b')
+errorbar(res3080.lungGeoThickness,res3080.mean_z8020,res3080.std_z8020,'-r')
+errorbar(res7040.lungGeoThickness,res7040.mean_z8020,res7040.std_z8020,'-','color',[1 .8 0])
+errorbar(res7080.lungGeoThickness,res7080.mean_z8020,res7080.std_z8020,'-c')
+xlabel('z_{geo} lung [mm]')
+ylabel('Delta D95 resp. z_{80-20} [mm]')
+legend('chest 30 mm, target 40 mm','chest 30 mm, target 80 mm',...
+    'chest 70 mm, target 40 mm','chest 70 mm, target 80 mm',...
+    'location','northwest')
+
+
+savefig(falloffD95errAllFig,...
+    ['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\falloffD95errbar_allSetups.fig'])

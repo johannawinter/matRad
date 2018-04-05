@@ -18,6 +18,7 @@ addpath('C:\Matlab\matrad\lungCases')
 % load('S00003_Protons_3Fields_ID-20171205_2x2x2.mat')
 % load('H04889_ID-20180125_3x3x3_doseGrid_2fields.mat')
 load('S00004_ID-20171206_2x2x2.mat')
+% load('S000005_ID-20171221_2x2x2.mat')
 
 % newPropertiesPlnStfOpt;
 % save('C:\Matlab\matrad\lungPlans\S00001_ID-20171201_2x2x2.mat',...
@@ -43,13 +44,22 @@ try
     resultGUI.matRadRecalc_RBExDose_beam3 = resultGUI_recalc.RBExDose_beam3;
 catch
 end
+try
+    resultGUI.matRadRecalc_RBExDose_beam4 = resultGUI_recalc.RBExDose_beam4;
+catch
+end
+try
+    resultGUI.matRadRecalc_RBExDose_beam5 = resultGUI_recalc.RBExDose_beam5;
+catch
+end
+
 
 % calculate dose difference slice
 resultGUI.diff_matRadRecalc_original = ...
     resultGUI.matRadRecalc_RBExDose - resultGUI.RBExDose;
 
 
-%% recalculation for heterogeneous lung
+% recalculation for heterogeneous lung
 % add heterogeneity correction to cst structure for lung tissue
 for i = 1:size(cst,1)
    isLung = contains(cst{i,2},'lung','IgnoreCase',true);
@@ -73,10 +83,33 @@ try
     resultGUI.matRadHeteroRecalc_RBExDose_beam3 = resultGUI_hetero.RBExDose_beam3;
 catch
 end
+try
+    resultGUI.matRadHeteroRecalc_RBExDose_beam4 = resultGUI_hetero.RBExDose_beam4;
+catch
+end
+try
+    resultGUI.matRadHeteroRecalc_RBExDose_beam5 = resultGUI_hetero.RBExDose_beam5;
+catch
+end
+
 
 % calculate dose difference slice
 resultGUI.diff_matRadHetero_matRadRecalc = ...
     resultGUI.matRadHeteroRecalc_RBExDose - resultGUI.matRadRecalc_RBExDose;
+
+% calculate dose difference for separate beams
+resultGUI.diff_matRadHetero_matRadRecalc_beam1 = ...
+    resultGUI.matRadHeteroRecalc_RBExDose_beam1 - resultGUI.matRadRecalc_RBExDose_beam1;
+try
+    resultGUI.diff_matRadHetero_matRadRecalc_beam2 = ...
+        resultGUI.matRadHeteroRecalc_RBExDose_beam2 - resultGUI.matRadRecalc_RBExDose_beam2;
+catch
+end
+try
+    resultGUI.diff_matRadHetero_matRadRecalc_beam3 = ...
+        resultGUI.matRadHeteroRecalc_RBExDose_beam3 - resultGUI.matRadRecalc_RBExDose_beam3;
+catch
+end
 
 % save results
 save(['C:\Matlab\HIT-Lung\results_' num2str(size(stf,2)) 'fields'],...
@@ -102,7 +135,8 @@ doseIsoLevels = 2*[10 30 50 70 90 95 107]/100;          % patient H03368 / S0000
 % voiSelection = logical([1 1 1 1 1 1 0 0 0 1 0 0 1 1 0 0 0 0 0]);                % patient S00001
 % voiSelection = logical([1 0 1 1 1 1 1 0 0 1 1 1 0 0 0 0 0 0]);                  % patient S00003
 % voiSelection = logical([1 1 0 1 0 0 0 0 1 0 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0]);  % patient H04889
-voiSelection = logical([0 0 1 1 1 1 0 0 0 1 1 1 1 0 0 0 0 0]);
+% voiSelection = logical([0 0 1 1 1 1 0 0 0 1 1 1 1 0 0 0 0 0]);                  % patient S00004
+voiSelection = logical([1 0 1 1 1 0 1 0 0 1 0 1 1 0 0 0 0 0 0 0]);              % patient S000005
 
 doseFig(1) = figure;
 matRad_plotSliceWrapper(gca,ct,cst,1,resultGUI.matRadRecalc_RBExDose,plane,slice,[],[],colorcube,[],doseWindow,doseIsoLevels,voiSelection,'Gy RBE',1,'Linewidth',2);
@@ -115,7 +149,8 @@ title(['matRad-recalculated plan (z = ' num2str(slice*ct.resolution.z) ')'])
 % axis([50 175 75 175])       % patient S00001
 % axis([75 200 75 200])       % patient S00003
 % axis([40 125 30 110])       % patient H04889
-axis([50 200 60 190])       % patient S00004
+% axis([50 200 60 190])       % patient S00004
+axis([60 220 60 175])       % patient S00005
 
 
 % doseWindow = [0 max(resultGUI.matRadHeteroRecalc(:))];
@@ -130,17 +165,32 @@ title(['matRad-recalculated plan with heterogeneity correction (z = ' num2str(sl
 % axis([50 175 75 175])       % patient S00001
 % axis([75 200 75 200])       % patient S00003
 % axis([40 125 30 110])       % patient H04889
-axis([50 200 60 190])       % patient S00004
+% axis([50 200 60 190])       % patient S00004
+axis([60 220 60 175])       % patient S00005
 
+
+% dose slice in second isocenter for patient S00005
+slice = round(pln.propStf.isoCenter(end,3)./ct.resolution.z);
+doseFig(6) = figure;
+matRad_plotSliceWrapper(gca,ct,cst,1,resultGUI.matRadRecalc_RBExDose,plane,slice,[],[],colorcube,[],doseWindow,doseIsoLevels,voiSelection,'Gy RBE',1,'Linewidth',2);
+matRad_plotIsoCenterMarker(gca,pln,ct,plane,slice);
+title(['matRad-recalculated plan (z = ' num2str(slice*ct.resolution.z) ')'])
+axis([60 220 60 175])       % patient S00005
+
+doseFig(7) = figure; 
+matRad_plotSliceWrapper(gca,ct,cst,1,resultGUI.matRadHeteroRecalc_RBExDose,plane,slice,[],[],colorcube,[],doseWindow,doseIsoLevels,voiSelection,'Gy RBE',1,'Linewidth',2);
+matRad_plotIsoCenterMarker(gca,pln,ct,plane,slice);
+title(['matRad-recalculated plan with heterogeneity correction (z = ' num2str(slice*ct.resolution.z) ')'])
+axis([60 220 60 175])       % patient S00005
 
 % dose difference slices in isocenter
-thresh = 0.05;      % patient S00002 / S00001 / S00003 / H04889 / S00004
-% thresh = 0.01;      % patient H03368
+% thresh = 0.05;      % patient S00002 / S00001 / S00003 / H04889 / S00004
+thresh = 0.01;      % patient H03368 / S00005
 doseWindow = [min(resultGUI.diff_matRadHetero_matRadRecalc(:)) max(resultGUI.diff_matRadHetero_matRadRecalc(:))];
 % doseIsoLevels = [-1 -.8 -.6 -.4 -.2 .2 .4 .6];      % patient S00002
 % doseIsoLevels = [-.4 -.3 -.2 -.1 .1 .2 .3 .4];      % patient H03368 / S00003 / H04889
 % doseIsoLevels = [-1.4 -1 -.6 -.2 .2 .6];            % patient S00001
-doseIsoLevels = [-.1 -.08 -.06 -.04 -.02 .02 .04];  % patient S00004
+doseIsoLevels = [-.1 -.08 -.06 -.04 -.02 .02 .04];  % patient S00004 / S000005
 slice = round(pln.propStf.isoCenter(1,3)./ct.resolution.z);
 
 doseFig(3) = figure; 
@@ -154,7 +204,8 @@ title(['Absolute difference: matRad-heterogeneity - matRad-recalculated (z = ' n
 % axis([50 175 75 175])       % patient S00001
 % axis([75 200 75 200])       % patient S00003
 % axis([40 125 30 110])       % patient H04889
-axis([50 200 60 190])       % patient S00004
+% axis([50 200 60 190])       % patient S00004
+axis([60 220 60 175])       % patient S00005
 
 
 % dose difference slice where difference is maximum positive
@@ -173,7 +224,8 @@ title(['Absolute difference: matRad-heterogeneity - matRad-recalculated (maximum
 % axis([50 175 75 175])       % patient S00001
 % axis([75 200 75 200])       % patient S00003
 % axis([40 125 30 110])       % patient H04889
-axis([50 200 60 190])       % patient S00004
+% axis([50 200 60 190])       % patient S00004
+axis([60 220 60 175])       % patient S00005
 
 
 % dose difference slice where difference is maximum negative
@@ -192,7 +244,8 @@ title(['Absolute difference: matRad-heterogeneity - matRad-recalculated (maximum
 % axis([50 175 75 175])       % patient S00001
 % axis([75 200 75 200])       % patient S00003
 % axis([40 125 30 110])       % patient H04889
-axis([50 200 60 190])       % patient S00004
+% axis([50 200 60 190])       % patient S00004
+axis([60 220 60 175])       % patient S00005
 
 
 % additional interesting slice
@@ -229,7 +282,8 @@ axis([50 200 60 190])       % patient S00004
 % for i = [1 2 5 6 7 8 9 11 15 16 17 18]      % patient S00001
 % for i = [1 2 5 8 9 13 14 16 17 18]          % patient S00003
 % for i = [7 8 10 11 14 15 16 17 18 19 21 22 23 24 25 26] % patient H04889
-for i = [1 8 9 15 16 17 18]
+% for i = [1 8 9 15 16 17 18]                 % patient S00004
+for i = [2 4 5 9 14 15 16 17 18 19 20]      % patient S000005
     cst{i,5}.Visible = 0;
 end
 
@@ -317,3 +371,78 @@ savefig(doseFig,['C:\Matlab\HIT-Lung\doseSlices_' num2str(size(stf,2)) 'fields.f
 savefig(dvhFig,['C:\Matlab\HIT-Lung\dvh_' num2str(size(stf,2)) 'fields.fig'])
 savefig(qiFig,['C:\Matlab\HIT-Lung\qi_' num2str(size(stf,2)) 'fields.fig'])
 
+
+
+
+
+%% calculate qi of lungs without CTV
+% create contour of both lungs
+for a = 1:size(cst,1)
+    if strcmp(cst{a,2}, 'Lunge re.')
+        ax = a;
+    end
+end
+for b = 1:size(cst,1)
+    if strcmp(cst{b,2}, 'Lunge li.')
+        bx = b;
+    end
+end
+cst{a+1,1} = a;
+cst{a+1,2} = 'Lunge bds';
+cst{a+1,3} = 'OAR';
+cst{a+1,4} = cst{ax,4};
+cst{a+1,4}{1,1} = union(cst{a+1,4}{1,1},cst{bx,4}{1,1});
+cst{a+1,5} = cst{ax,5};
+
+% create contour both lungs - CTV
+for i = 1:size(cst,1)
+    if strcmp(cst{i,2}, 'Lunge bds')
+        ix = i;
+    end
+end
+for h = 1:size(cst,1)
+    if strcmp(cst{h,2}, 'CTV')
+        hx = h;
+    end
+end
+cst{i+1,1} = i;
+cst{i+1,2} = 'Lunge bds - CTV';
+cst{i+1,3} = 'OAR';
+cst{i+1,4} = cst{ix,4};
+cst{i+1,4}{1,1} = setdiff(cst{i+1,4}{1,1},cst{hx,4}{1,1});
+cst{i+1,5} = cst{ix,5};
+
+% create contour ipsilateral lung - CTV
+for j = 1:size(cst,1)
+    if strcmp(cst{j,2}, 'Lunge re.')
+        jx = j;
+    end
+end
+for k = 1:size(cst,1)
+    if strcmp(cst{k,2}, 'CTV')
+        kx = k;
+    end
+end
+cst{j+1,1} = j;
+cst{j+1,2} = 'Lung re. - CTV';
+cst{j+1,3} = 'OAR';
+cst{j+1,4} = cst{jx,4};
+cst{j+1,4}{1,1} = setdiff(cst{j+1,4}{1,1},cst{kx,4}{1,1});
+cst{j+1,5} = cst{jx,5};
+
+
+% show QI comparison
+qi_homo  = matRad_calcQualityIndicators(cst,pln,resultGUI.matRadRecalc);%_RBExDose);
+qi_hetero = matRad_calcQualityIndicators(cst,pln,resultGUI.matRadHeteroRecalc);%_RBExDose);
+
+qiTitle = 'Copmarison quality indicators - phantom Pmod - top: homogeneous lung, bottom: heterogeneous lung';
+qiFig = figure('Name','QI comparison','Color',[0.5 0.5 0.5],'Position',([300 300 800 600]));
+hold on
+subplot(211)
+matRad_showQualityIndicators(qi_homo)
+title(qiTitle)
+subplot(212)
+matRad_showQualityIndicators(qi_hetero)
+hold off
+
+savefig(qiFig,['C:\Matlab\HIT-Lung\qi_' num2str(size(stf,2)) 'fields_P256_lung-CTV.fig'])
