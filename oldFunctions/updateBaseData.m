@@ -1,3 +1,4 @@
+%% update weights, focus distance, sigma1, sigma2 and LET in APM base data after getting new base data
 % test which fields are different
 % change machines and fields
 for i = 1:255
@@ -52,3 +53,21 @@ machine_APM_gantry.machine.meta.updated_on = '05-Dec-2017';
 machine_APM_gantry.machine.meta.updated_by = 'winterjo';
 machine = machine_APM_gantry.machine;
 save('C:\Matlab\matrad\protons_HIT_APMgantry','machine')
+
+
+%% set all weights >1 to 1
+for i = 1:255
+    largerOne(i) = any(machine.data(i).weight>1);
+    if largerOne(i)
+        largerOnePosition(i,1) = find(machine.data(i).weight>1,1);
+        largerOnePosition(i,2) = find(machine.data(i).weight>1,1,'last');
+    end
+    smallerZero(i) = any(machine.data(i).weight<=0);
+end
+
+sum(smallerZero)
+
+for i = 1:255
+    machine.data(i).weight(machine.data(i).weight>1) = 1;
+end
+
