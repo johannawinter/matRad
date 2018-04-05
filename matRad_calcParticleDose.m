@@ -143,7 +143,7 @@ if calcHeteroCorr
                 calcHeteroCorrStruct.cube{1}(cst{j,4}{1}) = ct.cube{1}(cst{j,4}{1});
             else
                 error(['No heterogeneity correction method implemented for ' ...
-                        cst{j,5}.HeterogeneityCorrection]);
+                        cst{j,5}.HeterogeneityCorrection '.']);
             end
 
         end
@@ -257,7 +257,7 @@ for i = 1:length(stf) % loop over all beams
     fprintf('done.\n');
     
     if calcHeteroCorr
-        fprintf('matRad: calculate geo dist cube for heterogeneity correction...');
+        fprintf('matRad: calculate radiological depth cube for heterogeneity correction...');
         heteroCorrDepthV = matRad_rayTracing(stf(i),calcHeteroCorrStruct,V,rot_coordsV,lateralCutoffRayTracing);
         fprintf('done.\n');
     end
@@ -332,17 +332,23 @@ for i = 1:length(stf) % loop over all beams
                 % find energy index in base data
                 energyIx = find(round2(stf(i).ray(j).energy(k),4) == round2([machine.data.energy],4));
                 
+                % create offset vector to account for additional offsets modelled in the base data and a potential 
+                % range shifter. In the following, we only perform dose calculation for voxels having a radiological depth
+                % that is within the limits of the base data set (-> machine.data(i).dephts). By this means, we only allow  
+                % interpolations in matRad_calcParticleDoseBixel() and avoid extrapolations.
+                offsetRadDepth = machine.data(energyIx).offset - stf(i).ray(j).rangeShifter(k).eqThickness;
+                
                 % find depth depended lateral cut off
                 if cutOffLevel >= 1
-                    currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset;
+                    currIx = radDepths <= machine.data(energyIx).depths(end) + offsetRadDepth;
                 elseif cutOffLevel < 1 && cutOffLevel > 0
                     % perform rough 2D clipping
-                    currIx = radDepths <= machine.data(energyIx).depths(end) + machine.data(energyIx).offset & ...
+                    currIx = radDepths <= machine.data(energyIx).depths(end) + offsetRadDepth & ...
                          radialDist_sq <= max(machine.data(energyIx).LatCutOff.CutOff.^2);
 
                     % peform fine 2D clipping  
                     if length(machine.data(energyIx).LatCutOff.CutOff) > 1
-                        currIx(currIx) = matRad_interp1((machine.data(energyIx).LatCutOff.depths + machine.data(energyIx).offset)',...
+                        currIx(currIx) = matRad_interp1((machine.data(energyIx).LatCutOff.depths + offsetRadDepth)',...
                             (machine.data(energyIx).LatCutOff.CutOff.^2)', radDepths(currIx)) >= radialDist_sq(currIx);
                     end
                 else
@@ -357,6 +363,9 @@ for i = 1:length(stf) % loop over all beams
                 
                 % adjust radDepth according to range shifter
                 currRadDepths = radDepths(currIx) + stf(i).ray(j).rangeShifter(k).eqThickness;
+                if calcHeteroCorr
+                    currHeteroCorrDepths = heteroCorrDepths(currIx);
+                end
 
                 % calculate initial focus sigma
                 sigmaIni = matRad_interp1(machine.data(energyIx).initFocus.dist (stf(i).ray(j).focusIx(k),:)', ...
@@ -383,7 +392,7 @@ for i = 1:length(stf) % loop over all beams
                         radialDist_sq(currIx), ...
                         sigmaIni_sq, ...
                         machine.data(energyIx), ...
-                        heteroCorrDepths);
+                        currHeteroCorrDepths);
                 else
                     bixelDose = matRad_calcParticleDoseBixel(...
                         currRadDepths, ...

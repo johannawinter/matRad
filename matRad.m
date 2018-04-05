@@ -30,7 +30,7 @@
 % meta information for treatment plan
 
 pln.radiationMode   = 'protons';     % either photons / protons / carbon
-pln.machine         = 'HIT_APM';
+pln.machine         = 'HIT_APMgantry';
 
 pln.numOfFractions  = 30;
 

@@ -6,8 +6,7 @@ function sigmaSq = matRad_getHeterogeneityCorrSigmaSq(WET,Pmod)
 %   sigmaSq = matRad_getHeterogeneityCorrSigmaSq(WET)
 % 
 % input
-%   WET:        water equivalent thickness of heterogeneous structure, e.g. 
-%               lung [mm]
+%   WET:        water equivalent thickness of heterogeneous structure, e.g. lung [mm]
 %   Pmod:       modulation power [µm] (optional)
 % 
 % output
