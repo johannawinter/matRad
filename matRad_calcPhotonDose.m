@@ -64,6 +64,7 @@ end
 % initialize waitbar
 figureWait = waitbar(0,'calculate dose influence matrix for photons...');
 % show busy state
+
 set(figureWait,'pointer','watch');
 
 % meta information for dij
@@ -84,6 +85,14 @@ else
     numOfColumnsDij           = dij.totalNumOfBixels;
     numOfBixelsContainer = ceil(dij.totalNumOfBixels/10);
 end
+
+% set absolute calibration factor
+% CALCULATION
+% absolute_calibration_factor = 1/D(depth = 100,5mm) -> D(depth = 100,5mm) = 1Gy
+% SETUP
+% SAD = 1000mm, SCD = 500mm, bixelWidth = 5mm, IC = [240mm,240mm,240mm]
+% fieldsize@IC = 105mm x 105mm, phantomsize = 81 x 81 x 81 = 243mm x 243mm x 243mm
+absolute_calibration_factor_pencilbeam = 0.016046333443549;
 
 % set up arrays for book keeping
 dij.bixelNum = NaN*ones(numOfColumnsDij,1);
@@ -367,6 +376,7 @@ for i = 1:dij.numOfBeams % loop over all beams
             Type = 'radius';
             [ix,bixelDose] = matRad_DijSampling(ix,bixelDose,radDepthV{1}(ix),rad_distancesSq,Type,r0);
         end   
+
         % Save dose for every bixel in cell array
         doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix),1,bixelDose,dij.numOfVoxels,1);
                 

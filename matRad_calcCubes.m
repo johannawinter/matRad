@@ -70,7 +70,6 @@ if isfield(dij,'mLETDose')
     end
 end
 
-
 % consider biological optimization for carbon ions
 if isfield(dij,'mAlphaDose') && isfield(dij,'mSqrtBetaDose')
    

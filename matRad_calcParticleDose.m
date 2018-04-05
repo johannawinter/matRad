@@ -273,9 +273,7 @@ for i = 1:length(stf) % loop over all beams
     % Determine lateral cutoff
     fprintf('matRad: calculate lateral cutoff...');
     visBoolLateralCutOff = 0;
-    
     machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf(i),visBoolLateralCutOff);
-    
     fprintf('done.\n');    
 
     for j = 1:stf(i).numOfRays % loop over all rays
