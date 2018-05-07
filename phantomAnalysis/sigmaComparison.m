@@ -10,7 +10,7 @@ clear
 load('protons_HIT_APM')
 
 plotFits = 0;       % 1: true / 0: false
-saveFigs = 1;       % 1: true / 0: false
+saveFigs = 0;       % 1: true / 0: false
 
 PmodMin = 150;      % modulation power
 PmodPhan = 256;
@@ -20,7 +20,7 @@ breastThickness = [70 110 150]; % 70 / 110 / 150 / 200    % [mm]
 lungThickness = 100;                                % [mm]
 geoThickness = breastThickness + lungThickness;
 
-rho = .306;         % relative electron density of lung phantom
+rho = .297; % formerly: .306         % relative electron density of lung phantom
 
 % Gaussian error function: erf(x) =  -0.5 .* erf( (x-mu)/(sqrt(2)*sigma) ) + 0.5;
 % coeffErrorFun(1) = mu; coeffErrorFun(2) = sigma;
@@ -28,7 +28,7 @@ gaussErrorFitFunction = @(coeffErrorFun,x)...
     -0.5 .* erf( (x-coeffErrorFun(1))/(sqrt(2)*coeffErrorFun(2)) ) + 0.5;
 
 
-%% calculate sigma lung for Pmod1 and Pmod2
+%% calculate sigma lung for PmodMin, PmodPhan and PmodMax
 zGeoLungHetero = linspace(0, lungThickness, lungThickness+1);
 wetLungHetero = zGeoLungHetero*rho;
 
@@ -40,7 +40,7 @@ sigmaLungMax = sqrt(matRad_getHeterogeneityCorrSigmaSq(wetLungHetero,PmodMax));
 %% calculate sigma range straggeling by fitting an error function to base data
 % lung part
 for i = 1:length(breastThickness)
-   zGeoTotal(i,1:(geoThickness(i)-breastThickness(i))/5+1) = linspace(breastThickness(i), geoThickness(i), (geoThickness(i)-breastThickness(i))/5+1); 
+   zGeoTotal(i,1:(geoThickness(i)-breastThickness(i))/5+1) = linspace(breastThickness(i), geoThickness(i), lungThickness/5+1); 
 end
 zGeoLung = zGeoTotal(1,:) - breastThickness(1);	% same for all breast thicknesses as they cancel
 for i = 1:length(breastThickness)
@@ -57,16 +57,16 @@ for i = 1:length(breastThickness)
     for j = 1:nnz(wetTotal(i,:)>0)
         ixBeamEnergyTemp = zeros(size(machine.data,2),1);
         for k = 1:size(machine.data,2)
-            ixBeamEnergyTemp(k) = abs(machine.data(k).peakPos - wetTotal(i,j));
+            ixBeamEnergyTemp(k) = abs(machine.data(k).peakPos + machine.data(k).offset - wetTotal(i,j));
         end
         [~,ixBeamEnergy] = min(ixBeamEnergyTemp);
         
-        xLinear2 = machine.data(ixBeamEnergy).depths;
+        xLinear2 = machine.data(ixBeamEnergy).depths + machine.data(ixBeamEnergy).offset;
         braggCurveLung = machine.data(ixBeamEnergy).Z.doseORG;
         [maxBraggCurveLung,ixMaxBraggCurveLung] = max(braggCurveLung);
         
         % start values for fit
-        muStart = machine.data(ixBeamEnergy).peakPos;
+        muStart = machine.data(ixBeamEnergy).peakPos + machine.data(ixBeamEnergy).offset;
         sigmaStart = machine.data(ixBeamEnergy).Z.width(end);
         
         % fit error function
@@ -98,19 +98,19 @@ end
 
 
 %% add sigma range shifter if range shifter used
-sigmaRangeShifter = 0;
-if exist('stf','var')
-    for j = 1:size(stf.ray,2)
-        for k = 1:size(stf.ray(j).rangeShifter,2)
-            if any(stf.ray(j).rangeShifter(k).eqThickness)
-                sigmaRangeShifter = 0;
-                warning('Sigma for range shifter not yet implemented.')
-            end
-        end
-    end
-end
-
-sigmaRSLungTotal = sqrt(sigmaRSLung.^2 + sigmaRangeShifter.^2);
+% sigmaRangeShifter = 0;
+% if exist('stf','var')
+%     for j = 1:size(stf.ray,2)
+%         for k = 1:size(stf.ray(j).rangeShifter,2)
+%             if any(stf.ray(j).rangeShifter(k).eqThickness)
+%                 sigmaRangeShifter = 0;
+%                 warning('Sigma for range shifter not yet implemented.')
+%             end
+%         end
+%     end
+% end
+% 
+% sigmaRSLungTotal = sqrt(sigmaRSLung.^2 + sigmaRangeShifter.^2);
 
 
 
@@ -132,11 +132,11 @@ for i = 1:length(breastThickness)
     for j = 1:nnz(zGeoWater(i,:)>0)
         ixBeamEnergyBreastTemp = zeros(size(machine.data,2),1);
         for k = 1:size(machine.data,2)
-            ixBeamEnergyBreastTemp(k) = abs(machine.data(k).peakPos - zGeoWater(i,j));
+            ixBeamEnergyBreastTemp(k) = abs(machine.data(k).peakPos + machine.data(k).offset - zGeoWater(i,j));
         end
         [~,ixBeamEnergyBreast] = min(ixBeamEnergyBreastTemp);
         
-        % mean range = alpha*E0^p [cm]
+        % mean range R0 = alpha*E0^p [cm]
         R0Breast(i,j) = alphaWater * machine.data(ixBeamEnergyBreast).energy ^p;
     end
 end
@@ -159,33 +159,36 @@ for i = 1:length(breastThickness)
     for j = 1:nnz(wetTotal(i,:)>0)
         ixBeamEnergyLungTemp = zeros(size(machine.data,2),1);
         for k = 1:size(machine.data,2)
-            ixBeamEnergyLungTemp(k) = abs(machine.data(k).peakPos - wetTotal(i,j));
+            ixBeamEnergyLungTemp(k) = abs(machine.data(k).peakPos + machine.data(k).offset - wetTotal(i,j));
         end
         [~,ixBeamEnergyLung] = min(ixBeamEnergyLungTemp);
         
-        % mean range = alpha*E0^p [cm];   R0 = alphaLung * E0^p - alphaLung/alphaWater * waterThickness [cm]
+        % mean range R0 = alpha*E0^p [cm]; here R0 = alphaLung * E0^p - alphaLung/alphaWater * waterThickness [cm]
+%         R0LungWithoutBreast(i,j) = alphaLung * machine.data(ixBeamEnergyLung).energy ^p - ...
+%             alphaLung/alphaWater * breastThickness(i) / 10;
         R0LungWithoutBreast(i,j) = alphaLung * machine.data(ixBeamEnergyLung).energy ^p - ...
-            alphaLung/alphaWater * breastThickness(i) / 10;
+            alphaLung/alphaWater * R0Breast(i,find(R0Breast(i,:),1,'last'));
     end
     
-    R0Lung(i,:) = R0LungWithoutBreast(i,:) + breastThickness(i) / 10;	% [cm]
+%     R0Lung(i,:) = R0LungWithoutBreast(i,:) + breastThickness(i) / 10;	% [cm]
+    R0Lung(i,:) = R0LungWithoutBreast(i,:) + R0Breast(i,find(R0Breast(i,:),1,'last'));	% [cm]
 end
 
-for i = 1:size(R0LungWithoutBreast,1)
-    for j = 1:size(R0LungWithoutBreast,2)
-        if R0LungWithoutBreast(i,j) <= 0
-            R0LungWithoutBreast(i,j) = 0.0001;
-        end
-    end
-end
+% for i = 1:size(R0LungWithoutBreast,1)
+%     for j = 1:size(R0LungWithoutBreast,2)
+%         if R0LungWithoutBreast(i,j) <= 0
+%             R0LungWithoutBreast(i,j) = 0.0001;
+%         end
+%     end
+% end
 
 %%% correct?
 % sigmaTheoRSLungSq = alphaPrimeLung * (p^3*alphaLung^(2/p))/(3*p-2) * R0Lung.^(3-2/p);
 % sigmaTheoRSLungSq = alphaPrimeLung * (p^3*alphaLung^(2/p))/(3*p-2) * R0LungWithoutBreast.^(3-2/p) + sigmaTheoWaterSq(end);
 % sigmaTheoRSLung = sqrt(sigmaTheoRSLungSq) *10;
 
-sigmaTheoRSLungSq = alphaPrimeWater * (p^3*alphaWater^(2/p))/(3*p-2) * R0Lung.^(3-2/p);
-sigmaTheoRSLungWet = sqrt(sigmaTheoRSLungSq) *10;                       % [mm]
+sigmaTheoRSLungWetSq = alphaPrimeWater * (p^3*alphaWater^(2/p))/(3*p-2) * R0Lung.^(3-2/p);
+sigmaTheoRSLungWet = sqrt(sigmaTheoRSLungWetSq) *10;                       % [mm]
 for i = 1:length(breastThickness)
     sigmaTheoRSLung(i,:) = sigmaTheoRSLungWet(i,:)*rho - ...
         sigmaTheoWater(i,find(sigmaTheoWater(i,:),1,'last'))*rho + ...
@@ -234,7 +237,7 @@ grid on, grid minor
 box on
 plot(zGeoLungHetero, sigmaLungMin, 'b--')
 plot(zGeoLungHetero, sigmaLungPhan, 'b-')
-plot(zGeoLungHetero, sigmaLungMax, 'b--')
+plot(zGeoLungHetero, sigmaLungMax, 'b-.')
 
 plot(zGeoLung, sigmaRSLung(1,:), 'o','color',[.7,0,1])     % purple
 plot(zGeoLung, sigmaRSLung(2,:), 'ro')
@@ -271,12 +274,12 @@ xlabel(ax2,'WET lung [mm]')
 
 legend(ax1,'heterogeneity - P_m_o_d_,_m_i_n = 150 µm',...
     'heterogeneity - P_m_o_d_,_p_h_a_n_t_o_m = 256 µm','heterogeneity - P_m_o_d_,_m_a_x = 750 µm',...
-    ['RS - water thickness ' num2str(breastThickness(1)) ' mm'],...
-    ['RS - water thickness ' num2str(breastThickness(2)) ' mm'],...
-    ['RS - water thickness ' num2str(breastThickness(3)) ' mm'],... %     ['RS - water thickness ' num2str(breastThickness(4)) ' mm'],...
-    ['RS (theoretical)  - water thickness ' num2str(breastThickness(1)) ' mm'],...
-    ['RS (theoretical)  - water thickness ' num2str(breastThickness(2)) ' mm'],...
-    ['RS (theoretical)  - water thickness ' num2str(breastThickness(3)) ' mm'],... %     ['RS (theoretical)  - water thickness ' num2str(breastThickness(4)) ' mm'],...
+    ['RS (base data) - ' num2str(breastThickness(1)) ' mm water'],...
+    ['RS (base data) - ' num2str(breastThickness(2)) ' mm water'],...
+    ['RS (base data) - ' num2str(breastThickness(3)) ' mm water'],... %     ['RS (base data) - ' num2str(breastThickness(4)) ' mm water'],...
+    ['RS (theoretical) - ' num2str(breastThickness(1)) ' mm water'],...
+    ['RS (theoretical) - ' num2str(breastThickness(2)) ' mm water'],...
+    ['RS (theoretical) - ' num2str(breastThickness(3)) ' mm water'],... %     ['RS (theoretical)  - water thickness ' num2str(breastThickness(4)) ' mm'],...
     ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(1,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(1,2),3)],...
     ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(2,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(2,2),3)],...
     ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(3,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(3,2),3)],... %     ['power fit with a = ' num2str(coeffFitSigmaTheoRSLung(4,1),2) ', b = ' num2str(coeffFitSigmaTheoRSLung(4,2),3)],...
@@ -302,7 +305,7 @@ for i = 1:length(breastThickness)
     for j = 1:nnz(zGeoWater(i,:)>0)
         ixBeamEnergyTemp = zeros(size(machine.data,2),1);
         for k = 1:size(machine.data,2)
-            ixBeamEnergyTemp(k) = abs(machine.data(k).peakPos - zGeoWater(i,j));
+            ixBeamEnergyTemp(k) = abs(machine.data(k).peakPos + machine.data(k).offset - zGeoWater(i,j));
         end
         [~,ixBeamEnergyTest] = min(ixBeamEnergyTemp);
         ixBeamEnergy = ixBeamEnergyTest;
@@ -341,8 +344,8 @@ for i = 1:length(breastThickness)
     end
 end
 
-% add sigma from range shifter if necessary
-sigmaRSWaterTotal = sqrt(sigmaWater.^2 + sigmaRangeShifter.^2);
+% % add sigma from range shifter if necessary
+% sigmaRSWaterTotal = sqrt(sigmaWater.^2 + sigmaRangeShifter.^2);
 
 
 % fit
@@ -371,21 +374,21 @@ box on
 plot(zGeoWater(1,find(zGeoWater(1,:),1,'last')),sigmaWater(1,find(sigmaTheoWater(1,:),1,'last')), 'o','color',[.7,0,1]) % purple
 plot(zGeoWater(2,find(zGeoWater(2,:),1,'last')),sigmaWater(2,find(sigmaTheoWater(2,:),1,'last')), 'ro')
 plot(zGeoWater(3,find(zGeoWater(3,:),1,'last')),sigmaWater(3,find(sigmaTheoWater(3,:),1,'last')), 'o','color',[1,.7,0]) % orange
-plot(zGeoWater(4,end),sigmaWater(4,end), 'o','color',[.5,.5,0]) % olive
+% plot(zGeoWater(4,end),sigmaWater(4,end), 'o','color',[.5,.5,0]) % olive
 
 plot(zGeoWater(1,find(zGeoWater(1,:),1,'last')),sigmaTheoWater(1,find(sigmaTheoWater(1,:),1,'last')), '*','color',[.7,0,1])
 plot(zGeoWater(2,find(zGeoWater(2,:),1,'last')),sigmaTheoWater(2,find(sigmaTheoWater(2,:),1,'last')), 'r*')
 plot(zGeoWater(3,find(zGeoWater(3,:),1,'last')),sigmaTheoWater(3,find(sigmaTheoWater(3,:),1,'last')), '*','color',[1,.7,0])
-plot(zGeoWater(4,end),sigmaTheoWater(4,end), '*','color',[.5,.5,0])
+% plot(zGeoWater(4,end),sigmaTheoWater(4,end), '*','color',[.5,.5,0])
 % plot(zGeoLinear1,sigmaTheoWaterSimple,'gx')
 
 plot(zGeoWater(1,1:find(zGeoWater(1,:),1,'last')), powerFitFun(coeffFitSigmaTheoWater(1,:),zGeoWater(1,1:find(sigmaTheoWater(1,:),1,'last'))),'color',[.7,0,1])
 plot(zGeoWater(2,1:find(zGeoWater(2,:),1,'last')), powerFitFun(coeffFitSigmaTheoWater(2,:),zGeoWater(2,1:find(sigmaTheoWater(2,:),1,'last'))),'r')
 plot(zGeoWater(3,1:find(zGeoWater(3,:),1,'last')), powerFitFun(coeffFitSigmaTheoWater(3,:),zGeoWater(3,1:find(sigmaTheoWater(3,:),1,'last'))),'color',[1,.7,0])
-plot(zGeoWater(4,1:end), powerFitFun(coeffFitSigmaTheoWater(4,:),zGeoWater(4,1:end)),'color',[.5,.5,0])
+% plot(zGeoWater(4,1:end), powerFitFun(coeffFitSigmaTheoWater(4,:),zGeoWater(4,1:end)),'color',[.5,.5,0])
 
-legend('base data','base data','base data','base data',...
-    'theoretical','theoretical','theoretical','theoretical',...
+legend('base data','base data','base data',...
+    'theoretical','theoretical','theoretical',...
     'location','northwest')
 
 if saveFigs

@@ -5,19 +5,13 @@ clear
 close all
 load PHANTOM_for_falloffs.mat
 
+ct = struct('cube',cell(1,1),'resolution',struct('x',1,'y',1,'z',1),...
+    'cubeDim',[500,500,500],'numOfCtScen',1);
+ct.cube{1,1} = zeros(500,500,500);
+
 breastThickness = 30;   % [mm]
 targetThickness = 40;   % [mm]
-lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100]; % [mm]
-% breastThickness = 30;
-% targetThickness = 80;
-% lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100];
-% breastThickness = 70;
-% targetThickness = 40;
-% lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100];
-% breastThickness = 70;
-% targetThickness = 80;
-% lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100];
-
+lungGeoThickness = 50;  % [mm]
 % Pmod = 256;         % [µm]
 
 plotDD = 1;           % true / false
@@ -33,8 +27,8 @@ cst{3,3} = 'OAR';
 cst{3,5} = cst{1,5};
 cst{3,5}.visibleColor = [.7 .7 0];	% olive
 
-A = zeros(250,250,250);
-A(:,2:breastThickness/2+1,:) = 1;
+A = zeros(500,500,500);
+A(:,2:breastThickness+1,:) = 1;
 ix = find(A > 0);
 cst{3,4}{1} = ix;
 cst{3,7} = [];
@@ -49,27 +43,27 @@ cst{4,3} = 'OAR';
 cst{4,5} = cst{1,5};
 cst{4,5}.visibleColor = [.7,0,1];	% purple
 
-A = zeros(250,250,250);
-A(:, (breastThickness/2+2) : round(breastThickness/2+2 + lungGeoThickness(h)/2-1), :) = 1;
+A = zeros(500,500,500);
+A(:, (breastThickness+2) : round(breastThickness+2 + lungGeoThickness(h)-1), :) = 1;
 ix = find(A > 0);
 cst{4,4}{1} = ix;
 
 ct.cube{1}(cst{4,4}{1}) = .297;     % formerly .306
 
 % target size
-x1target = 125 - round(targetThickness/4) + 1;
-x2target = 125 + round(targetThickness/4);
-y1target = round(breastThickness/2+2 + lungGeoThickness(h)/2-1 + 1);
-y2target = round(breastThickness/2+2 + lungGeoThickness(h)/2-1 + 1 + targetThickness/2-1);
+x1target = 250 - round(targetThickness/2) + 1;
+x2target = 250 + round(targetThickness/2);
+y1target = round(breastThickness+2 + lungGeoThickness(h)-1 + 1);
+y2target = round(breastThickness+2 + lungGeoThickness(h)-1 + 1 + targetThickness-1);
 
-A = zeros(250,250,250);
+A = zeros(500,500,500);
 A(x1target:x2target, y1target:y2target, x1target:x2target) = 1;
 ix = find(A > 0);
 cst{2,4}{1} = ix;
 cst{2,7} = [];
 
 % water phantom
-A = zeros(250,250,250);
+A = zeros(500,500,500);
 A(:, y1target:end, :) = 1;
 ix = find(A > 0);
 cst{1,4}{1} = ix;
@@ -108,10 +102,10 @@ resultGUI = matRad_calcDoseDirect(ct,stf,pln,cst,resultGUI.w);
 resultGUI.RBExDose_homo = resultGUI.RBExDose;
 
 % create depth dose curves (DD)
-coords_matRad = 1:1:250;        % [mm*2]
-coords_spline = .05:.0005:250;	% [mm*2]
+coords_matRad = 1:1:500;        % [mm]
+coords_spline = .05:.001:500;	% [mm]
 
-dd_0 = resultGUI.RBExDose_homo(round(pln.propStf.isoCenter(2)/2), :, round(pln.propStf.isoCenter(3)/2));
+dd_0 = resultGUI.RBExDose_homo(round(pln.propStf.isoCenter(2)), :, round(pln.propStf.isoCenter(3)));
 dd_0_spline = spline(coords_matRad,dd_0,coords_spline);
 
 % calculate falloff 80%-20%
@@ -142,7 +136,7 @@ cst{4,5}.HeterogeneityCorrection = 'Lung';
 resultGUI_hetero = matRad_calcDoseDirect(ct,stf,pln,cst,resultGUI.w);
 resultGUI.RBExDose_hetero = resultGUI_hetero.RBExDose;
 
-dd_lung = resultGUI.RBExDose_hetero(round(pln.propStf.isoCenter(2)/2), :, round(pln.propStf.isoCenter(3)/2));
+dd_lung = resultGUI.RBExDose_hetero(round(pln.propStf.isoCenter(2)), :, round(pln.propStf.isoCenter(3)));
 dd_lung_spline = spline(coords_matRad,dd_lung,coords_spline);
 
 if plotDD
@@ -151,12 +145,12 @@ if plotDD
         num2str(lungGeoThickness(h)) ' mm lung, target size ' ...
         num2str(targetThickness) ' mm'])   
     hold on
-    plot(coords_matRad*2,dd_0,'ob')
-    plot(coords_spline*2,dd_0_spline,'b')
-    plot(coords_matRad*2,dd_lung,'or')
-    plot(coords_spline*2,dd_lung_spline,'r')
-    plot([y1target*2,y1target*2],[0,2.3],'k')
-    plot([y2target*2,y2target*2],[0,2.3],'k')
+    plot(coords_matRad+2,dd_0,'ob')
+    plot(coords_spline+2,dd_0_spline,'b')
+    plot(coords_matRad+2,dd_lung,'or')
+    plot(coords_spline+2,dd_lung_spline,'r')
+    plot([y1target+2,y1target+2],[0,2.3],'k')
+    plot([y2target+2,y2target+2],[0,2.3],'k')
     legend('without heterogeneity','spline','with lung heterogeneity','spline','target boundary',...
         'location','northeast')
 %     legend('without heterogeneity','with lung heterogeneity','target boundary','location','north')
@@ -168,7 +162,7 @@ if plotDD
     
     savefig(ddFig,...
         ['D:\analyzed matRad data\Analysis phantom degradation\fallOff_D95_bugfix\'...
-        'breast' num2str(breastThickness) '_target' num2str(targetThickness) '\DD_breastThickness' ...
+        'resolution1mm\DD_breastThickness' ...
         num2str(breastThickness) '_targetThickness_' num2str(targetThickness) ...
         '_lungThickness_' num2str(lungGeoThickness(h)) '.fig']) 
 %     savefig(dd,['DD_breastThickness' num2str(breastThickness) '_targetThickness_' ...
@@ -199,7 +193,7 @@ resultGUI.RBExDose_diffHeteroHomo = absDiffCube;
 
 %% save results
 save(['D:\analyzed matRad data\Analysis phantom degradation\fallOff_D95_bugfix\'...
-    'breast' num2str(breastThickness) '_target' num2str(targetThickness) '\results_breastThickness_' ...
+    'resolution1mm\results_breastThickness_' ...
     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) ...
     '_lungThickness_' num2str(lungGeoThickness(h))],...
     'ct','cst','dij','pln','resultGUI','stf',...
@@ -234,7 +228,7 @@ matRad_showQualityIndicators(qi_lung);
 
 savefig(dvhFig,...
     ['D:\analyzed matRad data\Analysis phantom degradation\fallOff_D95_bugfix\'...
-    'breast' num2str(breastThickness) '_target' num2str(targetThickness) '\DVH_breastThickness_' ...
+    'resolution1mm\DVH_breastThickness_' ...
     num2str(breastThickness) '_targetThickness_' num2str(targetThickness) ...
     '_lungThickness_' num2str(lungGeoThickness(h)) '.fig'])
 % savefig(dvhFig,...
