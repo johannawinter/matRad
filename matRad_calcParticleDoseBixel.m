@@ -12,7 +12,7 @@ function dose = matRad_calcParticleDoseBixel(radDepths, radialDist_sq, sigmaIni_
 %   sigmaIni_sq:        initial Gaussian sigma^2 of beam at patient surface
 %   baseData:           base data required for particle dose calculation
 %   heteroCorrDepths:   radiological depths for heterogeneity correction (optional)
-%   heteroCorrType:     'complete','voxelBased','depthBased' (optional)
+%   heteroCorrType:     'complete','depthBased','voxelwise' (optional)
 %
 % output
 %   dose:   particle dose at specified locations as linear vector
@@ -37,7 +37,7 @@ function dose = matRad_calcParticleDoseBixel(radDepths, radialDist_sq, sigmaIni_
 
 % default heterogeneity correction type
 if exist('heteroCorrDepths','var') && ~exist('heteroCorrType','var')
-    heteroCorrType = 'complete';
+    heteroCorrType = 'complete';      % complete / depthBased / voxelwise
 end
 
 % add potential offset
@@ -94,21 +94,17 @@ elseif ~isfield(baseData,'sigma') && isstruct(baseData.Z)
         lungDepthAtBraggPeak = heteroCorrDepths(lungDepthAtBraggPeakIx);
         ellSq = ones(numel(radDepths),1)* (baseData.Z.width'.^2 + matRad_getHeterogeneityCorrSigmaSq(lungDepthAtBraggPeak));
     
-    %%%%%%%%%%%%%%% test
-    elseif exist('heteroCorrDepths','var') && strcmp(heteroCorrType,'voxelBased')
-        for i = 1:numel(radDepths)
-           ellSq(i,:) = baseData.Z.width'.^2 + matRad_getHeterogeneityCorrSigmaSq(heteroCorrDepths(i));
-        end
-        
     elseif exist('heteroCorrDepths','var') && strcmp(heteroCorrType,'depthBased')
-        for i = 1:size(baseData.Z.mean,1)
+        for i = 1:length(baseData.Z.mean)
             [~,lungDepthAtGaussPeakIx(i)] = min(abs(radialDist_sq+(radDepths-baseData.Z.mean(i)).^2));
         end
         lungDepthAtGaussPeak = heteroCorrDepths(lungDepthAtGaussPeakIx);
-        for i = 1:numel(baseData.Z.mean)
+        for i = 1:length(baseData.Z.mean)
             ellSq(:,i) = ones(numel(radDepths),1)* (baseData.Z.width(i)'.^2 + matRad_getHeterogeneityCorrSigmaSq(lungDepthAtGaussPeak(i)));
         end
-    %%%%%%%%%%%%%%% end test
+        
+    elseif exist('heteroCorrDepths','var') && strcmp(heteroCorrType,'voxelwise')
+        ellSq = bsxfun(@plus, baseData.Z.width'.^2, matRad_getHeterogeneityCorrSigmaSq(heteroCorrDepths));
     
     else
         ellSq = ones(numel(radDepths),1)*baseData.Z.width'.^2;

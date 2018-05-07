@@ -1,5 +1,7 @@
 % Hands-on convolution of matRad water curve compared with matRad 
 % calculation of phantom A and measurement
+clear
+close all
 
 energyStep = 70;
 

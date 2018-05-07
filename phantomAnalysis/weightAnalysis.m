@@ -6,28 +6,29 @@ close all
 
 breastThickness = 30;       % [mm]
 targetThickness = 40;       % [mm]
-lungGeoThickness = [2 5 7 10 12 15 17 20 22 45 47 50 52 55]; % [2 10 20 30 40 50 60 70 80 90 100]; % [mm]
+lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100]; % [5 10 17 30 40 50 60 70 80 90 100];
 % breastThickness = 30;
 % targetThickness = 80;
-% lungGeoThickness = [2 5 7 10 12 15 17 42 45 47 50 82 85 87 90]; % [2 10 20 30 40 50 60 70 80 90 100] % [mm]
+% lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100]; % [5 10 17 30 40 50 60 70 80 90 100];
 % breastThickness = 70;       % [mm]
 % targetThickness = 40;       % [mm]
-% lungGeoThickness = [2 5 7 10 12 15 17 20 22 50 52 55 57 60 87 90 92 95 97]; % [2 10 20 30 40 50 60 70 80 90 100]; % [mm]
+% lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100]; % [5 10 17 30 40 50 60 70 80 90 100];
 % breastThickness = 70;
 % targetThickness = 80;
-% lungGeoThickness = [2 5 7 10 12 15 17 20 22 35 37 40 42 45 47 50 52 90 92 95 97]; % [2 10 20 30 40 50 60 70 80 90 100]; % [mm]
+% lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100]; % [5 10 17 30 40 50 60 70 80 90 100];
 
-rho = .306;                 % [g/cm^3] lung density
+rho = .297;                 % [g/cm^3] lung density
 
 for i = 1:length(lungGeoThickness)
     close all
     
     % load results from optimized phantom treatment plan
-    load(['C:\Matlab\Analysis phantom degradation\fallOff_D95_accordingToSigmaAnalysis\breast' ...
+    load(['D:\analyzed matRad data\Analysis phantom degradation\fallOff_D95_bugfix\breast' ...
         num2str(breastThickness) '_target' num2str(targetThickness) ...
         '\results_breastThickness_' num2str(breastThickness) ...
         '_targetThickness_' num2str(targetThickness) '_lungThickness_' ...
-        num2str(lungGeoThickness(i)) '.mat'])
+        num2str(lungGeoThickness(i)) '.mat'],...
+        'pln','stf','resultGUI')
     
     
     %% find energies for each ray and separate weight vector into rays and energies
@@ -135,9 +136,9 @@ for i = 1:length(lungGeoThickness)
     end
     
     % get physical dose, that is sum of dose profiles, on central ray
-    centralRay.x = round(pln.isoCenter(2)/2);
-    centralRay.z = round(pln.isoCenter(3)/2);
-    doseSumCentralRay = resultGUI.physicalDose_noHeterogeneity(centralRay.x, :, centralRay.z);
+    centralRay.x = round(stf.isoCenter(2)/2);
+    centralRay.z = round(stf.isoCenter(3)/2);
+    doseSumCentralRay = resultGUI.RBExDose_homo(centralRay.x, :, centralRay.z);
     coords_matRad = 1:1:250;            % [mm*2]
     
     % calculate water coordinates for doseSum in mm (different from coords_matRad in mm*2!)
@@ -187,7 +188,7 @@ for i = 1:length(lungGeoThickness)
     end
     
     % get physical dose integrated over all rays
-    doseSumAllRays = sum(sum(resultGUI.physicalDose_noHeterogeneity(:,:,:),1),3);
+    doseSumAllRays = sum(sum(resultGUI.RBExDose_homo(:,:,:),1),3);
     
     % plot energy-separated dose profiles summed up over all rays
     weightedDoseProfilesAllRaysFig = figure;
@@ -209,7 +210,7 @@ for i = 1:length(lungGeoThickness)
     
     
     %% save results and plots
-    save(['C:\Matlab\Analysis phantom degradation\weight_analysis\breast' ...
+    save(['D:\analyzed matRad data\Analysis phantom degradation\weight_analysis\breast' ...
         num2str(breastThickness) '_target' num2str(targetThickness) ...
         '\results_lung' num2str(lungGeoThickness(i))],...
         'breastThickness','targetThickness','lungGeoThickness','i','rho',...
@@ -221,7 +222,7 @@ for i = 1:length(lungGeoThickness)
         '-v7.3')
     
     savefig([weightsCentralRayFig,weightsAllRaysFig,weightedDoseProfilesCentralRayFig,weightedDoseProfilesAllRaysFig], ...
-        ['C:\Matlab\Analysis phantom degradation\weight_analysis\breast' ...
+        ['D:\analyzed matRad data\Analysis phantom degradation\weight_analysis\breast' ...
         num2str(breastThickness) '_target' num2str(targetThickness) ...
         '\figs_lung' num2str(lungGeoThickness(i)) '.fig'])
     

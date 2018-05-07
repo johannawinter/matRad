@@ -39,10 +39,7 @@ pln.propStf.bixelWidth      = 5; % [mm] / also corresponds to lateral spot spaci
 pln.propStf.gantryAngles    = [270]; % [°]
 pln.propStf.couchAngles     = [0]; % [°]
 pln.propStf.numOfBeams      = numel(pln.propStf.gantryAngles);
-% pln.numOfVoxels     = prod(ct.cubeDim);
 pln.propStf.isoCenter       = ones(pln.propStf.numOfBeams,1) * matRad_getIsoCenter(cst,ct,0);
-% pln.voxelDimensions = ct.cubeDim;
-
 
 % optimization settings
 pln.propOpt.bioOptimization = 'const_RBExD'; % none: physical optimization;             const_RBExD; constant RBE of 1.1;

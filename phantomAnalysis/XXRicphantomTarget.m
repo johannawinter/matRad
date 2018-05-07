@@ -1,4 +1,4 @@
-% Evaluate changes in Ricphantom: target volume - several hundred PB
+% Evaluate changes in Ricphantom with target volume / several hundred PB
  
 % load RICPHANTOM_none.mat;
 % A = zeros(500,500,500);
@@ -32,8 +32,8 @@ cst{2,5}.HeterogeneityCorrection = 'Lung';
 resultGUI_A = matRad_calcDoseDirect(ct,stf,pln,cst,resultGUI.w);
 resultGUI.physicalDose_A = resultGUI_A.physicalDose;
 
-cst_A = matRad_indicatorWrapper(cst,pln,resultGUI_A);
-matRad_showDVH(cst_A,pln)
+% cst_A = matRad_indicatorWrapper(cst,pln,resultGUI_A);
+% matRad_showDVH(cst_A,pln)
 
 resultGUI.physicalDose_diff = resultGUI.physicalDose_A - resultGUI.physicalDose;
 
