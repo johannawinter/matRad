@@ -103,7 +103,7 @@ end
 % if calcDoseDirect
     V = [cst{:,4}];
 % else
-%     V = [cst{5,4}];         % only for my phantom analysis!
+%     V = [cst{5,4}];         % only for phantomFallOffComputation and phantomHalfHeterogeneousLung for faster computation!
 % end
 V = unique(vertcat(V{:}));
 

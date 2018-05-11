@@ -1,7 +1,10 @@
 % Find contributions of second highest energy to falloff z8020 variation.
-% The residuals come from a linear fit (sofar in Excel).
-% The relative peak heights of the second last energy  were manually
-% derived from the plots (figs_lungXX). 
+% Relative peak heights of second last energy are derived from previous
+% results of weighted dose summed up over all rays;
+% results_XXXX.weightedDoseAllRays: energies in columns, depths in rows.
+% z8020 from previous results are fitted linearly and the residuals thereof
+% are used for this correlation analysis.
+
 
 clear
 close all
@@ -51,23 +54,39 @@ z8020_7040 = results_z8020_7040.mean_z8020;
 z8020_7080 = results_z8020_7080.mean_z8020;
 
 
-%% find relative peak height of BP of second last energy
+%% find peak height of BP of second last energy relative to peak height of last energy
 relPeakHeightSecond3040 = zeros(1,N);
 relPeakHeightSecond3080 = zeros(1,N);
 relPeakHeightSecond7040 = zeros(1,N);
 relPeakHeightSecond7080 = zeros(1,N);
 
+% for i = 1:N
+%     relPeakHeightSecond3040(i) = max(results_3040(i).weightedDoseAllRays(end-1,:)) ...
+%         ./ max(results_3040(i).weightedDoseAllRays(end,:));
+%     relPeakHeightSecond3080(i) = max(results_3080(i).weightedDoseAllRays(end-1,:)) ...
+%         ./ max(results_3080(i).weightedDoseAllRays(end,:));
+%     relPeakHeightSecond7040(i) = max(results_7040(i).weightedDoseAllRays(end-1,:)) ...
+%         ./ max(results_7040(i).weightedDoseAllRays(end,:));
+%     relPeakHeightSecond7080(i) = max(results_7080(i).weightedDoseAllRays(end-1,:)) ...
+%         ./ max(results_7080(i).weightedDoseAllRays(end,:));
+% end
+
+% find sum of peak height of last and second last energy relative to max peak height
+% (max peak height is always at last or second last energy)
 for i = 1:N
-    relPeakHeightSecond3040(i) = max(results_3040(i).weightedDoseAllRays(end-1,:)) ...
+    relPeakHeightSecond3040(i) = (max(results_3040(i).weightedDoseAllRays(end-1,:)) ...
+        + max(results_3040(i).weightedDoseAllRays(end,:))) ...
         ./ max(results_3040(i).weightedDoseAllRays(:));
-    relPeakHeightSecond3080(i) = max(results_3080(i).weightedDoseAllRays(end-1,:)) ...
+    relPeakHeightSecond3080(i) = (max(results_3080(i).weightedDoseAllRays(end-1,:)) ...
+        + max(results_3080(i).weightedDoseAllRays(end,:))) ...
         ./ max(results_3080(i).weightedDoseAllRays(:));
-    relPeakHeightSecond7040(i) = max(results_7040(i).weightedDoseAllRays(end-1,:)) ...
+    relPeakHeightSecond7040(i) = (max(results_7040(i).weightedDoseAllRays(end-1,:)) ...
+        + max(results_7040(i).weightedDoseAllRays(end,:))) ...
         ./ max(results_7040(i).weightedDoseAllRays(:));
-    relPeakHeightSecond7080(i) = max(results_7080(i).weightedDoseAllRays(end-1,:)) ...
+    relPeakHeightSecond7080(i) = (max(results_7080(i).weightedDoseAllRays(end-1,:)) ...
+        + max(results_7080(i).weightedDoseAllRays(end,:))) ...
         ./ max(results_7080(i).weightedDoseAllRays(:));
 end
-
 
 %% linearly fit z8020 and find residuals from fit
 % linearly fit z8020, first coefficient is slope, second is intersect
@@ -108,28 +127,29 @@ pAll = pMxAll(2,1);
 
 %% create scatter plot for all setups
 contributionFig = figure;
-title(['Contribution of second highest energy to falloff variation: corr coeff = ' ...
+title(['Contribution of highest + second highest energy to falloff variation: corr coeff = ' ...
     num2str(corrcoeffAll) ', p = ' num2str(pAll)])
 hold on
 scatter(relPeakHeightSecond3040,residualsLinearFit3040,'+')
 scatter(relPeakHeightSecond3080,residualsLinearFit3080,'x')
 scatter(relPeakHeightSecond7040,residualsLinearFit7040,'filled','s')
 scatter(relPeakHeightSecond7080,residualsLinearFit7080,'filled','d')
-plot([.2 1],[0 0],'--','color',[.5 .5 .5])
+plot([1.2 2],[0 0],'--','color',[.5 .5 .5])
 legend(['chest 30 mm, target 40 mm, corr coeff = ' num2str(corrcoeff(1),3) ', p = ' num2str(p(1),3)], ...
     ['chest 30 mm, target 80 mm, corr coeff = ' num2str(corrcoeff(2),3) ', p = ' num2str(p(2),3)], ...
     ['chest 70 mm, target 40 mm, corr coeff = ' num2str(corrcoeff(3),3) ', p = ' num2str(p(3),3)], ...
     ['chest 70 mm, target 80 mm, corr coeff = ' num2str(corrcoeff(4),3) ', p = ' num2str(p(4),3)], ...
     'location','northwest')
-xlabel('relative peak height of second highest energy')
+xlabel('relative peak height of highest + second highest energy')
 ylabel('z8020 residuals from linear fit [mm]')
 
 
 %% save results and figure
-save('D:\analyzed matRad data\Analysis phantom degradation\weight_analysis\contributionCorrelationResults',...
+save('D:\analyzed matRad data\Analysis phantom degradation\weight_analysis\contributionCorrelationResultsMaxPlusSecond',...
     'residualsLinearFit3040','residualsLinearFit3080','residualsLinearFit7040','residualsLinearFit7080',...
     'relPeakHeightSecond3040','relPeakHeightSecond3080','relPeakHeightSecond7040','relPeakHeightSecond7080',...
     'corrcoeff','p')
 savefig(contributionFig,...
-    'D:\analyzed matRad data\Analysis phantom degradation\weight_analysis\contributionSecondMaxEnergyToFalloff')
+    ['D:\analyzed matRad data\Analysis phantom degradation\weight_analysis\'...
+    'contributionMaxPlusSecondEnergyToFalloff'])
 

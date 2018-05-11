@@ -1,4 +1,4 @@
-% Falloff (z8020) analysis for patients using all rays that reach 90% of
+% Falloff (z8020) analysis for patients using all rays that reach 95% of
 % prescription dose. 
 % Calculate (DeltaD95 and) falloff z80%-20% with and without
 % heterogeneity correction and create histograms. 
@@ -9,19 +9,19 @@ close all
 
 %% prepare patient data
 % load treatment case with all dose distributions, only 1 field
-load('C:\Matlab\HIT-Lung\H03368\1_field\results_1fields_P256')
-% load('C:\Matlab\HIT-Lung\H03368\1_field\ctGrid\results_1fields_P256')
-% load('C:\Matlab\HIT-Lung\H03368\1_field\doseGrid\results_1fields_P256')
-% load('C:\Matlab\HIT-Lung\H03368\2_fields\results_2fields_P256')
-% load('C:\Matlab\HIT-Lung\H03368\2_fields\ctGrid\results_2fields_P256')
-% load('C:\Matlab\HIT-Lung\H03368\2_fields\doseGrid\results_2fields_P256')
-% load('C:\Matlab\HIT-Lung\S00003\2_fields\results_2fields_P256')
-% load('C:\Matlab\HIT-Lung\S00003\3_fields\results_3fields_P256')
-% load('C:\Matlab\HIT-Lung\S00002\results_3fields_P256')
-% load('C:\Matlab\HIT-Lung\S00001\results_3fields_P256')
-% load('C:\Matlab\HIT-Lung\H04889\results_2fields_P256')
-% load('C:\Matlab\HIT-Lung\S00004\results_3fields_P256')
-% load('C:\Matlab\HIT-Lung\S000005\results_5fields_P256')
+load('D:\analyzed matRad data\HIT-Lung\H03368\1_fields\results_1fields_P256')
+% load('D:\analyzed matRad data\HIT-Lung\H03368\1_fields\ctGrid\results_1fields_P256')
+% load('D:\analyzed matRad data\HIT-Lung\H03368\1_fields\doseGrid\results_1fields_P256')
+% load('D:\analyzed matRad data\HIT-Lung\H03368\2_fields\results_2fields_P256')
+% load('D:\analyzed matRad data\HIT-Lung\H03368\2_fields\ctGrid\results_2fields_P256')
+% load('D:\analyzed matRad data\HIT-Lung\H03368\2_fields\doseGrid\results_2fields_P256')
+% load('D:\analyzed matRad data\HIT-Lung\S00003\2_fields\results_2fields_P256')
+% load('D:\analyzed matRad data\HIT-Lung\S00003\3_fields\results_3fields_P256')
+% load('D:\analyzed matRad data\HIT-Lung\S00002\results_3fields_P256')
+% load('D:\analyzed matRad data\HIT-Lung\S00001\results_3fields_P256')
+% load('D:\analyzed matRad data\HIT-Lung\H04889\results_2fields_P256')
+% load('D:\analyzed matRad data\HIT-Lung\S00004\results_3fields_P256')
+% load('D:\analyzed matRad data\HIT-Lung\S000005\results_5fields_P256')
 
 patientID = 'H03368';
 % patientID = 'S00003';
@@ -52,7 +52,7 @@ end
 if completeDoseDistribution
     doseCube{1} = resultGUI.RBExDose;                       % Original
     doseCube{2} = resultGUI.matRadRecalc_RBExDose;          % Recalculated
-    doseCube{3} = resultGUI.matRadHeteroRecalc_RBExDose;	% Heterogeneity Correction
+    doseCube{3} = resultGUI.matRadHetero_RBExDose;	% Heterogeneity Correction
 else
     doseCube{1} = resultGUI.RBExDose_BEAM_4;     % Original for patient S00002
     warning('Falloff analysis for separate beams not implemented yet.')
@@ -77,6 +77,7 @@ fprintf(['Prescprition dose of ' num2str(prescDoseComplete) ' Gy in ' ...
     num2str(numFractions) ' fractions used for falloff analysis. \n'])
 try
     fprintf(['Check: Prescription description: ' pln.DicomInfo.Meta.PrescriptionDescription '\n'])
+catch
 end
 
 R80 = prescDose * .8;
@@ -130,7 +131,7 @@ for h = 1:size(stf(beam).ray,2)
 %         R80(i) = peakValue(i) * .8;
 %         R20(i) = peakValue(i) * .2;
         
-        % only use rays for falloff analysis that reach at least 95 % of
+        % only use rays for falloff analysis that reach at least 95% of
         % prescription dose; remember cut out rays
         if max(dd{i}) < .95 * prescDose
             cutRays(h,i) = 1;
@@ -276,19 +277,19 @@ ylabel('counts')
 %% save results
 fprintf('Saving results...')
 % \beam' num2str(beam) '
-save(['C:\Matlab\HIT-Lung_falloff\' patientID '\beam' num2str(beam) '\results_falloff'],...
+save(['D:\analyzed matRad data\HIT-Lung_falloff\' patientID '\beam' num2str(beam) '\results_falloff'],...
     'patientID','beam','cst','ct','pln','resultGUI','stf',...
     'lungCube','doseCube', ... %'coordsInterpRad','ddInterpRadValue',...
     'prescDose','z8020','cutRays','-v7.3')
 
-save(['C:\Matlab\HIT-Lung_falloff\' patientID '\beam' num2str(beam) '\z8020'],...
+save(['D:\analyzed matRad data\HIT-Lung_falloff\' patientID '\beam' num2str(beam) '\z8020'],...
     'z8020')
 
 savefig(cutRaysFig, ...
-    ['C:\Matlab\HIT-Lung_falloff\' patientID '\beam' num2str(beam) '\cutRays.fig'])
+    ['D:\analyzed matRad data\HIT-Lung_falloff\' patientID '\beam' num2str(beam) '\cutRays.fig'])
 
 savefig(histogramFig, ...
-    ['C:\Matlab\HIT-Lung_falloff\' patientID '\beam' num2str(beam) '\falloffHistogram.fig'])
+    ['D:\analyzed matRad data\HIT-Lung_falloff\' patientID '\beam' num2str(beam) '\falloffHistogram.fig'])
 
 fprintf(' done.\n')
 

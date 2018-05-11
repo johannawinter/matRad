@@ -11,16 +11,13 @@ close all
 
 % breastThickness = 30;
 % targetThickness = 40;
-% lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100];
-% breastThickness = 30;
-% targetThickness = 80;
-% lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100];
-breastThickness = 70;
-targetThickness = 40;
-lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100];
+breastThickness = 30;
+targetThickness = 80;
+% breastThickness = 70;
+% targetThickness = 40;
 % breastThickness = 70;
 % targetThickness = 80;
-% lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100];
+lungGeoThickness = [2 5 7 10 12 15 17 20 22 25 27 30 32 35 37 40 42 45 47 50 52 55 57 60 62 65 67 70 72 75 77 80 82 85 87 90 92 95 97 100];
 
 
 % load precomputed results
