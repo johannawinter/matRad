@@ -1,3 +1,4 @@
+function pln = newPropertiesPlnStfOpt(pln)
 % Update pln properties in propStf and propOpt (Februray 2018)
 
 % stf properties

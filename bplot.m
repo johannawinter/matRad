@@ -199,7 +199,7 @@ while k <= length(varargin)
             boxColor = varargin{k+1};
             wisColor = varargin{k+1};
             meanColor = varargin{k+1};
-            forceNoLegend=1;
+%             forceNoLegend=1;
             k = k + 1;
         case {'points','dots','outliers'} % display those outliers
             outlierFlag = 1;

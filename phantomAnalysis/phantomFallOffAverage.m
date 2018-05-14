@@ -44,7 +44,7 @@ D95 = 2 * .95;                      % nominal dose = 2 Gy
 R80 = 2 * .8;
 R20 = 2 * .2;
 
-% % define number of depth dose curves that lie in the target volume
+% define number of depth dose curves that lie in the target volume
 numberDDcurves = targetThickness/2;
 
 fprintf('Phantom average falloff calculation for homogeneous tissue...');
@@ -88,18 +88,14 @@ for h = 1:N
             if max(dd_0(i,j,:)) < D95
                 cutRays_0(h,i,j) = 1;
             else
-                % calculate DeltaD95 each
+                % calculate DeltaD95 for each ray
                 [~,ix_peak] = max(dd_0_spline(i,j,:));
-%                 ix_isocenter = find(coords_spline==result(h).pln.isoCenter(1)/2);
-                
-%                 coord_D95_0(h,i,j) = matRad_interp1(permute(dd_0_spline(i,j,end:-1:ix_peak),[1,3,2]),...
-%                     coords_spline(end:-1:ix_peak)', D95);
+
                 [~,ix_D95_0_behind] = min(abs(dd_0_spline(i,j,ix_peak:end)-D95));
                 ix_D95_0 = ix_D95_0_behind + ix_peak - 1;
                 coord_D95_0(h,i,j) = coords_spline(ix_D95_0);
-                
 
-                % calculate falloff each
+                % calculate falloff for each ray
                 [~,ix_R80_behind] = min(abs(dd_0_spline(i,j,ix_peak:end)-R80));
                 ix_R80 = ix_R80_behind + ix_peak - 1;
                 coord_R80 = coords_spline(ix_R80);
@@ -124,7 +120,7 @@ for h = 1:N
 %         num2str(targetThickness) ' mm target, no lung'])
 %     hold on
 %     for i = 1:size(cutRays_0,2)
-%         if cutRays_0(h,i,1)
+%         if ~isnan(cutRays_0(h,i,1))
 %             cutLine = plot(result(h).stf.ray(i).rayPos_bev(1), result(h).stf.ray(i).rayPos_bev(3), 'b*');
 %         else
 %             usedLine = plot(result(h).stf.ray(i).rayPos_bev(1), result(h).stf.ray(i).rayPos_bev(3), 'r*');
@@ -186,21 +182,16 @@ for h = 1:N
             if max(dd_0(i,j,:)) < D95
                 cutRays(h,i,j) = 1;
             else
-                % comupte Delta D95 each
+                % comupte Delta D95 for each ray
                 [~,ix_peak] = max(dd_spline(i,j,:));
-                %             ix_isocenter = find(coords_spline==result(h).pln.isoCenter(1)/2);
                 
                 [~,ix_D95_behind] = min(abs(dd_spline(i,j,ix_peak:end)-D95));
                 ix_D95 = ix_D95_behind + ix_peak - 1;
                 coord_D95(h,i,j) = coords_spline(ix_D95);
                 
                 DeltaD95(h,i,j) = (coord_D95_0(h,i,j) - coord_D95(h,i,j))*2;
-                
-                %%% test
-                % DeltaD95ForBoxplot(i,j,h) = (coord_D95_0(h,i,j) - coord_D95(h,i,j))*2;
-                %%%
-                
-                % compute falloff each
+                                
+                % compute falloff for each ray
                 [~,ix_R80_behind] = min(abs(dd_spline(i,j,ix_peak:end)-R80));
                 ix_R80 = ix_R80_behind + ix_peak - 1;
                 coord_R80 = coords_spline(ix_R80);
@@ -210,10 +201,6 @@ for h = 1:N
                 coord_R20 = coords_spline(ix_R20);
                 
                 z8020(h,i,j) = (coord_R20-coord_R80)*2; % falloff [mm]
-                
-                %%% test
-                % z8020ForBoxplot(i,j,h) = (coord_R20-coord_R80)*2;
-                %%%
             end
         end
     end
@@ -232,7 +219,7 @@ for h = 1:N
 %         num2str(targetThickness) ' mm target, ' num2str(lungGeoThickness(h)) ' mm lung'])
 %     hold on
 %     for i = 1:size(cutRays,2)
-%         if cutRays(h,i,1)
+%         if ~isnan(cutRays(h,i,1))
 %             cutLine = plot(result(h).stf.ray(i).rayPos_bev(1), result(h).stf.ray(i).rayPos_bev(3), 'b*');
 %         else
 %             usedLine = plot(result(h).stf.ray(i).rayPos_bev(1), result(h).stf.ray(i).rayPos_bev(3), 'r*');
@@ -274,11 +261,11 @@ end
 % end
 
 
-%% plot errorbars
+%% plot errorbars and boxplots
 cutRaysMaxInSlice = max(sum(sum(cutRays,3,'omitnan'),2,'omitnan'));
 
+% errorbars
 falloffD95errFig = figure;
-% title('Delta D95 and falloff comparison of modulation powers P')
 title(['Delta D95 and falloff comparison - p+ on ' num2str(breastThickness) ...
     ' mm chest wall, target size: ' num2str(targetThickness) ' mm, std dev over '...
     num2str(numberDDcurves^2 - cutRaysMaxInSlice) ' DD curves'])
@@ -290,29 +277,64 @@ errorbar(lungGeoThickness,mean_z8020_0,std_z8020_0,'m')
 xlabel('z_{geo} lung [mm]')
 ylabel('Delta D95 / z_{80-20} [mm]')
 grid on
-legend('Delta D95','falloff z_{80-20}','falloff difference','location','northwest')
+legend('Delta D95','falloff z_{80-20}','falloff difference','falloff without heterogeneity',...
+    'location','northwest')
 
 
-% %%% test
-% % prepare data for boxplot
-% DeltaD95ForBoxplot_linear = reshape(DeltaD95ForBoxplot,[numberDDcurves^2, length(lungGeoThickness)]);
-% z8020ForBoxplot_linear = reshape(z8020ForBoxplot,[numberDDcurves^2, length(lungGeoThickness)]);
-% % boxplot
+% prepare data for boxplot
+DeltaD95ForBoxplot = permute(DeltaD95,[2,3,1]);     % from (h,i,j) to (i,j,h)
+DeltaD95ForBoxplot_linear = reshape(DeltaD95ForBoxplot,[numberDDcurves^2, length(lungGeoThickness)]);
+
+z8020_0ForBoxplot = permute(z8020_0,[2,3,1]);
+z8020_0ForBoxplot_linear = reshape(z8020_0ForBoxplot,[numberDDcurves^2, length(lungGeoThickness)]);
+
+z8020ForBoxplot = permute(z8020,[2,3,1]);
+z8020ForBoxplot_linear = reshape(z8020ForBoxplot,[numberDDcurves^2, length(lungGeoThickness)]);
+
+
+% % alternative boxplot
 % falloffD95boxplotFig = figure;
 % title(['Delta D95 and falloff comparison - p+ on ' num2str(breastThickness) ...
 %     ' mm chest wall, target size: ' num2str(targetThickness) ' mm, std dev over '...
-%     num2str(numberDDcurves^2) ' DD curves'])
+%     num2str(numberDDcurves^2 - cutRaysMaxInSlice) ' DD curves'])
 % hold on
 % for i = 1:length(lungGeoThickness)
-%     bplot(DeltaD95ForBoxplot_linear(:,i),lungGeoThickness(i),'nooutliers'); %,'outliers');
-%     L = bplot(z8020ForBoxplot_linear(:,i),lungGeoThickness(i),'nooutliers');
+%     DeltaD95Line = bplot(DeltaD95ForBoxplot_linear(:,i),lungGeoThickness(i),'outliers','color','b','linewidth',1); % nooutliers/outliers
+% %     z8020Line = bplot(z8020ForBoxplot_linear(:,i),lungGeoThickness(i),'outliers','color','r','linewidth',1);
+% %     z8020_0Line = bplot(z8020_0ForBoxplot_linear(:,i),lungGeoThickness(i),'outliers','color','m','linewidth',1);
 % end
-% axis([0 105 0 5.5])
+% axis([0 105 0 6.5])
 % xlabel('z_{geo} lung [mm]')
-% ylabel('Delta D95 resp. 80% - 20% [mm]')
-% % legend('Delta D95','falloff z_{80-20}','location','northwest')
-% legend(L,'location','northwest')
-% %%%
+% ylabel('Delta D95 / z_{80-20} [mm]')
+% grid on
+% fakeLine(1) = plot(NaN,NaN,'-b');
+% fakeLine(2) = plot(NaN,NaN,'-r');
+% fakeLine(3) = plot(NaN,NaN,'-m');
+% legend(fakeLine,'Delta D95','falloff z_{80-20}','falloff without heterogeneity',...
+%     'location','northwest')
+
+
+% original Matlab boxplot
+falloffD95boxplotFig = figure;
+title(['Delta D95 and falloff comparison - p+ on ' num2str(breastThickness) ...
+    ' mm chest wall, target size: ' num2str(targetThickness) ' mm, std dev over '...
+    num2str(numberDDcurves^2 - cutRaysMaxInSlice) ' DD curves'])
+hold on
+DeltaD95Line = boxplot(DeltaD95ForBoxplot_linear,'positions',lungGeoThickness,...
+    'labels',lungGeoThickness,'colors','b','symbol','b+');
+z8020Line = boxplot(z8020ForBoxplot_linear,'positions',lungGeoThickness,...
+    'labels',lungGeoThickness,'colors','r','symbol','r+');
+z8020_0Line = boxplot(z8020_0ForBoxplot_linear,'positions',lungGeoThickness,...
+    'labels',lungGeoThickness,'colors','m','symbol','m+');
+axis([0 101 0 6.5])
+xlabel('z_{geo} lung [mm]')
+ylabel('Delta D95 / z_{80-20} [mm]')
+grid on
+fakeLine(1) = plot(NaN,NaN,'-b');
+fakeLine(2) = plot(NaN,NaN,'-r');
+fakeLine(3) = plot(NaN,NaN,'-m');
+legend(fakeLine,'Delta D95','falloff z_{80-20}','falloff without heterogeneity',...
+    'location','northwest')
 
 
 %% save results
@@ -325,6 +347,10 @@ save(['D:\analyzed matRad data\Analysis phantom degradation\fallOff_D95_bugfix\e
 
 savefig(falloffD95errFig,...
     ['D:\analyzed matRad data\Analysis phantom degradation\fallOff_D95_bugfix\falloffD95errbar_breast' ...
+    num2str(breastThickness) '_target' num2str(targetThickness) '.fig'])
+
+savefig(falloffD95boxplotFig,...
+    ['D:\analyzed matRad data\Analysis phantom degradation\fallOff_D95_bugfix\boxplots\falloffD95boxplot_breast' ...
     num2str(breastThickness) '_target' num2str(targetThickness) '.fig'])
 
 
