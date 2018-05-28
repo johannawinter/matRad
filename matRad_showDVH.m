@@ -62,8 +62,16 @@ for i = 1:numOfVois
         ix      = max([1 find(dvh(i).volumePoints>0,1,'last')]);
         currDvh = [dvh(i).doseGrid(1:ix);dvh(i).volumePoints(1:ix)];
         
-        plot(currDvh(1,:),currDvh(2,:),'LineWidth',2,'Color',colorMx(i,:), ...
-            'LineStyle',lineStyles{lineStyleIndicator},'DisplayName',cst{i,2})
+        if lineStyleIndicator == 1      % thin solid lines
+            plot(currDvh(1,:),currDvh(2,:),'LineWidth',1.5,'Color',colorMx(i,:), ...
+                'LineStyle',lineStyles{lineStyleIndicator},'DisplayName',cst{i,2})
+        elseif lineStyleIndicator == 2  % thick dotted lines
+            plot(currDvh(1,:),currDvh(2,:),'LineWidth',2.5,'Color',colorMx(i,:), ...
+                'LineStyle',lineStyles{lineStyleIndicator},'DisplayName',cst{i,2})
+        else
+            plot(currDvh(1,:),currDvh(2,:),'LineWidth',2,'Color',colorMx(i,:), ...
+                'LineStyle',lineStyles{lineStyleIndicator},'DisplayName',cst{i,2})
+        end
         
         maxDVHvol  = max(maxDVHvol,max(currDvh(2,:)));
         maxDVHdose = max(maxDVHdose,max(currDvh(1,:)));

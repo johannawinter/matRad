@@ -184,7 +184,7 @@ switch patientID
         doseWindow = [0 2.2];
         doseIsoLevels = 2*[10 30 50 70 90 95 107]/100;
         voiSelection = logical([0 0 1 1 1 1 1 0 0 1 1 1 0 0 0 0 0 0]);
-        axislim = [75 200 75 200];
+        axislim = [65 200 75 200];
     case 'S00004'
         doseWindow = [0 2.2];
         doseIsoLevels = 2*[10 30 50 70 90 95 107]/100;
@@ -295,11 +295,7 @@ addSlice = 0;
 switch patientID
     case 'H03368_1'
         addSlice = 1;
-        slice = 101;    % 1 field
-%         slice = 70;     % 1 field ct grid
-%     case 'H03368_2'
-%         addSlice = 1;
-%         slice = 76;     % ct grid
+        slice = 101;    % only 2x2x2 grid (for ct and dose grid, it is the same slice as max/min diff)
     case 'S00001'
         addSlice = 1;
         slice = 150;
@@ -342,9 +338,6 @@ end
 % plot another additional interesting slice
 addSlice2 = 0;
 switch patientID
-%     case 'H03368_2'
-%         addSlice2 = 1;
-%         slice = 69;     % ct grid
     case 'S00002'
         addSlice2 = 1;
         slice = 156;
@@ -354,7 +347,7 @@ switch patientID
     otherwise
 end
 
-if addSlice
+if addSlice2
     borderDoseWindow = max(abs(min(min(resultGUI.diff_matRadHetero_matRadRecalc(:,:,slice)))), ...
         max(max(resultGUI.diff_matRadHetero_matRadRecalc(:,:,slice))));
     doseWindow = [-borderDoseWindow borderDoseWindow];
@@ -393,30 +386,6 @@ end
 for i = invis
     cst{i,5}.Visible = 0;
 end
-
-% add VOI with margin around PTV for patient S00001 / S00002
-% margin = 10;    % [mm]
-% vMargin.x = margin;
-% vMargin.y = margin;
-% vMargin.z = margin;
-% % assign ones to PTV voxels
-% % PTV = cst{18,4}{:};     % patient S00002
-% PTV = cst{14,4}{:};     % patient S00001
-% PTVmask = zeros(ct.cubeDim);
-% PTVmask(PTV) = 1;
-% % add margin
-% PTVenlargedVoi = matRad_addMargin(PTVmask,cst,ct.resolution,vMargin,true);
-% PTVenlarged = find(PTVenlargedVoi>0);
-% % assign enlarged PTV to cst
-% % cst{end,1} = 18;             % patient S00002
-% cst{end,1} = 14;             % patient S00001
-% cst{end,2} = ['PTV_ ' num2str(margin) 'mm'];
-% cst{end,3} = 'TARGET';
-% cst{end,4}{1} = PTVenlarged;
-% % cst{end,5} = cst{18,5};      % patient S00002 same as PTV
-% % cst{end,6} = cst{18,6};      % patient S00002 same objectives as PTV
-% cst{end,5} = cst{14,5};      % patient S00001 same as PTV
-% cst{end,6} = cst{14,6};      % patient S00001 same objectives as PTV
 
 
 % calculate DVHs and quality indicators
@@ -475,11 +444,9 @@ hold off
 
 
 %% save figures
-savefig(doseFig,['D:\analyzed matRad data\HIT-Lung\' patientID '\doseSlices_' num2str(size(stf,2)) 'fields.fig'])
-savefig(dvhFig,['D:\analyzed matRad data\HIT-Lung\' patientID '\dvh_' num2str(size(stf,2)) 'fields.fig'])
-savefig(qiFig,['D:\analyzed matRad data\HIT-Lung\' patientID '\qi_' num2str(size(stf,2)) 'fields.fig'])
-
-
+savefig(doseFig,['D:\analyzed matRad data\HIT-Lung\' patientID '\doseSlices_' num2str(size(stf,2)) 'fields_voxelwise.fig'])
+savefig(dvhFig,['D:\analyzed matRad data\HIT-Lung\' patientID '\dvh_' num2str(size(stf,2)) 'fields_voxelwise.fig'])
+savefig(qiFig,['D:\analyzed matRad data\HIT-Lung\' patientID '\qi_' num2str(size(stf,2)) 'fields_voxelwise.fig'])
 
 
 
@@ -499,7 +466,7 @@ cst{a+1,1} = a;
 cst{a+1,2} = 'Lunge bds';
 cst{a+1,3} = 'OAR';
 cst{a+1,4} = cst{ax,4};
-cst{a+1,4}{1,1} = union(cst{a+1,4}{1,1},cst{bx,4}{1,1});
+cst{a+1,4}{1} = union(cst{a+1,4}{1},cst{bx,4}{1});
 cst{a+1,5} = cst{ax,5};
 
 % create contour both lungs - CTV
@@ -517,7 +484,7 @@ cst{i+1,1} = i;
 cst{i+1,2} = 'Lunge bds - CTV';
 cst{i+1,3} = 'OAR';
 cst{i+1,4} = cst{ix,4};
-cst{i+1,4}{1,1} = setdiff(cst{i+1,4}{1,1},cst{hx,4}{1,1});
+cst{i+1,4}{1} = setdiff(cst{i+1,4}{1},cst{hx,4}{1});
 cst{i+1,5} = cst{ix,5};
 
 % create contour ipsilateral lung - CTV
@@ -535,23 +502,43 @@ cst{j+1,1} = j;
 cst{j+1,2} = 'Lunge re. - CTV';
 cst{j+1,3} = 'OAR';
 cst{j+1,4} = cst{jx,4};
-cst{j+1,4}{1,1} = setdiff(cst{j+1,4}{1,1},cst{kx,4}{1,1});
+cst{j+1,4}{1} = setdiff(cst{j+1,4}{1},cst{kx,4}{1});
 cst{j+1,5} = cst{jx,5};
 
 
-% show QI comparison
-qi_homo  = matRad_calcQualityIndicators(cst,pln,resultGUI.matRadRecalc_RBExDose);
-qi_hetero = matRad_calcQualityIndicators(cst,pln,resultGUI.matRadHetero_RBExDose);
-
-qiTitle = 'Copmarison quality indicators - phantom Pmod - top: homogeneous lung, bottom: heterogeneous lung';
-qiFig = figure('Name','QI comparison','Color',[0.5 0.5 0.5],'Position',([300 300 800 600]));
-hold on
-subplot(211)
-matRad_showQualityIndicators(qi_homo)
-title(qiTitle)
-subplot(212)
-matRad_showQualityIndicators(qi_hetero)
-hold off
-
-savefig(qiFig,['D:\analyzed matRad data\HIT-Lung\' patientID '\qi_' num2str(size(stf,2)) 'fields_P256_complete.fig'])
+%% plot dose difference between complete and voxelwise convolution
+% clear
+% patientID = 'H03368_1';
+% 
+% % load results
+% resComplete = load(['D:\analyzed matRad data\HIT-Lung\' patientID '\results_1fields_P256'],...
+%     'resultGUI','cst','ct','pln');
+% resVoxel = load(['D:\analyzed matRad data\HIT-Lung\' patientID '\results_1fields_voxelwise'],'resultGUI');
+% 
+% cst = resComplete.cst; 
+% ct = resComplete.ct; 
+% pln = resComplete.pln;
+% resultGUI.heteroComplete = resComplete.resultGUI.matRadHetero_RBExDose;
+% resultGUI.heteroVoxel = resVoxel.resultGUI.matRadHetero_RBExDose;
+% resultGUI.diffVoxelComplete = resultGUI.heteroVoxel - resultGUI.heteroComplete;
+% 
+% % plot dose slice
+% plane = 3;
+% slice = round(pln.propStf.isoCenter(1,3)./ct.resolution.z);
+% thresh = .05;
+% borderDoseWindow = max(abs(min(min(resultGUI.diffVoxelComplete(:,:,slice)))), ...
+%     max(max(resultGUI.diffVoxelComplete(:,:,slice))));
+% doseWindow = [-borderDoseWindow borderDoseWindow];
+% doseIsoLevels = [-95 -70 -30 -10 10 30 70 95]/100 * max(abs(min(doseWindow)),max(doseWindow));
+% % voiSelection = [];
+% 
+% comparisonConvFig = figure;
+% matRad_plotSliceWrapper(gca,ct,cst,1,resultGUI.diffVoxelComplete,...
+%     plane,slice,thresh,1,colorcube,redblue,doseWindow,doseIsoLevels,voiSelection,'Gy (RBE)',1,'Linewidth',2);
+% matRad_plotIsoCenterMarker(gca,pln,ct,plane,slice);
+% title(['Absolute difference: voxelwise - complete convolution (z = ' num2str(slice*ct.resolution.z) ', threshold = ' num2str(thresh) ')'])
+% axis(axislim)
+% 
+% % save figure
+% savefig(comparisonConvFig,['D:\analyzed matRad data\HIT-Lung\' patientID '\doseConvComparison.fig'])
 

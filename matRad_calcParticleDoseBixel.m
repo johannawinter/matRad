@@ -37,7 +37,7 @@ function dose = matRad_calcParticleDoseBixel(radDepths, radialDist_sq, sigmaIni_
 
 % default heterogeneity correction type
 if exist('heteroCorrDepths','var') && ~exist('heteroCorrType','var')
-    heteroCorrType = 'complete';      % complete / depthBased / voxelwise
+    heteroCorrType = 'voxelwise';      % complete / depthBased / voxelwise
 end
 
 % add potential offset
