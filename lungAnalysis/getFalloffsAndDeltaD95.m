@@ -2,7 +2,7 @@ function getFalloffsAndDeltaD95(patientID)
 % Comparison of falloff (z8020) values between homogeneous and heterogeneous lung 
 % and computation of delta z8020 and delta D95 for all single rays
 
-% information about z8020 and delta D95:
+% information about delta z8020 and delta D95:
 % - 80% / 20% / 95% correspond to prescribed dose
 % - only rays used that reach >= .95 of prescribed dose
 % - negative z8020 values were set to NaN
@@ -10,6 +10,9 @@ function getFalloffsAndDeltaD95(patientID)
 %   second column: matRad recalculated dose distribution
 %   third column: matRad recalculated with heterogeneity correction
 % - rows: rays
+% - positive deltaZ8020: wider falloff with heterogeneity correction
+% - positive deltaD95: D95 closer to isocenter
+% - boxplots: box 25%-75%, whiskers:
 
 %% prepare patient data
 switch patientID

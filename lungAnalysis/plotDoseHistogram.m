@@ -2,6 +2,7 @@ function [histogramFig,boxplotFig,freqFig] = ...
     plotDoseHistogram(patientID,cst,pln,resultGUI,VoiName,doseCubeTot,boolSaveFig)
 % Analysis of dose differences by a histogram, number of voxels with underdosage,
 % boxplot, integrated frequency
+% boxplot: box represents 25% to 75%, lower whisker 5%
 
 %% Plot histogram how the dose in each voxel in specified VOI changes after 
 % introducing heterogeneity correction
@@ -161,15 +162,15 @@ group = [ones(size(doseCube{1})); 2*ones(size(doseCube{2})); 3*ones(size(doseCub
 % ylabel('RBE x Dose [Gy (RBE)]')
 % grid on
 
-% boxplot where lower whiskers are at .05%
+% boxplot where lower whiskers are at 5%
 % get quantiles
 for i = 1:length(doseCube)
     q95{i} = quantile(doseCube{i},.95);
     q75{i} = quantile(doseCube{i},.75);
     q25{i} = quantile(doseCube{i},.25);
     q05{i} = quantile(doseCube{i},.05);
-    % get whisker values
-    w95{i} = (q95{i}-q75{i}) / (q75{i}-q25{i});
+    % get whisker values from eq. q05 = q25 - w05*(q75-q25)
+    w95{i} = (q95{i}-q75{i}) / (q75{i}-q25{i});     % unused
     w05{i} = (q25{i}-q05{i}) / (q75{i}-q25{i});
 end
 
