@@ -65,8 +65,6 @@ voiTarget(V) = 1;
 % add margin
 addmarginBool = 1;
 if addmarginBool
-    %%% add 3mm
-    %%% myMargin.x = 3; myMargin.y = 3; myMargin.z = 3;
     voiTarget = matRad_addMargin(voiTarget,cst,ct.resolution,ct.resolution,true);
     V   = find(voiTarget>0);
 end
@@ -96,6 +94,13 @@ if strcmp(pln.radiationMode,'protons') || strcmp(pln.radiationMode,'carbon')
     %clear machine;
 end
 
+% calculate rED or rSP from HU
+if ~isdeployed
+   addpath(['dicomImport'])
+   addpath(['dicomImport' filesep 'hlutLibrary'])
+end
+ct = matRad_calcWaterEqD(ct, pln);
+
 % Convert linear indices to 3D voxel coordinates
 [coordsY_vox, coordsX_vox, coordsZ_vox] = ind2sub(ct.cubeDim,V);
 
@@ -118,7 +123,7 @@ for i = 1:length(pln.propStf.gantryAngles)
     stf(i).radiationMode = pln.radiationMode;
     stf(i).SAD           = SAD;
     stf(i).isoCenter     = pln.propStf.isoCenter(i,:);
-    
+        
     % Get the (active) rotation matrix. We perform a passive/system 
     % rotation with row vector coordinates, which would introduce two 
     % inversions / transpositions of the matrix, thus no changes to the
@@ -211,7 +216,7 @@ for i = 1:length(pln.propStf.gantryAngles)
     stf(i).numOfBixelsPerRay = ones(1,stf(i).numOfRays);
     
     for j = stf(i).numOfRays:-1:1
-
+        
         % ray tracing necessary to determine depth of the target
         [~,l,rho,~,~] = matRad_siddonRayTracer(stf(i).isoCenter, ...
                              ct.resolution, ...
@@ -292,12 +297,18 @@ for i = 1:length(pln.propStf.gantryAngles)
         minPeakPos  = machine.data(minEnergy == availableEnergies).peakPos;
         maxPeakPos  = machine.data(maxEnergy == availableEnergies).peakPos;
         
-        % find set of energies with adequate spacing
-        if strcmp(machine.meta.machine,'Generic')
-            longitudinalSpotSpacing = 1.5; % enforce all entries to be used
+        % find set of energyies with adequate spacing
+        if ~isfield(pln.propStf, 'longitudinalSpotSpacing')
+            if strcmp(machine.meta.machine,'Generic')
+                longitudinalSpotSpacing = 1.5; % enforce all entries to be used
+            else
+                longitudinalSpotSpacing = 3;   % default value for all other treatment machines
+            end
         else
-            longitudinalSpotSpacing = 3;   % default value for all other treatment machines
+            longitudinalSpotSpacing = pln.propStf.longitudinalSpotSpacing;
         end
+        
+        stf(i).longitudinalSpotSpacing = longitudinalSpotSpacing;
         
         tolerance              = longitudinalSpotSpacing/10;
         availablePeakPos       = [machine.data.peakPos];

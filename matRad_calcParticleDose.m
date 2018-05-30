@@ -1,4 +1,4 @@
-function dij = matRad_calcParticleDose(ct,stf,pln,cst,calcDoseDirect,cutOffLevel)
+function dij = matRad_calcParticleDose(ct,stf,pln,cst,calcDoseDirect)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad particle dose calculation wrapper
 % 
@@ -35,14 +35,13 @@ function dij = matRad_calcParticleDose(ct,stf,pln,cst,calcDoseDirect,cutOffLevel
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if nargin < 6
-   cutOffLevel = .995;
-end
-
 % default: dose influence matrix computation
 if ~exist('calcDoseDirect','var')
     calcDoseDirect = false;
 end
+
+% calculate rED or rSP from HU
+ct = matRad_calcWaterEqD(ct, pln);
 
 % initialize waitbar
 figureWait = waitbar(0,'calculate dose influence matrix for particles...');
@@ -107,6 +106,13 @@ end
 % end
 V = unique(vertcat(V{:}));
 
+% ignore densities outside of contours
+eraseCtDensMask = ones(dij.numOfVoxels,1);
+eraseCtDensMask(V) = 0;
+for i = 1:ct.numOfCtScen
+    ct.cube{i}(eraseCtDensMask == 1) = 0;
+end
+
 % Convert CT subscripts to linear indices.
 [yCoordsV_vox, xCoordsV_vox, zCoordsV_vox] = ind2sub(ct.cubeDim,V);
 
@@ -130,7 +136,6 @@ for j = 1:size(cst,1)
 end
 
 if calcHeteroCorr
-    
     calcHeteroCorrStruct.cube = {zeros(ct.cubeDim)};
     calcHeteroCorrStruct.cubeDim = ct.cubeDim;
     calcHeteroCorrStruct.numOfCtScen = 1;
@@ -138,19 +143,15 @@ if calcHeteroCorr
 
     for j = 1:size(cst,1)
         if isfield(cst{j,5},'HeterogeneityCorrection')
-
             if strcmp(cst{j,5}.HeterogeneityCorrection,'Lung')
                 calcHeteroCorrStruct.cube{1}(cst{j,4}{1}) = ct.cube{1}(cst{j,4}{1});
             else
                 error(['No heterogeneity correction method implemented for ' ...
                         cst{j,5}.HeterogeneityCorrection '.']);
             end
-
         end
     end
-
 end
-
 
 if isfield(pln,'propDoseCalc') && ...
    isfield(pln.propDoseCalc,'calcLET') && ...
@@ -237,7 +238,7 @@ for i = 1:length(stf) % loop over all beams
     coordsV  = [xCoordsV yCoordsV zCoordsV];
 
     % Get Rotation Matrix
-    % Do not transpose matrix since the usage of row vectors &
+    % Do not transpose matrix since we usage of row vectors &
     % transformation of the coordinate system need double transpose
 
     % rotation around Z axis (gantry)
@@ -251,7 +252,7 @@ for i = 1:length(stf) % loop over all beams
     rot_coordsV(:,3) = rot_coordsV(:,3)-stf(i).sourcePoint_bev(3);
 
     % Calcualte radiological depth cube
-    lateralCutoffRayTracing = 50; % [mm]
+    lateralCutoffRayTracing = 50;
     fprintf('matRad: calculate radiological depth cube...');
     radDepthV = matRad_rayTracing(stf(i),ct,V,rot_coordsV,lateralCutoffRayTracing);
     fprintf('done.\n');
@@ -262,16 +263,15 @@ for i = 1:length(stf) % loop over all beams
         fprintf('done.\n');
     end
     
-    
     % get indices of voxels where ray tracing results are available
     radDepthIx = find(~isnan(radDepthV{1}));
     
     % limit rotated coordinates to positions where ray tracing is availabe
     rot_coordsV = rot_coordsV(radDepthIx,:);
     
-  
     % Determine lateral cutoff
     fprintf('matRad: calculate lateral cutoff...');
+    cutOffLevel = .995;
     visBoolLateralCutOff = 0;
     machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf(i),visBoolLateralCutOff);
     fprintf('done.\n');    
@@ -281,7 +281,7 @@ for i = 1:length(stf) % loop over all beams
         if ~isempty(stf(i).ray(j).energy)
 
             % find index of maximum used energy (round to keV for numerical
-            % reasons
+            % reasons)
             energyIx = max(round2(stf(i).ray(j).energy,4)) == round2([machine.data.energy],4);
 
             maxLateralCutoffDoseCalc = max(machine.data(energyIx).LatCutOff.CutOff);
@@ -297,7 +297,7 @@ for i = 1:length(stf) % loop over all beams
             if calcHeteroCorr
                 heteroCorrDepths = heteroCorrDepthV{1}(ix);
             end
-           
+            
             % just use tissue classes of voxels found by ray tracer
             if (isequal(pln.propOpt.bioOptimization,'LEMIV_effect') || isequal(pln.propOpt.bioOptimization,'LEMIV_RBExD')) ... 
                 && strcmp(pln.radiationMode,'carbon')
@@ -364,7 +364,7 @@ for i = 1:length(stf) % loop over all beams
                 if calcHeteroCorr
                     currHeteroCorrDepths = heteroCorrDepths(currIx);
                 end
-
+                
                 % calculate initial focus sigma
                 sigmaIni = matRad_interp1(machine.data(energyIx).initFocus.dist (stf(i).ray(j).focusIx(k),:)', ...
                                              machine.data(energyIx).initFocus.sigma(stf(i).ray(j).focusIx(k),:)',stf(i).ray(j).SSD);
@@ -397,13 +397,13 @@ for i = 1:length(stf) % loop over all beams
                         radialDist_sq(currIx), ...
                         sigmaIni_sq, ...
                         machine.data(energyIx));
-                end
+                end                 
   
                 % dij sampling is exluded for particles until we investigated the influence of voxel sampling for particles
                 %relDoseThreshold   =  0.02;   % sample dose values beyond the relative dose
                 %Type               = 'dose';
                 %[currIx,bixelDose] = matRad_DijSampling(currIx,bixelDose,radDepths(currIx),radialDist_sq(currIx),Type,relDoseThreshold);
-
+                
                 % Save dose for every bixel in cell array
                 doseTmpContainer{mod(counter-1,numOfBixelsContainer)+1,1} = sparse(V(ix(currIx)),1,bixelDose,dij.numOfVoxels,1);
 
@@ -472,6 +472,7 @@ for i = 1:length(stf) % loop over all beams
                     
                     end
                 end
+                
 
             end
             
@@ -487,5 +488,3 @@ try
   pause(0.1); 
 catch
 end
-
-    
