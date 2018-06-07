@@ -1,5 +1,5 @@
 function [histogramFig,boxplotFig,freqFig] = ...
-    plotDoseHistogram(patientID,cst,pln,resultGUI,VoiName,doseCubeTot,boolSaveFig)
+    plotDoseHistogram(patientID,cst,ct,pln,resultGUI,VoiName,doseCubeTot,boolSaveFig)
 % Analysis of dose differences by a histogram, number of voxels with underdosage,
 % boxplot, integrated frequency
 % boxplot: box represents 25% to 75%, lower whisker 5%
@@ -32,8 +32,9 @@ prescDose = prescDoseComplete/numFractions;
 doseCube        = cell(1,length(VoiName));
 VoiIx           = cell(1,length(VoiName));
 N               = cell(1,length(VoiName));
-edges           = cell(1,length(VoiName));
 doseCubeHistogram = cell(1,length(VoiName));
+edges           = cell(1,length(VoiName));
+binPos          = cell(1,length(VoiName));
 
 % only use voxels inside VOI
 for h = 1:length(VoiName)
@@ -63,63 +64,78 @@ for h = 1:length(VoiName)
     doseCube{h} = doseCubeTot(cst{VoiIx{h},4}{1,1});
 
     % cut out voxels between -.05 and +.05 Gy (RBE) to emphasize dose differences
-    doseCubeHistogram{h} = doseCube{h}(round(doseCube{h},2)~=0);   % no truncation for boxplots!
-
+%     doseCubeHistogram{h} = doseCube{h}(round(doseCube{h},2)~=0);   % no truncation for boxplots!
+    doseCubeHistogram{h} = doseCube{h};
     
     % create histogram
-    [N{h},edges{h}] = histcounts(doseCube{h},'BinWidth',.01);
+    [N{h},edges{h}] = histcounts(doseCube{h},'BinWidth',.1);
+    binPos{h} = .5 * (edges{h}(1:end-1) + edges{h}(2:end));
 end
+
+voxelVol = ct.resolution.x * ct.resolution.y * ct.resolution.z;
 
 histogramFig = figure;
 subplot(4,1,1)
+% title(['Histogram of dose ' doseCubeName ', patient ' patientID ...
+%     ', ''' cst{VoiIx{1},2} ''' (threshold ' char(177) '0.005 Gy (RBE), '...
+%     'prescr. dose ' num2str(prescDose) ' Gy (RBE))'])
 title(['Histogram of dose ' doseCubeName ', patient ' patientID ...
-    ', VOI ''' cst{VoiIx{1},2} ''' (threshold ' char(177) '0.005 Gy (RBE), '...
-    'prescr. dose ' num2str(prescDose) ' Gy (RBE))'])
+    ', ''' cst{VoiIx{1},2} ''', prescr. dose ' num2str(prescDose) ' Gy (RBE))'])
 hold on
-histogram(doseCubeHistogram{1}(:),'BinWidth',.01);
-plot([0 0],[.5 max(N{1}(:))*1.1], '--r')
+% histogram(doseCubeHistogram{1}(:),'BinWidth',.1);
+bar(binPos{1},N{1}*voxelVol)
+% plot([0 0],[.5 max(N{1}(:))*1.1], '--r')
 set(gca,'YScale','log')
 grid on, grid minor
-ylim([.8 max(N{1})*1.1])
-xlim([floor(min(doseCubeHistogram{1})*100)/100 ceil(max(doseCubeHistogram{1})*100)/100])
+% ylim([.8 max(N{1})*1.1])
+ylim([5 max(N{1})*voxelVol*1.1])
+yticks(logspace(1,10,10))
+xlim([floor(min(doseCubeHistogram{1})*10)/10 ceil(max(doseCubeHistogram{1})*10)/10])
 xlabel('RBE x Dose [Gy (RBE)]')
-ylabel('counts')
+% ylabel('counts')
+ylabel('volume [cm^3]')
 
 subplot(4,1,2)
-title(['VOI ''' cst{VoiIx{2},2} ''''])
+title(['''' cst{VoiIx{2},2} ''''])
 hold on
-histogram(doseCubeHistogram{2}(:),'BinWidth',.01);
-plot([0 0],[.5 max(N{2})*1.1], '--r')
+% histogram(doseCubeHistogram{2}(:),'BinWidth',.1);
+bar(binPos{2},N{2}*voxelVol)
+% plot([0 0],[.5 max(N{2})*1.1], 'r')
 set(gca,'YScale','log')
 grid on, grid minor
-ylim([.8 max(N{2})*1.1])
-xlim([floor(min(doseCubeHistogram{2})*100)/100 ceil(max(doseCubeHistogram{2})*100)/100])
+ylim([5 max(N{2})*voxelVol*1.1])
+yticks(logspace(1,10,10))
+xlim([floor(min(doseCubeHistogram{2})*10)/10 ceil(max(doseCubeHistogram{2})*10)/10])
 xlabel('RBE x Dose [Gy (RBE)]')
-ylabel('counts')
+ylabel('volume [cm^3]')
 
 subplot(4,1,3)
-title(['VOI ''' cst{VoiIx{3},2} ''''])
+title(['''' cst{VoiIx{3},2} ''''])
 hold on
-histogram(doseCubeHistogram{3}(:),'BinWidth',.01);
-plot([0 0],[.5 max(N{3})*1.1], '--r')
+% histogram(doseCubeHistogram{3}(:),'BinWidth',.1);
+bar(binPos{3},N{3}*voxelVol)
+% plot([0 0],[.5 max(N{3})*1.1], 'r')
 set(gca,'YScale','log')
 grid on, grid minor
-ylim([.8 max(N{3})*1.1])
-xlim([floor(min(doseCubeHistogram{3})*100)/100 ceil(max(doseCubeHistogram{3})*100)/100])
+ylim([5 max(N{3})*voxelVol*1.1])
+yticks(logspace(1,10,10))
+xlim([floor(min(doseCubeHistogram{3})*10)/10 ceil(max(doseCubeHistogram{3})*10)/10])
 xlabel('RBE x Dose [Gy (RBE)]')
-ylabel('counts')
+ylabel('volume [cm^3]')
 
 subplot(4,1,4)
-title(['VOI ''' cst{VoiIx{4},2} ''''])
+title(['''' cst{VoiIx{4},2} ''''])
 hold on
-histogram(doseCubeHistogram{4}(:),'BinWidth',.01);
-plot([0 0],[.5 max(N{4})*1.1], '--r')
+% histogram(doseCubeHistogram{4}(:),'BinWidth',.1);
+bar(binPos{4},N{4}*voxelVol)
+% plot([0 0],[.5 max(N{4})*1.1], 'r')
 set(gca,'YScale','log')
 grid on, grid minor
-ylim([.8 max(N{4})*1.1])
-xlim([floor(min(doseCubeHistogram{4})*100)/100 ceil(max(doseCubeHistogram{4})*100)/100])
+ylim([5 max(N{4})*voxelVol*1.1])
+yticks(logspace(1,10,10))
+xlim([floor(min(doseCubeHistogram{4})*10)/10 ceil(max(doseCubeHistogram{4})*10)/10])
 xlabel('RBE x Dose [Gy (RBE)]')
-ylabel('counts')
+ylabel('volume [cm^3]')
 
 % save plot
 if boolSaveFig
@@ -149,9 +165,10 @@ end
 
 
 %% boxplot
-group = [ones(size(doseCube{1})); 2*ones(size(doseCube{2})); 3*ones(size(doseCube{3})); 4*ones(size(doseCube{4}))];
 
 % % standard boxplot
+% group = [ones(size(doseCube{1})); 2*ones(size(doseCube{2})); 3*ones(size(doseCube{3})); 4*ones(size(doseCube{4}))];
+% 
 % boxplotFig = figure;
 % title(['Boxplot of dose ' doseCubeName ', patient ' patientID ...
 %     ' (prescr. dose ' num2str(prescDose) ' Gy (RBE))'])
@@ -162,8 +179,7 @@ group = [ones(size(doseCube{1})); 2*ones(size(doseCube{2})); 3*ones(size(doseCub
 % ylabel('RBE x Dose [Gy (RBE)]')
 % grid on
 
-% boxplot where lower whiskers are at 5%
-% get quantiles
+% get quantiles 95%, 75%, 25%, 5%
 for i = 1:length(doseCube)
     q95{i} = quantile(doseCube{i},.95);
     q75{i} = quantile(doseCube{i},.75);
@@ -174,30 +190,59 @@ for i = 1:length(doseCube)
     w05{i} = (q25{i}-q05{i}) / (q75{i}-q25{i});
 end
 
-% plot
-boxplotFig = figure;
-subplot(1,4,1); hold on
-boxplot(doseCube{1},'labels',VoiName{1},'whisker',w05{1})
-plot([0 2],[0 0],'--','color',[.7 .7 .7])
-grid on, grid minor
-
-subplot(1,4,2); hold on
-boxplot(doseCube{2},'labels',VoiName{2},'whisker',w05{2})
-plot([0 2],[0 0],'--','color',[.7 .7 .7])
-title(['Boxplot of dose ' doseCubeName ', patient ' patientID ...
-    ' (prescr. dose ' num2str(prescDose) ' Gy (RBE))'])
-grid on, grid minor
-
-subplot(1,4,3); hold on
-boxplot(doseCube{3},'labels',VoiName{3},'whisker',w05{3})
-plot([0 2],[0 0],'--','color',[.7 .7 .7])
-grid on, grid minor
-
-subplot(1,4,4); hold on
-boxplot(doseCube{4},'labels',VoiName{4},'whisker',w05{4})
-plot([0 2],[0 0],'--','color',[.7 .7 .7])
-grid on, grid minor
-
+%
+for i = 1:length(doseCube)
+    % create dummy boxplot to get all outliers below 5% and above 95%
+    % outliers below 5%
+    dummyFig = figure;
+    hold off
+    boxplot(doseCube{i},'whisker',w05{i})
+    outLow = findobj(gca,'Tag','Outliers');
+    outLowY = get(outLow,'YData');
+    outLowY = outLowY(outLowY<0);
+    outLowX = get(outLow,'XData');
+    outLowX = outLowX(1:length(outLowY));
+    % outliers above 95%
+    boxplot(doseCube{i},'whisker',w95{i})
+    outHigh = findobj(gca,'Tag','Outliers');
+    outHighY = get(outHigh,'YData');
+    outHighY = outHighY(outHighY>0);
+    outHighX = get(outHigh,'XData');
+    outHighX = outHighX(1:length(outHighY));
+    % combine outlier data
+    outDataX = [outLowX,outHighX];
+    outDataY = [outLowY outHighY];
+    
+    close(dummyFig)
+    
+    % plot
+    if i == 1
+        boxplotFig = figure;
+    end
+    subplot(1,4,i)
+    hold on
+    % boxplot(doseCube{1},'labels',VoiName{1},'whisker',w05{1})
+    boxplot(doseCube{i},'labels',VoiName{i});
+    plot([0 2],[0 0],'--','color',[.7 .7 .7])
+    grid on, grid minor
+    
+    % replace upper end y value of whisker with 95%     % found in: https://groups.google.com/forum/#!searchin/comp.soft-sys.matlab/subject$3A%225th$20$26$2095th$20percentile$20in$20BOXPLOT$3F%22/comp.soft-sys.matlab/5-i02p9sQow/FMz_NeBN8pUJ
+    k = findobj(gca,'Tag','Upper Whisker');
+        set(k,'YData',[q75{i} q95{i}])
+    % replace y values of adjacent value with 95%
+    k = findobj(gca,'Tag','Upper Adjacent Value');
+        set(k,'YData',[q95{i} q95{i}])
+    % replace lower end y value of whisker with 5%
+    k = findobj(gca,'Tag','Lower Whisker');
+        set(k,'YData',[q05{i} q25{i}])
+    % replace y values of adjacent value with 5%
+    k = findobj(gca,'Tag','Lower Adjacent Value');
+        set(k,'YData',[q05{i} q05{i}])
+    % replace outlier values with all outlier values from above
+    k = findobj(gca,'Tag','Outliers');
+        set(k,'XData',outDataX);
+        set(k,'YData',outDataY);
+end
 
 % save plot
 if boolSaveFig

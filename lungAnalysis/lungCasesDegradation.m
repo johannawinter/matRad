@@ -179,12 +179,12 @@ switch patientID
         doseWindow = [1 13];
         doseIsoLevels = 66.41/6*[10 30 50 70 90 95 107]/100;
         voiSelection = logical([0 0 1 1 1 1 1 0 0 0 1 0 0 0 0 1 1 1]);
-        axislim = [100 200 50 170];
+        axislim = [120 220 50 170];
     case {'S00003_2','S00003_3'}
         doseWindow = [0 2.2];
         doseIsoLevels = 2*[10 30 50 70 90 95 107]/100;
         voiSelection = logical([0 0 1 1 1 1 1 0 0 1 1 1 0 0 0 0 0 0]);
-        axislim = [65 200 75 200];
+        axislim = [80 240 75 200];
     case 'S00004'
         doseWindow = [0 2.2];
         doseIsoLevels = 2*[10 30 50 70 90 95 107]/100;
@@ -194,11 +194,11 @@ switch patientID
         doseWindow = [0 2.4];
         doseIsoLevels = 2*[10 30 50 70 90 95 107]/100;
         voiSelection = logical([0 0 1 1 1 1 1 0 0 1 1 1 1 0 0 0 0 0 0 0]);
-        axislim = [50 220 60 175];
+        axislim = [65 245 60 180];
     case 'S00006'
         doseWindow = [1 13];
         doseIsoLevels = 66.51/6*[10 30 50 70 90 95 107]/100;
-        voiSelection = logical([1 1 1 1 1 1 0 0 1 0 0 1 1 1 1 0 0 0 0 0]);
+        voiSelection = logical([1 1 1 0 1 1 0 0 1 0 0 1 1 1 1 0 0 0 0 0]);
         axislim = [60 160 60 150];
 end
 % voiSelection = [];
