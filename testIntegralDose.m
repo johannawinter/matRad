@@ -15,7 +15,10 @@ if ~exist('doseCube','var') || isempty(doseCube)
     doseCubeName{2} = 'matRad-recalculated RBExDose';
     doseCubeName{3} = 'heterogeneity RBExDose';
 else
-    doseCubeName = ' ';
+    doseCubeName{1} = '1';
+    doseCubeName{2} = '2';
+    doseCubeName{3} = '3';
+    doseCubeName{4} = '4';
 end
 
 % integrate dose over complete dose cube

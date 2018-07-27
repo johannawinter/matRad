@@ -1,6 +1,8 @@
 function getFalloffsAndDeltaD95(patientID)
 % Comparison of falloff (z8020) values between homogeneous and heterogeneous lung 
-% and computation of delta z8020 and delta D95 for all single rays
+% and computation of delta z8020 and delta D95 for all single rays;
+% plotting histogram of falloffs, histogram of deltaD95 and delta falloffs, 
+% scatter of delta falloff of all rays, scatter of deltaD95
 
 % information about delta z8020 and delta D95:
 % - 80% / 20% / 95% correspond to prescribed dose
@@ -316,14 +318,23 @@ for b = 1:size(stf,2)   % loop over all beams (b)
 end
 
 %% plot delta z8020 and delta D95 for all beams
+clearvars -except patientID stf
+% preallocate variables
 res = struct('z8020',[],'deltaZ8020',[],'coordD95',[],'deltaD95',[]);
-maxZ8020 = [];
-minD95 = [];
-maxD95 = [];
+z8020Homo   = [];
+deltaZ8020  = [];
+maxZ8020    = [];
+minD95      = [];
+maxD95      = [];
+
+% load results
 for b = 1:size(stf,2)
     res(b) = load(['D:\analyzed matRad data\HIT-Lung\' patientID '\voxelwiseConv\'...
         'falloffs\results_falloff_beam' num2str(b)],...
         'z8020','deltaZ8020','coordD95','deltaD95');
+    
+    z8020Homo = [z8020Homo res(b).z8020(:,2)'];
+    deltaZ8020 = [deltaZ8020 res(b).deltaZ8020'];
     
     maxZ8020 = [maxZ8020 max(res(b).z8020(:,2))];
     minD95   = [minD95 min(res(b).coordD95(:,2))];
@@ -333,6 +344,17 @@ maxZ8020 = max(maxZ8020);
 minD95   = min(minD95);
 maxD95   = max(maxD95);
 
+% combine z8020 and delta z8020 and sort for corr coeffs and lin fit
+z8020deltaZ8020 = [z8020Homo', deltaZ8020'];
+z8020deltaZ8020 = sortrows(z8020deltaZ8020);
+
+% find correlation coefficients
+[rZ8020,pZ8020] = corrcoef(z8020deltaZ8020,'rows','complete');
+
+% fit linearly for not-nan values
+ix = find(~isnan(z8020deltaZ8020(:,2)));
+fitCoeff = polyfit(z8020deltaZ8020(ix,1),z8020deltaZ8020(ix,2),1);
+
 % plot delta z8020 vs. z8020
 deltaZ8020Fig = figure;
 title(['Falloff changes, all rays, ' patientID])
@@ -340,11 +362,15 @@ hold on
 for b = 1:size(stf,2)
     scatter(res(b).z8020(:,2), res(b).deltaZ8020(:),'x', 'DisplayName',['beam ' num2str(b)])
 end
+% scatter(z8020Homo,deltaZ8020,'x')
+plot(z8020deltaZ8020(ix,1), fitCoeff(1)*z8020deltaZ8020(ix,1) + fitCoeff(2),'-k','DisplayName',...
+    ['linear fit: slope = ' num2str(fitCoeff(1),2) ', y-intercept = ' num2str(fitCoeff(2),2) '; ' newline ...
+    'corr coeff: p = ' num2str(pZ8020(2,1),2) ', r = ' num2str(rZ8020(2,1),2)])
 legend('show','Autoupdate','off')
 plot([0 maxZ8020*1.05],[0 0],'--k')
 xlim([0 maxZ8020*1.05])
-xlabel('z8020 in water for homogeneous lung [mm]')
-ylabel('Delta z8020 in water [mm]')
+xlabel('z_{8020} in water for homogeneous lung [mm]')
+ylabel('Delta z_{8020} in water [mm]')
 grid on, grid minor
 
 
@@ -363,7 +389,11 @@ ylabel('Delta D95 in water [mm]')
 grid on, grid minor
 
 
-% save figures
+%% save results and figures
+save(['D:\analyzed matRad data\HIT-Lung\' patientID '\voxelwiseConv\'...
+    '\falloffs\results_falloff_all'], ...
+    'patientID','z8020deltaZ8020','rZ8020','pZ8020','fitCoeff')
+
 savefig(deltaZ8020Fig, ...
     ['D:\analyzed matRad data\HIT-Lung\' patientID '\voxelwiseConv\'...
     '\falloffs\falloffDifferenceScatter'])

@@ -2,14 +2,14 @@ function [histogramFig,boxplotFig,freqFig] = ...
     plotDoseHistogram(patientID,cst,ct,pln,resultGUI,VoiName,doseCubeTot,boolSaveFig)
 % Analysis of dose differences by a histogram, number of voxels with underdosage,
 % boxplot, integrated frequency
-% boxplot: box represents 25% to 75%, lower whisker 5%
+% boxplot: box represents 25% to 75%, whiskers 5% and 95%
 
 %% Plot histogram how the dose in each voxel in specified VOI changes after 
 % introducing heterogeneity correction
 
 % define VOI if not specified
 if ~exist('VoiName','var') || isempty(VoiName)
-    VoiName{1} = 'Aussenkontur';
+    VoiName{1} = 'PTV';
 end
 % define complete dose difference cube if not specified
 if ~exist('doseCubeTot','var') || isempty(doseCubeTot)
@@ -84,7 +84,7 @@ title(['Histogram of dose ' doseCubeName ', patient ' patientID ...
 hold on
 % histogram(doseCubeHistogram{1}(:),'BinWidth',.1);
 bar(binPos{1},N{1}*voxelVol)
-% plot([0 0],[.5 max(N{1}(:))*1.1], '--r')
+plot([0 0],[.5 max(N{1}(:))*voxelVol*1.1], 'k')
 set(gca,'YScale','log')
 grid on, grid minor
 % ylim([.8 max(N{1})*1.1])
@@ -100,7 +100,7 @@ title(['''' cst{VoiIx{2},2} ''''])
 hold on
 % histogram(doseCubeHistogram{2}(:),'BinWidth',.1);
 bar(binPos{2},N{2}*voxelVol)
-% plot([0 0],[.5 max(N{2})*1.1], 'r')
+plot([0 0],[.5 max(N{2})*voxelVol*1.1], 'k')
 set(gca,'YScale','log')
 grid on, grid minor
 ylim([5 max(N{2})*voxelVol*1.1])
@@ -114,7 +114,7 @@ title(['''' cst{VoiIx{3},2} ''''])
 hold on
 % histogram(doseCubeHistogram{3}(:),'BinWidth',.1);
 bar(binPos{3},N{3}*voxelVol)
-% plot([0 0],[.5 max(N{3})*1.1], 'r')
+plot([0 0],[.5 max(N{3})*voxelVol*1.1], 'k')
 set(gca,'YScale','log')
 grid on, grid minor
 ylim([5 max(N{3})*voxelVol*1.1])
@@ -128,7 +128,7 @@ title(['''' cst{VoiIx{4},2} ''''])
 hold on
 % histogram(doseCubeHistogram{4}(:),'BinWidth',.1);
 bar(binPos{4},N{4}*voxelVol)
-% plot([0 0],[.5 max(N{4})*1.1], 'r')
+plot([0 0],[.5 max(N{4})*voxelVol*1.1], 'k')
 set(gca,'YScale','log')
 grid on, grid minor
 ylim([5 max(N{4})*voxelVol*1.1])
@@ -145,24 +145,36 @@ end
 
 
 %% find number of voxels that receive less than (or equal) 95% and 90% of prescribed dose
-underdose5Voxels  = cell(1,length(VoiName));
-underdose10Voxels = cell(1,length(VoiName));
-totNumberVoxels  = cell(1,length(VoiName));
+underdose5Vol       = cell(1,length(VoiName));
+underdose10Vol      = cell(1,length(VoiName));
+underdosePercent5   = cell(1,length(VoiName));
+underdosePercent10  = cell(1,length(VoiName));
+totVol              = cell(1,length(VoiName));
 
 for h = 1:length(VoiName)
     underdose5Ix = find(edges{h} <= -prescDose.*.05,1,'last');
-    underdose5Voxels{h} = sum(N{h}(1:underdose5Ix-1));
+    underdose5Vol{h} = sum(N{h}(1:underdose5Ix-1)) *voxelVol;       % [mm]
     underdose10Ix = find(edges{h} <= -prescDose.*.1,1,'last');
-    underdose10Voxels{h} = sum(N{h}(1:underdose10Ix-1));
+    underdose10Vol{h} = sum(N{h}(1:underdose10Ix-1)) *voxelVol;     % [mm]
     
-    % find total number of voxels in CTV
-    totNumberVoxels{h} = length(cst{VoiIx{h},4}{1});
+    % find total volume of Voi
+    totVol{h} = length(cst{VoiIx{h},4}{1}) *voxelVol;      % [mm]
+    
+    % get percentages
+    underdosePercent5{h} = underdose5Vol{h}/totVol{h};
+    underdosePercent10{h} = underdose10Vol{h}/totVol{h};
 
-    fprintf([cst{VoiIx{h},2} ': # voxels losing at least 5%% of presc. dose: ' num2str(underdose5Voxels{h})...
-        '; # voxels losing 10%%: ' num2str(underdose10Voxels{h})...
-        '; \n# voxels in ' cst{VoiIx{h},2} ': ' num2str(totNumberVoxels{h}) '. \n'])
+    fprintf([cst{VoiIx{h},2} ': ' num2str(underdose5Vol{h}/1000,3) ' cm^3 '...
+        '(' num2str(underdosePercent5{h}*100,3) '%%) lose at least 5%% of presc. dose; ' ...
+        num2str(underdose10Vol{h}/1000,3) ' cm^3 '...
+        '(' num2str(underdosePercent10{h}*100,3) '%%) lose 10%%. \n'])
 end
 
+if boolSaveFig
+    save(['D:\analyzed matRad data\HIT-Lung\' patientID ...
+        '\voxelwiseConv\subvolumes\underdosageVolumes'], ...
+        'patientID','VoiName','underdose5Vol','underdose10Vol','underdosePercent5','underdosePercent10')
+end
 
 %% boxplot
 
@@ -177,7 +189,7 @@ end
 %     'labels',{VoiName{1},VoiName{2},VoiName{3},VoiName{4}}); %,'whisker',w95{1});
 % plot([0 3.5],[0 0],'--','color',[.7 .7 .7])
 % ylabel('RBE x Dose [Gy (RBE)]')
-% grid on
+% grid on, grid minor
 
 % get quantiles 95%, 75%, 25%, 5%
 for i = 1:length(doseCube)
@@ -186,8 +198,13 @@ for i = 1:length(doseCube)
     q25{i} = quantile(doseCube{i},.25);
     q05{i} = quantile(doseCube{i},.05);
     % get whisker values from eq. q05 = q25 - w05*(q75-q25)
-    w95{i} = (q95{i}-q75{i}) / (q75{i}-q25{i});     % unused
+    w95{i} = (q95{i}-q75{i}) / (q75{i}-q25{i});
     w05{i} = (q25{i}-q05{i}) / (q75{i}-q25{i});
+    if q75{i} == q25{i} || q75{i} == 0
+        warning(['q75 and q25 are zero, wisker length to max value for ' num2str(i) 'th dose cube.'])
+%         w95{i} = q95{i}-q75{i};
+%         w05{i} = q25{i}-q05{i};
+    end
 end
 
 %
@@ -219,11 +236,12 @@ for i = 1:length(doseCube)
     if i == 1
         boxplotFig = figure;
     end
-    subplot(1,4,i)
+    ax(i) = subplot(1,4,i);
     hold on
     % boxplot(doseCube{1},'labels',VoiName{1},'whisker',w05{1})
     boxplot(doseCube{i},'labels',VoiName{i});
     plot([0 2],[0 0],'--','color',[.7 .7 .7])
+    ylabel('RBE x Dose [Gy (RBE)]')
     grid on, grid minor
     
     % replace upper end y value of whisker with 95%     % found in: https://groups.google.com/forum/#!searchin/comp.soft-sys.matlab/subject$3A%225th$20$26$2095th$20percentile$20in$20BOXPLOT$3F%22/comp.soft-sys.matlab/5-i02p9sQow/FMz_NeBN8pUJ
@@ -240,8 +258,24 @@ for i = 1:length(doseCube)
         set(k,'YData',[q05{i} q05{i}])
     % replace outlier values with all outlier values from above
     k = findobj(gca,'Tag','Outliers');
-        set(k,'XData',outDataX);
-        set(k,'YData',outDataY);
+        try
+            set(k,'XData',outDataX)
+            set(k,'YData',outDataY)
+        
+            % find farthest outliers (or consistent yaxes)
+            farOutLow(i)  = min(get(k,'YData'));
+            farOutHigh(i) = max(get(k,'YData'));
+        catch
+        end
+end
+
+% find farthest outlier of all VOIs
+farOutLow  = min(farOutLow(:));
+farOutHigh = max(farOutHigh(:));
+
+% set yaxis consistently for all VOIs
+for i = 1:length(doseCube)
+    ylim(ax(i),[farOutLow*1.1 farOutHigh*1.1])
 end
 
 % save plot
