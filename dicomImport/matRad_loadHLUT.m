@@ -65,7 +65,7 @@ try
         matRad_dispToConsole(warnText,[],'warning');
         
         % load default HLUT
-        hlutFileName = strcat(hlutDir,'matRad_default_', particle, '.hlut');
+        hlutFileName = strcat(hlutDir,'matRad_default.hlut');
     else
         hlutFileName = hlutFileCell{existIx};
     end
@@ -77,7 +77,7 @@ catch
     warning(warnText,'backtrace','off');
     
     % load default HLUT
-    hlutFileName = strcat(hlutDir,'matRad_default_', particle, '.hlut');
+    hlutFileName = strcat(hlutDir,'matRad_default.hlut');
 
 end
 
