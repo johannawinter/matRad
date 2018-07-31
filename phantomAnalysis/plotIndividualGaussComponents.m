@@ -40,8 +40,8 @@ end
 % add lung boundaries
 lungBoundary1 = 30 - baseData.offset;
 lungBoundary2 = lungBoundary1 + 50*.297;
-lungLine(1) = plot([lungBoundary1 lungBoundary1],[0 50],'-.k');
-lungLine(2) = plot([lungBoundary2 lungBoundary2],[0 50],'-.k');
+lungLine(1) = plot([lungBoundary1 lungBoundary1],[0 55],'-.k');
+lungLine(2) = plot([lungBoundary2 lungBoundary2],[0 55],'-.k');
 
 % add legend
 if strcmp(heteroCorrType,'complete')

@@ -39,8 +39,10 @@ ix = find(A > 0);
 cst{3,4}{1} = ix;
 cst{3,7} = [];
 
-ct.cube{1}(:) = 0;
-ct.cube{1}(cst{3,4}{1}) = 1;
+% ct.cube{1}(:) = 0;
+% ct.cube{1}(cst{3,4}{1}) = 1;
+ct.cubeHU{1}(:) = -1000;
+ct.cube{1}(cst{3,4}{1}) = 0;
 
 % lung
 cst{4,1} = 3;
@@ -54,7 +56,8 @@ A(:, (breastThickness/2+2) : round(breastThickness/2+2 + lungGeoThickness(h)/2-1
 ix = find(A > 0);
 cst{4,4}{1} = ix;
 
-ct.cube{1}(cst{4,4}{1}) = .297;     % formerly .306
+% ct.cube{1}(cst{4,4}{1}) = .297;     % formerly .306
+ct.cubeHU{1}(cst{4,4}{1}) = -723.6;
 
 % target size
 x1target = 125 - round(targetThickness/4) + 1;

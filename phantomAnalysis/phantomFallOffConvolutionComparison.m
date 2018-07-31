@@ -8,15 +8,15 @@ lungGeoThickness = 30;
 breastThickness = 30;
 targetThickness = 40;
 
-complete = load(['C:\Matlab\Analysis phantom degradation\implementationComparison\'...
+complete = load(['D:\analyzed matRad data\Analysis phantom degradation\implementationComparison_30_40\'...
     'breast30_target40_completeConvolution\'...
     'results_breastThickness_30_targetThickness_40_lungThickness_' num2str(lungGeoThickness)]);
 
-depthBased = load(['C:\Matlab\Analysis phantom degradation\implementationComparison\'...
+depthBased = load(['D:\analyzed matRad data\Analysis phantom degradation\implementationComparison_30_40\'...
     'breast30_target40_depthBasedConvolution\'...
     'results_breastThickness_30_targetThickness_40_lungThickness_' num2str(lungGeoThickness)]);
 
-voxelwise = load(['C:\Matlab\Analysis phantom degradation\implementationComparison\'...
+voxelwise = load(['D:\analyzed matRad data\Analysis phantom degradation\implementationComparison_30_40\'...
     'breast30_target40_voxelwiseConvolution\'...
     'results_breastThickness_30_targetThickness_40_lungThickness_' num2str(lungGeoThickness)]);
 
@@ -38,6 +38,7 @@ diff_depth_voxel_hetero = depthBased.resultGUI.RBExDose_hetero - voxelwise.resul
 
 
 %% compare DD curves
+xValues     = complete.ct.resolution.z * linspace(1,length(dd_0),length(dd_0));
 dd_0        = complete.resultGUI.RBExDose_homo(round(isoCenter(2)/2), :, round(isoCenter(3)/2));
 dd_complete = complete.resultGUI.RBExDose_hetero(round(isoCenter(2)/2), :, round(isoCenter(3)/2));
 dd_depth    = depthBased.resultGUI.RBExDose_hetero(round(isoCenter(2)/2), :, round(isoCenter(3)/2));
@@ -46,15 +47,17 @@ dd_voxel    = voxelwise.resultGUI.RBExDose_hetero(round(isoCenter(2)/2), :, roun
 figure;
 hold on
 title(['DD: p+ on 30 mm chest wall and ' num2str(lungGeoThickness) ' mm lung, target size 40 mm, central ray'])
-plot(dd_0, '-xk')
-plot(dd_complete, '-xb')
-plot(dd_depth, '-xr')
-plot(dd_voxel,'-xg')
-xlabel('x geom [mm]')
-ylabel('dose [Gy]')
-axis([3 53 1.25 2.02])
-legend('homogeneous lung','complete convolution','depth based convolution','voxelwise convolution',...
-    'location','northwest')
+plot(xValues,dd_0, '-k')
+plot(xValues,dd_complete, '-r')
+plot(xValues,dd_depth, '-c')
+plot(xValues,dd_voxel,'-','color',[0 .5 0])
+plot([34 34],[0 2.02],'--k')
+plot([64 64],[0 2.02],'--k')
+xlabel('z [mm]')
+ylabel('dose [Gy (RBE)]')
+axis([1 115 0 2.02])
+legend('homogeneous lung','complete convolution','depth based convolution','voxelwise convolution','lung boundaries',...
+    'location','south')
 
 
 %% compare dose distributions of heterogeneous lung and plot them
@@ -118,7 +121,7 @@ doseWindow5 = [-max_diff_voxel_complete_hetero max_diff_voxel_complete_hetero];
 doseIsoLevels5 = [-2 -1.5 -1 -.5   .5 1 1.5 2] *1e-3;
 
 diffFig(5) = figure;
-matRad_plotSliceWrapper(gca,complete.ct,complete.cst,1,diff_voxel_complete_hetero,plane,...
+matRad_plotSliceWrapper(gca,complete.ct,complete.cst,1,-diff_voxel_complete_hetero,plane,...
     slice,[],1,[],redblue,doseWindow5,doseIsoLevels5,[],'Gy (RBE)', 1,'Linewidth',2);
 title(['Absolute difference in RBExDose between voxelwise and complete convolution, '...
     num2str(lungGeoThickness) ' mm lung'])
